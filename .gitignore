@@ -1,0 +1,6 @@
+.nyc_output
+.vscode
+coverage
+/mql-match.js
+node_modules
+package-lock.json
