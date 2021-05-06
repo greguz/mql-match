@@ -1,13 +1,10 @@
 import { $eq } from './eq.js'
 
-export function $regex (variable, value, options) {
-  if (value instanceof RegExp) {
-    if (options) {
-      throw new Error('Native RegExp options assignment not supported')
-    }
-    return $eq(variable, value)
-  } else if (typeof value === 'string') {
-    return $eq(variable, new RegExp(value, options))
+export function $regex (variable, pattern, flags) {
+  if (pattern instanceof RegExp) {
+    return $eq(variable, flags ? new RegExp(pattern.source, flags) : pattern)
+  } else if (typeof pattern === 'string') {
+    return $eq(variable, new RegExp(pattern, flags))
   } else {
     throw new TypeError('Unexpected $regex value')
   }

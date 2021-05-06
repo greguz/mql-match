@@ -78,6 +78,6 @@ test('$eq:date', t => {
   t.false(match(42))
   t.false(match({}))
   t.false(match(false))
-  t.false(match(new Date()))
+  t.false(match(new Date(0)))
   t.true(match(new Date(date)))
 })
