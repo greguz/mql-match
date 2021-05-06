@@ -1,9 +1,9 @@
-import $eq from './operators/eq.js'
-import $exists from './operators/exists.js'
-import $in from './operators/in.js'
-import $regex from './operators/regex.js'
-import $size from './operators/size.js'
-import $type from './operators/type.js'
+import { $eq, $ne } from './operators/eq.js'
+import { $exists } from './operators/exists.js'
+import { $in, $nin } from './operators/in.js'
+import { $regex } from './operators/regex.js'
+import { $size } from './operators/size.js'
+import { $type } from './operators/type.js'
 
 /**
  * Creates a new context with a new scope variable.
@@ -110,9 +110,9 @@ function compileOperator (context, value, key, object = {}) {
     case '$in':
       return $in(variable, value)
     case '$ne':
-      return $not($eq(variable, value))
+      return $ne(variable, value)
     case '$nin':
-      return $not($in(variable, value))
+      return $nin(variable, value)
     case '$not':
       return $not(compileExpression(context, value))
     case '$regex':

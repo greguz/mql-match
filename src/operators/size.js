@@ -1,4 +1,4 @@
-export default function $size (variable, size) {
+export function $size (variable, size) {
   if (!Number.isInteger(size) || size < 0) {
     throw new TypeError('Invalid array size')
   }

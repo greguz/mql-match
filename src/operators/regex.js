@@ -1,6 +1,6 @@
-import $eq from './eq.js'
+import { $eq } from './eq.js'
 
-export default function $regex (variable, value, options) {
+export function $regex (variable, value, options) {
   if (value instanceof RegExp) {
     if (options) {
       throw new Error('Native RegExp options assignment not supported')

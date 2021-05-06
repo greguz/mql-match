@@ -1,11 +1,11 @@
 import test from 'ava'
 
-import compile from './type.js'
+import { $type } from './type.js'
 
-function $type (code, value) {
+function compile (code, value) {
   const variable = 'value'
-  const a = compile(variable, code)
-  const b = compile(variable, value)
+  const a = $type(variable, code)
+  const b = $type(variable, value)
   if (a !== b) {
     throw new Error('Expected same result')
   }
@@ -13,7 +13,7 @@ function $type (code, value) {
 }
 
 test('$type:double', t => {
-  const match = $type('double', 1)
+  const match = compile('double', 1)
   t.false(match(undefined))
   t.false(match(null))
   t.false(match(NaN))

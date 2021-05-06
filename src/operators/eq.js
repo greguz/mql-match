@@ -1,31 +1,39 @@
 const primitives = ['boolean', 'number', 'string']
 
-function valueMethod (variable, method) {
+function callMethod (variable, method) {
   return `typeof Object(${variable}).${method} === 'function' ? ${variable}.${method}() : null`
 }
 
-/**
- * Generates code for MongoDB's "$eq" operator
- * @param {String} variable Variable to check.
- * @param {*} value Value to match.
- * @returns {String}
- */
-export default function $eq (variable, value) {
+function compile (variable, value, negated) {
+  const opertator = negated ? '!==' : '==='
+
   if (value === undefined) {
     throw new TypeError('Undefined equality not supported')
   } else if (value === null) {
-    return `${variable} === null || ${variable} === undefined`
+    return negated
+      ? `${variable} !== null && ${variable} !== undefined`
+      : `${variable} === null || ${variable} === undefined`
   } else if (value instanceof Date) {
-    return `(${valueMethod(variable, 'toISOString')}) === '${value.toISOString()}'`
+    return `(${callMethod(variable, 'toISOString')}) === '${value.toISOString()}'`
   } else if (typeof value.toHexString === 'function') {
-    return `(${valueMethod(variable, 'toHexString')}) === '${value.toHexString()}'`
+    return `(${callMethod(variable, 'toHexString')}) === '${value.toHexString()}'`
   } else if (typeof value === 'bigint') {
-    return `${variable} === ${value.toString()}n`
+    return `${variable} ${opertator} ${value.toString()}n`
   } else if (primitives.includes(typeof value)) {
-    return `${variable} === ${JSON.stringify(value)}`
+    return `${variable} ${opertator} ${JSON.stringify(value)}`
   } else if (value instanceof RegExp) {
-    return `typeof ${variable} === 'string' && ${value.toString()}.test(${variable})`
+    return negated
+      ? `typeof ${variable} !== 'string' || !${value.toString()}.test(${variable})`
+      : `typeof ${variable} === 'string' && ${value.toString()}.test(${variable})`
   } else {
     throw new Error('Unsupported equality query')
   }
+}
+
+export function $eq (variable, value) {
+  return compile(variable, value, false)
+}
+
+export function $ne (variable, value) {
+  return compile(variable, value, true)
 }

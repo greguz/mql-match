@@ -24,7 +24,7 @@ function resolve (type) {
   return type
 }
 
-export default function $type (variable, type) {
+export function $type (variable, type) {
   switch (resolve(type)) {
     case 'decimal':
     case 'double':
