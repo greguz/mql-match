@@ -1,3 +1,4 @@
+import { $gt, $gte, $lt, $lte } from './operators/compare.js'
 import { $eq, $ne } from './operators/eq.js'
 import { $exists } from './operators/exists.js'
 import { $in, $nin } from './operators/in.js'
@@ -107,8 +108,16 @@ function compileOperator (context, value, key, object = {}) {
       return $eq(variable, value)
     case '$exists':
       return $exists(variable, value)
+    case '$gt':
+      return $gt(variable, value)
+    case '$gte':
+      return $gte(variable, value)
     case '$in':
       return $in(variable, value)
+    case '$lt':
+      return $lt(variable, value)
+    case '$lte':
+      return $lte(variable, value)
     case '$ne':
       return $ne(variable, value)
     case '$nin':
