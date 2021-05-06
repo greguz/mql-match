@@ -1,5 +1,8 @@
 # mql-match
 
+[![npm version](https://badge.fury.io/js/mql-match.svg)](https://badge.fury.io/js/mql-match)
+[![Dependencies Status](https://david-dm.org/greguz/mql-match.svg)](https://david-dm.org/greguz/mql-match.svg)
+
 This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function. It uses code generation technics to
 improve matching performance.
 
