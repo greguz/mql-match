@@ -5,6 +5,8 @@ function compile (variable, value, operator) {
     return `Number.isFinite(${variable}) && ${variable} ${operator} ${value}`
   } else if (value instanceof Date) {
     return `(${serializeDate(variable)}) ${operator} ${compileDate(value)}`
+  } else if (typeof value === 'string') {
+    return `${variable} ${operator} ${JSON.stringify(value)}`
   } else {
     throw new Error()
   }
