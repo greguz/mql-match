@@ -50,7 +50,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 
 ### Array
 
-- [ ] `$all`
+- [x] `$all`
 - [x] `$elemMatch`
 - [x] `$size`
 

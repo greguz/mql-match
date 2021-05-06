@@ -54,3 +54,14 @@ test('mql:mod', t => {
   t.false(match({ items: [{ value: 41 }] }))
   t.true(match({ items: [{ value: 42 }] }))
 })
+
+test('mql:all', t => {
+  const match = compile({
+    items: {
+      $all: [2, 0]
+    }
+  })
+
+  t.false(match({ items: [0, 1, 4] }))
+  t.true(match({ items: [0, 1, 2, 3, 4] }))
+})

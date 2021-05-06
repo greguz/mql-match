@@ -1,3 +1,4 @@
+import { $all } from './operators/all.js'
 import { $gt, $gte, $lt, $lte } from './operators/compare.js'
 import { $eq, $ne } from './operators/eq.js'
 import { $exists } from './operators/exists.js'
@@ -96,13 +97,15 @@ function callback (context, query) {
 }
 
 function $elemMatch (context, query) {
-  return `Array.isArray(${context.variable}) && !!${context.variable}.find(${callback(next(context), query)})`
+  return `Array.isArray(${context.variable}) && ${context.variable}.findIndex(${callback(next(context), query)}) >= 0`
 }
 
 function compileOperator (context, value, key, object = {}) {
   const { variable } = context
 
   switch (key) {
+    case '$all':
+      return $all(variable, value)
     case '$elemMatch':
       return $elemMatch(context, value)
     case '$eq':
