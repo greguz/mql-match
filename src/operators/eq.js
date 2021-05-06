@@ -22,9 +22,10 @@ function compile (variable, value, negated) {
   } else if (primitives.includes(typeof value)) {
     return `${variable} ${opertator} ${JSON.stringify(value)}`
   } else if (value instanceof RegExp) {
+    const regexp = `new RegExp(${JSON.stringify(value.source)}, ${JSON.stringify(value.flags)})`
     return negated
-      ? `typeof ${variable} !== 'string' || !${value.toString()}.test(${variable})`
-      : `typeof ${variable} === 'string' && ${value.toString()}.test(${variable})`
+      ? `typeof ${variable} !== 'string' || !${regexp}.test(${variable})`
+      : `typeof ${variable} === 'string' && ${regexp}.test(${variable})`
   } else {
     throw new Error('Unsupported equality query')
   }
