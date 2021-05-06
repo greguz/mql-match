@@ -68,3 +68,16 @@ test('$eq:id', t => {
   t.false(match(new ObjectId()))
   t.true(match(new ObjectId(id)))
 })
+
+test('$eq:date', t => {
+  const date = new Date().toISOString()
+  const match = equals(new Date(date))
+  t.false(match(undefined))
+  t.false(match(null))
+  t.false(match(''))
+  t.false(match(42))
+  t.false(match({}))
+  t.false(match(false))
+  t.false(match(new Date()))
+  t.true(match(new Date(date)))
+})
