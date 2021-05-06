@@ -46,7 +46,7 @@ test('mql:match-array', t => {
 
 test('mql:mod', t => {
   const match = compile({
-    "items.value": {
+    'items.value': {
       $mod: [2, 0]
     }
   })

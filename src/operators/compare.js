@@ -8,7 +8,7 @@ function compile (variable, value, operator) {
   } else if (typeof value === 'string') {
     return `${variable} ${operator} ${JSON.stringify(value)}`
   } else {
-    throw new Error()
+    throw new Error('Unsupported comparison value')
   }
 }
 

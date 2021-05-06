@@ -106,6 +106,8 @@ function compileOperator (context, value, key, object = {}) {
   switch (key) {
     case '$all':
       return $all(variable, value)
+    case '$comment':
+      return 'true'
     case '$elemMatch':
       return $elemMatch(context, value)
     case '$eq':

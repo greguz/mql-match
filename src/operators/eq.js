@@ -11,7 +11,7 @@ function compileObjectId (value) {
 }
 
 function serializeObjectId (variable) {
-  return `typeof Object(${variable}).toHexString === 'function' ? ${variable}.toHexString() : null`
+  return `typeof Object(${variable}).toHexString === "function" ? ${variable}.toHexString() : null`
 }
 
 function compile (variable, value, negated) {
@@ -34,8 +34,8 @@ function compile (variable, value, negated) {
   } else if (value instanceof RegExp) {
     const regexp = `new RegExp(${JSON.stringify(value.source)}, ${JSON.stringify(value.flags)})`
     return negated
-      ? `typeof ${variable} !== 'string' || !${regexp}.test(${variable})`
-      : `typeof ${variable} === 'string' && ${regexp}.test(${variable})`
+      ? `typeof ${variable} !== "string" || !${regexp}.test(${variable})`
+      : `typeof ${variable} === "string" && ${regexp}.test(${variable})`
   } else {
     throw new Error('Unsupported equality query')
   }

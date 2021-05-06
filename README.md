@@ -50,7 +50,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 
 ### Array
 
-- [x] `$all`
+- [x] `$all` Same as `$eq` operator.
 - [x] `$elemMatch`
 - [x] `$size`
 
@@ -70,7 +70,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 
 ### Miscellaneous
 
-- [ ] `$comment`
+- [x] `$comment` Stub.
 - [ ] `$rand`
 
 ## Example

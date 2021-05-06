@@ -33,15 +33,15 @@ export function $type (variable, type) {
     case 'long':
       return `Number.isInteger(${variable})`
     case 'string':
-      return `typeof ${variable} === 'string'`
+      return `typeof ${variable} === "string"`
     case 'object':
-      return `typeof ${variable} === 'object' && ${variable} !== null`
+      return `typeof ${variable} === "object" && ${variable} !== null`
     case 'array':
       return `Array.isArray(${variable})`
     case 'objectId':
-      return `typeof Object(${variable}).toHexString === 'function'`
+      return `typeof Object(${variable}).toHexString === "function"`
     case 'bool':
-      return `typeof ${variable} === 'boolean'`
+      return `typeof ${variable} === "boolean"`
     case 'date':
       return `${variable} instanceof Date`
     case 'null':
