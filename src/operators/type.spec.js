@@ -23,3 +23,14 @@ test('$type:double', t => {
   t.true(match(1))
   t.true(match(1.1))
 })
+
+test('$type:object', t => {
+  const match = compile('object', 3)
+  t.false(match(undefined))
+  t.false(match(null))
+  t.false(match(NaN))
+  t.true(match({}))
+  t.false(match(new Date()))
+  t.false(match(Object(1)))
+  t.false(match(1))
+})

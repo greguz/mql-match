@@ -35,7 +35,7 @@ export function $type (variable, type) {
     case 'string':
       return `typeof ${variable} === "string"`
     case 'object':
-      return `typeof ${variable} === "object" && ${variable} !== null`
+      return `typeof ${variable} === "object" && ${variable} !== null && Object.getPrototypeOf(${variable}) === Object.prototype`
     case 'array':
       return `Array.isArray(${variable})`
     case 'objectId':
