@@ -6,19 +6,15 @@ import $size from './operators/size.js'
 import $type from './operators/type.js'
 
 /**
- * Generates a new variable name and update the context counter
+ * Creates a new context with a new scope variable.
  */
-function getVarName (context) {
-  return `v${context.index++}`
-}
+function next (context) {
+  const { index } = context
 
-/**
- * Update current context variable (scope)
- */
-function setVariable (context, variable) {
   return {
     ...context,
-    variable
+    index: index + 1,
+    variable: `v${index}`
   }
 }
 
@@ -34,21 +30,21 @@ function isObjectLike (value) {
  * This function is injected inside the "compiled" code.
  * @param {*} value Current value to match (scope).
  * @param {String[]} path Targeted path.
- * @param {Function} fn Matching function to apply to any targeted value.
+ * @param {Function} callback Matching function to apply to any targeted value.
  * @returns {Boolean}
  */
-function match (value, path, fn) {
+function match (value, path, callback) {
   if (value === undefined || path.length <= 0) {
-    return fn(value)
+    return callback(value)
   }
 
-  if (match(Object(value)[path[0]], path.slice(1), fn)) {
+  if (match(Object(value)[path[0]], path.slice(1), callback)) {
     return true
   }
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      if (match(item, path, fn)) {
+      if (match(item, path, callback)) {
         return true
       }
     }
@@ -61,20 +57,18 @@ function match (value, path, fn) {
  * Concat multiple (code) expressions.
  */
 function concat (values, or) {
-  if (!Array.isArray(values)) {
-    throw new TypeError()
-  } else if (values.length > 1) {
+  if (values.length > 1) {
     return values.map(value => `(${value})`).join(` ${or ? '||' : '&&'} `)
   } else if (values.length === 1) {
     return values[0]
   } else {
-    throw new Error()
+    throw new Error('Expected at least one expression')
   }
 }
 
 function $and (context, values) {
   if (!Array.isArray(values)) {
-    throw new TypeError()
+    throw new TypeError('Expected expressions array')
   }
   return concat(
     values.map(value => compileQuery(context, value))
@@ -83,7 +77,7 @@ function $and (context, values) {
 
 function $or (context, values) {
   if (!Array.isArray(values)) {
-    throw new TypeError()
+    throw new TypeError('Expected expressions array')
   }
   return concat(
     values.map(value => compileQuery(context, value)),
@@ -95,11 +89,12 @@ function $not (code) {
   return `!(${code})`
 }
 
+function callback (context, query) {
+  return `${context.variable} => ${compileQuery(context, query)}`
+}
+
 function $elemMatch (context, query) {
-  const varArray = context.variable
-  const varItem = getVarName(context)
-  const code = compileQuery(setVariable(context, varItem), query)
-  return `Array.isArray(${varArray}) && !!${varArray}.find(${varItem} => ${code})`
+  return `Array.isArray(${context.variable}) && !!${context.variable}.find(${callback(next(context), query)})`
 }
 
 function compileOperator (context, value, key, object = {}) {
@@ -139,39 +134,35 @@ function compileExpression (context, object) {
   )
 }
 
-function compileQuery (context, query) {
-  if (!isObjectLike(query)) {
-    throw new TypeError()
+function compileMatchCallback (context, value, key) {
+  let code
+  if (key === '$and') {
+    code = $and(context, value)
+  } else if (key === '$nor') {
+    code = $not($or(context, value))
+  } else if (key === '$or') {
+    code = $or(context, value)
+  } else if (isObjectLike(value)) {
+    code = compileExpression(context, value)
+  } else {
+    code = $eq(context.variable, value)
   }
 
-  const varDocument = context.variable
+  return `${context.variable} => ${code}`
+}
+
+function compileQuery (context, query) {
+  if (!isObjectLike(query)) {
+    throw new TypeError('Expected query object')
+  }
 
   return concat(
-    Object.keys(query)
-      .map(key => {
-        const value = query[key]
+    Object.keys(query).map(key => {
+      const path = JSON.stringify(key.split('.'))
+      const code = compileMatchCallback(next(context), query[key], key)
 
-        const path = key.split('.')
-
-        const varPath = getVarName(context)
-
-        const ctxCallback = setVariable(context, varPath)
-
-        let code
-        if (key === '$and') {
-          code = $and(ctxCallback, value)
-        } else if (key === '$nor') {
-          code = $not($or(ctxCallback, value))
-        } else if (key === '$or') {
-          code = $or(ctxCallback, value)
-        } else if (isObjectLike(value)) {
-          code = compileExpression(ctxCallback, value)
-        } else {
-          code = $eq(varPath, value)
-        }
-
-        return `match(${varDocument}, ${JSON.stringify(path)}, ${varPath} => ${code})`
-      })
+      return `match(${context.variable}, ${path}, ${code})`
+    })
   )
 }
 
