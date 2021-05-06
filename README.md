@@ -36,7 +36,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 
 - [ ] `$expr`
 - [ ] `$jsonSchema`
-- [ ] `$mod`
+- [x] `$mod`
 - [x] `$regex`
 - [ ] `$text`
 - [ ] `$where`

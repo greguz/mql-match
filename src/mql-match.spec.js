@@ -43,3 +43,14 @@ test('mql:match-array', t => {
   t.false(match({ items: [{ value: 0 }] }))
   t.true(match({ items: [{ value: 0 }, { value: 42 }] }))
 })
+
+test('mql:mod', t => {
+  const match = compile({
+    "items.value": {
+      $mod: [2, 0]
+    }
+  })
+
+  t.false(match({ items: [{ value: 41 }] }))
+  t.true(match({ items: [{ value: 42 }] }))
+})
