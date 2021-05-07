@@ -9,19 +9,6 @@ import { $size } from './operators/size.js'
 import { $type } from './operators/type.js'
 
 /**
- * Creates a new context with a new scope variable.
- */
-function next (context) {
-  const { index } = context
-
-  return {
-    ...context,
-    index: index + 1,
-    variable: `v${index}`
-  }
-}
-
-/**
  * Object type but not null
  */
 function isObjectLike (value) {
@@ -69,21 +56,21 @@ function concat (values, or) {
   }
 }
 
-function $and (context, values) {
+function $and (variable, values) {
   if (!Array.isArray(values)) {
     throw new TypeError('Expected expressions array')
   }
   return concat(
-    values.map(value => compileQuery(context, value))
+    values.map(value => compileQuery(variable, value))
   )
 }
 
-function $or (context, values) {
+function $or (variable, values) {
   if (!Array.isArray(values)) {
     throw new TypeError('Expected expressions array')
   }
   return concat(
-    values.map(value => compileQuery(context, value)),
+    values.map(value => compileQuery(variable, value)),
     true
   )
 }
@@ -92,22 +79,16 @@ function $not (code) {
   return `!(${code})`
 }
 
-function callback (context, query) {
-  return `${context.variable} => ${compileQuery(context, query)}`
+function $elemMatch (variable, query) {
+  return `Array.isArray(${variable}) && ${variable}.findIndex(v => ${compileQuery('v', query)}) >= 0`
 }
 
-function $elemMatch (context, query) {
-  return `Array.isArray(${context.variable}) && ${context.variable}.findIndex(${callback(next(context), query)}) >= 0`
-}
-
-function compileOperator (context, value, key, object = {}) {
-  const { variable } = context
-
+function compileOperator (variable, value, key, object = {}) {
   switch (key) {
     case '$all':
       return $all(variable, value)
     case '$elemMatch':
-      return $elemMatch(context, value)
+      return $elemMatch(variable, value)
     case '$eq':
       return $eq(variable, value)
     case '$exists':
@@ -129,7 +110,7 @@ function compileOperator (context, value, key, object = {}) {
     case '$nin':
       return $nin(variable, value)
     case '$not':
-      return $not(compileExpression(context, value))
+      return $not(compileExpression(variable, value))
     case '$regex':
       return $regex(variable, value, object.$options)
     case '$size':
@@ -141,61 +122,61 @@ function compileOperator (context, value, key, object = {}) {
   }
 }
 
-function compileExpression (context, object) {
+function compileExpression (variable, object) {
+  const keys = Object.keys(object)
+
+  const properties = keys.filter(key => key[0] !== '$')
+  if (properties.length > 0) {
+    throw new Error('Object matching not supported')
+  }
+
+  const operators = keys.filter(key => key[0] === '$')
   return concat(
-    Object.keys(object).map(
-      key => compileOperator(context, object[key], key, object)
+    operators.map(
+      key => compileOperator(variable, object[key], key, object)
     )
   )
 }
 
-function compileMatchCallback (context, value, key) {
-  let code
+function compileMatchCallback (variable, value, key) {
   if (key === '$and') {
-    code = $and(context, value)
+    return $and(variable, value)
   } else if (key === '$nor') {
-    code = $not($or(context, value))
+    return $not($or(variable, value))
   } else if (key === '$or') {
-    code = $or(context, value)
+    return $or(variable, value)
   } else if (isObjectLike(value)) {
-    code = compileExpression(context, value)
+    return compileExpression(variable, value)
   } else {
-    code = $eq(context.variable, value)
+    return $eq(variable, value)
   }
-
-  return `${context.variable} => ${code}`
 }
 
-function compileQuery (context, query) {
+function compileQuery (variable, query) {
   if (!isObjectLike(query)) {
     throw new TypeError('Expected query object')
   }
 
   const keys = Object.keys(query).filter(key => key !== '$comment')
   if (keys.length <= 0) {
-    return `typeof ${context.variable} === "object" && ${context.variable} !== null && Object.getPrototypeOf(${context.variable}) === Object.prototype`
+    return `typeof ${variable} === "object" && ${variable} !== null && Object.getPrototypeOf(${variable}) === Object.prototype`
   }
 
   return concat(
     keys.map(key => {
       const path = JSON.stringify(key.split('.'))
-      const code = compileMatchCallback(next(context), query[key], key)
+      const code = compileMatchCallback('v', query[key], key)
 
-      return `match(${context.variable}, ${path}, ${code})`
+      return `match(${variable}, ${path}, v => ${code})`
     })
   )
 }
 
 export function compile (query = {}) {
-  const context = {
-    index: 0,
-    variable: 'document'
-  }
-
   const fn = new Function(
     'match',
     'document',
-    `return ${compileQuery(context, query)}`
+    `return ${compileQuery('document', query)}`
   )
 
   return fn.bind(null, match)
