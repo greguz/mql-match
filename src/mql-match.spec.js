@@ -65,3 +65,16 @@ test('mql:all', t => {
   t.false(match({ items: [0, 1, 4] }))
   t.true(match({ items: [0, 1, 2, 3, 4] }))
 })
+
+test('mql:comment', t => {
+  const match = compile({
+    $comment: 'test'
+  })
+  t.true(match({}))
+})
+
+test('mql:empty', t => {
+  const match = compile()
+  t.true(match({}))
+  t.false(match(new Date()))
+})

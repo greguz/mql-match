@@ -106,8 +106,6 @@ function compileOperator (context, value, key, object = {}) {
   switch (key) {
     case '$all':
       return $all(variable, value)
-    case '$comment':
-      return 'true'
     case '$elemMatch':
       return $elemMatch(context, value)
     case '$eq':
@@ -173,8 +171,13 @@ function compileQuery (context, query) {
     throw new TypeError('Expected query object')
   }
 
+  const keys = Object.keys(query).filter(key => key !== '$comment')
+  if (keys.length <= 0) {
+    return `typeof ${context.variable} === "object" && ${context.variable} !== null && Object.getPrototypeOf(${context.variable}) === Object.prototype`
+  }
+
   return concat(
-    Object.keys(query).map(key => {
+    keys.map(key => {
       const path = JSON.stringify(key.split('.'))
       const code = compileMatchCallback(next(context), query[key], key)
 
@@ -183,7 +186,7 @@ function compileQuery (context, query) {
   )
 }
 
-export function compile (query) {
+export function compile (query = {}) {
   const context = {
     index: 0,
     variable: 'document'
