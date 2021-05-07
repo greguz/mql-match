@@ -3,4 +3,4 @@
  * @param {Object} query
  * @returns {Function}
  */
-export declare function compile (query: object): (document: object) => boolean
+export declare function compile (query: object): (value: any) => boolean
