@@ -1,6 +1,6 @@
 {
   "name": "mql-match",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MongoDB Query Language match function compiler",
   "main": "mql-match.js",
   "types": "mql-match.d.ts",
