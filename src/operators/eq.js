@@ -40,8 +40,11 @@ function compile (variable, value, negated) {
     let code = `Array.isArray(${variable}) && ${variable}.length === ${value.length}`
     if (value.length > 0) {
       code += ' && ' + value
-        .map((item, index) => compile(`${variable}[${index}]`, item))
+        .map((item, index) => `(${compile(`${variable}[${index}]`, item)})`)
         .join(' && ')
+    }
+    if (negated) {
+      code = `!(${code})`
     }
     return code
   } else if (typeof value === 'object') {
@@ -49,8 +52,11 @@ function compile (variable, value, negated) {
     const keys = Object.keys(value)
     if (keys.length > 0) {
       code += ' && ' + keys
-        .map(key => compile(`${variable}[${JSON.stringify(key)}]`, value[key]))
+        .map(key => `(${compile(`${variable}[${JSON.stringify(key)}]`, value[key])})`)
         .join(' && ')
+    }
+    if (negated) {
+      code = `!(${code})`
     }
     return code
   } else {
