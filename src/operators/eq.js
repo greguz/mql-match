@@ -36,6 +36,23 @@ function compile (variable, value, negated) {
     return negated
       ? `typeof ${variable} !== "string" || !${regexp}.test(${variable})`
       : `typeof ${variable} === "string" && ${regexp}.test(${variable})`
+  } else if (Array.isArray(value)) {
+    let code = `Array.isArray(${variable}) && ${variable}.length === ${value.length}`
+    if (value.length > 0) {
+      code += ' && ' + value
+        .map((item, index) => compile(`${variable}[${index}]`, item))
+        .join(' && ')
+    }
+    return code
+  } else if (typeof value === 'object') {
+    let code = `typeof ${variable} === "object" && ${variable} !== null`
+    const keys = Object.keys(value)
+    if (keys.length > 0) {
+      code += ' && ' + keys
+        .map(key => compile(`${variable}[${JSON.stringify(key)}]`, value[key]))
+        .join(' && ')
+    }
+    return code
   } else {
     throw new Error('Unsupported equality query')
   }

@@ -6,22 +6,20 @@
 This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function. It uses code generation technics to
 improve matching performance.
 
-MongoDB's field reference resolution is fully supported.
-
-Currently, only common operators are supported. Down here, there's a support chart. Future updates will bring support to other operators.
+Currently, not all operators are supported. Future updates will bring support for more operators.
 
 ## [Operators](https://docs.mongodb.com/manual/reference/operator/query/) support
 
 ### Comparison
 
-- [x] `$eq` Object match not supported.
+- [x] `$eq`
 - [x] `$gt` Numbers, dates, and strings only.
 - [x] `$gte` Numbers, dates, and strings only.
-- [x] `$in` Same as `$eq` operator.
+- [x] `$in`
 - [x] `$lt` Numbers, dates, and strings only.
 - [x] `$lte` Numbers, dates, and strings only.
-- [x] `$ne` Same as `$eq` operator.
-- [x] `$nin` Same as `$eq` operator.
+- [x] `$ne`
+- [x] `$nin`
 
 ### Logical
 
@@ -33,7 +31,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 ### Element
 
 - [x] `$exists` Check if value is `undefined`.
-- [x] `$type` Some uncommon types are not supported.
+- [x] `$type` The `"binData"`, `"undefined"`, `"dbPointer"`, `"javascript"`, `"symbol"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` types are **not** supported.
 
 ### Evaluation
 
@@ -53,7 +51,7 @@ Currently, only common operators are supported. Down here, there's a support cha
 
 ### Array
 
-- [x] `$all` Same as `$eq` operator.
+- [x] `$all`
 - [x] `$elemMatch`
 - [x] `$size`
 

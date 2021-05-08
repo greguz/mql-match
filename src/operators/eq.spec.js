@@ -81,3 +81,42 @@ test('$eq:date', t => {
   t.false(match(new Date(0)))
   t.true(match(new Date(date)))
 })
+
+test('$eq:object', t => {
+  const match = equals({
+    a: true,
+    b: 42,
+    c: 'Hello World'
+  })
+  t.false(match(undefined))
+  t.false(match(null))
+  t.false(match(''))
+  t.false(match(42))
+  t.false(match({}))
+  t.false(match(false))
+  t.false(match(new Date()))
+  t.true(match({
+    a: true,
+    b: 42,
+    c: 'Hello World'
+  }))
+  t.false(match({
+    a: true,
+    b: 42
+  }))
+})
+
+test('$eq:array', t => {
+  const match = equals([
+    true,
+    42,
+    'Hello World'
+  ])
+  t.false(match(undefined))
+  t.false(match(null))
+  t.false(match({}))
+  t.false(match([]))
+  t.true(match([true, 42, 'Hello World']))
+  t.false(match([42, true, 'Hello World']))
+  t.false(match([true, 42]))
+})
