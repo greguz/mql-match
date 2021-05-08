@@ -3,11 +3,13 @@ const types = {
   string: 2,
   object: 3,
   array: 4,
+  undefined: 6,
   objectId: 7,
   bool: 8,
   date: 9,
   null: 10,
   regex: 11,
+  symbol: 14,
   int: 16,
   long: 18,
   decimal: 19
@@ -48,6 +50,10 @@ export function $type (variable, type) {
       return `${variable} === null`
     case 'regex':
       return `${variable} instanceof RegExp`
+    case 'undefined':
+      return `${variable} === undefined`
+    case 'symbol':
+      return `typeof ${variable} === "symbol"`
     default:
       throw new Error(`Unknown BSON type "${type}"`)
   }
