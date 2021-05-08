@@ -30,7 +30,7 @@ Currently, not all operators are supported. Future updates will bring support fo
 
 ### Element
 
-- [x] `$exists` Check if value is `undefined`.
+- [x] `$exists`
 - [x] `$type` The `"binData"`, `"dbPointer"`, `"javascript"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` types are **not** supported.
 
 ### Evaluation
