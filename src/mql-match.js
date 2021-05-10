@@ -11,8 +11,8 @@ import { $type } from './operators/type.js'
 /**
  * Object type but not null
  */
-function isObjectLike (value) {
-  return typeof value === 'object' && value !== null
+function isObjectLiteral (value) {
+  return typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype
 }
 
 /**
@@ -52,35 +52,24 @@ function concat (values, or) {
   } else if (values.length === 1) {
     return values[0]
   } else {
-    throw new Error('Expected at least one expression')
+    throw new Error('Void condition')
   }
 }
 
-function $and (variable, values) {
-  if (!Array.isArray(values)) {
-    throw new TypeError('Expected expressions array')
+function $elemMatch (variable, value) {
+  if (!isObjectLiteral(value)) {
+    throw new TypeError('Operator $elemMatch needs a query object')
   }
-  return concat(
-    values.map(value => compileQuery(variable, value))
-  )
-}
 
-function $or (variable, values) {
-  if (!Array.isArray(values)) {
-    throw new TypeError('Expected expressions array')
-  }
-  return concat(
-    values.map(value => compileQuery(variable, value)),
-    true
-  )
-}
+  const keys = Object.keys(value)
 
-function $not (code) {
-  return `!(${code})`
-}
+  const directMatch = keys.find(key => key[0] === '$' && key !== '$and' && key !== '$nor' && key !== '$or')
 
-function $elemMatch (variable, query) {
-  return `Array.isArray(${variable}) && ${variable}.findIndex(v => ${compileQuery('v', query)}) >= 0`
+  const code = !directMatch
+    ? compileQuery('v', value)
+    : compileOperatorsExpression('v', value)
+
+  return `Array.isArray(${variable}) && ${variable}.findIndex(v => ${code}) >= 0`
 }
 
 function compileOperator (variable, value, key, object = {}) {
@@ -110,7 +99,7 @@ function compileOperator (variable, value, key, object = {}) {
     case '$nin':
       return $nin(variable, value)
     case '$not':
-      return $not(compileExpression(variable, value))
+      return `!(${compileOperatorsExpression(variable, value)})`
     case '$regex':
       return $regex(variable, value, object.$options)
     case '$size':
@@ -122,53 +111,97 @@ function compileOperator (variable, value, key, object = {}) {
   }
 }
 
-function compileExpression (variable, object) {
-  const keys = Object.keys(object)
-
-  const properties = keys.filter(key => key[0] !== '$')
-  if (properties.length > 0) {
-    throw new Error('Object matching not supported')
+function compileOperatorsExpression (variable, value) {
+  if (!isObjectLiteral(value)) {
+    throw new Error('Expected operators expression')
   }
-
-  const operators = keys.filter(key => key[0] === '$')
   return concat(
-    operators.map(
-      key => compileOperator(variable, object[key], key, object)
+    Object.keys(value).map(
+      key => compileOperator(variable, value[key], key, value)
     )
   )
 }
 
-function compileMatchCallback (variable, value, key) {
-  if (key === '$and') {
-    return $and(variable, value)
-  } else if (key === '$nor') {
-    return $not($or(variable, value))
-  } else if (key === '$or') {
-    return $or(variable, value)
-  } else if (isObjectLike(value)) {
-    return compileExpression(variable, value)
+function compileValueMatching (variable, value) {
+  if (!isObjectLiteral(value)) {
+    return $eq(variable, value)
+  }
+
+  const keys = Object.keys(value)
+  const operators = keys.filter(key => key[0] === '$')
+  const properties = keys.filter(key => key[0] !== '$')
+
+  if (operators.length > 0 && properties.length > 0) {
+    throw new Error(`Misplaced operator ${operators[0]}`)
+  } else if (operators.length > 0) {
+    return compileOperatorsExpression(variable, value)
   } else {
     return $eq(variable, value)
   }
 }
 
+function $and (variable, values) {
+  if (!Array.isArray(values)) {
+    throw new TypeError('Operator $and needs an array of expressions')
+  }
+  if (values.length <= 0) {
+    throw new Error('Operator $and needs at least one expression')
+  }
+  return concat(
+    values.map(value => compileQuery(variable, value))
+  )
+}
+
+function $nor (variable, values) {
+  if (!Array.isArray(values)) {
+    throw new TypeError('Operator $nor needs an array of expressions')
+  }
+  if (values.length <= 0) {
+    throw new Error('Operator $nor needs at least one expression')
+  }
+  return `!(${$or(variable, values)})`
+}
+
+function $or (variable, values) {
+  if (!Array.isArray(values)) {
+    throw new TypeError('Operator $or needs an array of expressions')
+  }
+  if (values.length <= 0) {
+    throw new Error('Operator $or needs at least one expression')
+  }
+  return concat(
+    values.map(value => compileQuery(variable, value)),
+    true
+  )
+}
+
+function compileQueryProperty (variable, value, key) {
+  switch (key) {
+    case '$and':
+      return $and(variable, value)
+    case '$nor':
+      return $nor(variable, value)
+    case '$or':
+      return $or(variable, value)
+    default:
+      return `match(${variable}, ${JSON.stringify(key.split('.'))}, v => ${compileValueMatching('v', value)})`
+  }
+}
+
 function compileQuery (variable, query) {
-  if (!isObjectLike(query)) {
-    throw new TypeError('Expected query object')
+  if (!isObjectLiteral(query)) {
+    throw new TypeError('Query must be an object')
   }
 
   const keys = Object.keys(query).filter(key => key !== '$comment')
   if (keys.length <= 0) {
-    return `typeof ${variable} === "object" && ${variable} !== null && Object.getPrototypeOf(${variable}) === Object.prototype`
+    return variable === 'document'
+      ? `typeof ${variable} === "object" && ${variable} !== null && Object.getPrototypeOf(${variable}) === Object.prototype`
+      : 'true'
   }
 
   return concat(
-    keys.map(key => {
-      const path = JSON.stringify(key.split('.'))
-      const code = compileMatchCallback('v', query[key], key)
-
-      return `match(${variable}, ${path}, v => ${code})`
-    })
+    keys.map(key => compileQueryProperty(variable, query[key], key))
   )
 }
 

@@ -1,4 +1,5 @@
 import test from 'ava'
+import { ObjectId } from 'bson'
 
 import { compile } from './mql-match.js'
 
@@ -77,4 +78,37 @@ test('mql:empty', t => {
   const match = compile()
   t.true(match({}))
   t.false(match(new Date()))
+})
+
+test('mql:_id', async t => {
+  const id = '507f191e810c19729de860ea'
+  const match = compile({ _id: new ObjectId(id) })
+  t.true(match({ _id: new ObjectId(id), value: 42 }))
+  t.false(match({ _id: new ObjectId() }))
+  t.false(match({ _id: null }))
+  t.false(match({ _id: new Date() }))
+})
+
+test('mql:expression', async t => {
+  t.throws(() => compile({ obj: { $eq: { value: 1 }, value: 1 } }))
+
+  const document = { obj: { value: 1 } }
+
+  const a = compile({ obj: { value: 1 } })
+  t.true(a(document))
+
+  const b = compile({ obj: { $eq: { value: 1 } } })
+  t.true(b(document))
+})
+
+test('mql:elemMatch', async t => {
+  const match = compile({
+    items: {
+      $elemMatch: {
+        $eq: 42
+      }
+    }
+  })
+
+  t.true(match({ items: [42] }))
 })
