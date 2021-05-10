@@ -48,8 +48,8 @@ function compile (variable, value, negated) {
     }
     return code
   } else if (typeof value === 'object') {
-    let code = `typeof ${variable} === "object" && ${variable} !== null`
     const keys = Object.keys(value)
+    let code = `typeof ${variable} === "object" && ${variable} !== null && Object.getPrototypeOf(${variable}) === Object.prototype && Object.keys(${variable}).length === ${keys.length}`
     if (keys.length > 0) {
       code += ' && ' + keys
         .map(key => `(${compile(`${variable}[${JSON.stringify(key)}]`, value[key])})`)

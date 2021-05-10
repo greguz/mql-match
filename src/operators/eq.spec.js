@@ -120,3 +120,23 @@ test('$eq:array', t => {
   t.false(match([42, true, 'Hello World']))
   t.false(match([true, 42]))
 })
+
+test('$eq:empty-object', t => {
+  const match = equals({})
+  t.false(match(undefined))
+  t.false(match(null))
+  t.false(match(''))
+  t.false(match(42))
+  t.true(match({}))
+  t.false(match(false))
+  t.false(match(new Date()))
+  t.false(match({
+    a: true,
+    b: 42,
+    c: 'Hello World'
+  }))
+  t.false(match({
+    a: true,
+    b: 42
+  }))
+})
