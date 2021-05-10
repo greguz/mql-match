@@ -6,9 +6,13 @@
 This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function. It uses code generation technics to
 improve matching performance.
 
-Currently, not all operators are supported. Future updates will bring support for more operators.
+## Why
+
+This project can be useful to mock some basic functionality of MongoDB's driver or simply using its query syntax for object matching.
 
 ## [Operators](https://docs.mongodb.com/manual/reference/operator/query/) support
+
+Currently, not all operators are supported. Future updates will bring support for more operators.
 
 ### Comparison
 
@@ -31,7 +35,7 @@ Currently, not all operators are supported. Future updates will bring support fo
 ### Element
 
 - [x] `$exists`
-- [x] `$type` The `"binData"`, `"dbPointer"`, `"javascript"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` types are **not** supported.
+- [x] `$type` Types `"binData"`, `"dbPointer"`, `"javascript"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` are **not** supported.
 
 ### Evaluation
 
