@@ -1,12 +1,10 @@
-import { compileDate, serializeDate } from '../date.js'
-
 function compile (variable, value, operator) {
   if (Number.isFinite(value)) {
     return `Number.isFinite(${variable}) && ${variable} ${operator} ${value}`
   } else if (value instanceof Date) {
-    return `(${serializeDate(variable)}) ${operator} ${compileDate(value)}`
+    return `${variable} instanceof Date ? ${variable}.getTime() ${operator} ${value.getTime()} : false`
   } else if (typeof value === 'string') {
-    return `${variable} ${operator} ${JSON.stringify(value)}`
+    return `typeof ${variable} === "string" && ${variable} ${operator} ${JSON.stringify(value)}`
   } else {
     throw new Error('Unsupported comparison value')
   }

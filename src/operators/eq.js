@@ -1,5 +1,3 @@
-import { compileDate, serializeDate } from '../date.js'
-
 const primitives = ['boolean', 'number', 'string']
 
 function compileObjectId (value) {
@@ -24,7 +22,7 @@ function compile (variable, value, negated) {
       ? `${variable} !== null && ${variable} !== undefined`
       : `${variable} === null || ${variable} === undefined`
   } else if (value instanceof Date) {
-    return `(${serializeDate(variable)}) === ${compileDate(value)}`
+    return `(${variable} instanceof Date ? ${variable}.getTime() : null) ${opertator} ${value.getTime()}`
   } else if (typeof value.toHexString === 'function') {
     return `(${serializeObjectId(variable)}) === ${compileObjectId(value)}`
   } else if (typeof value === 'bigint') {
