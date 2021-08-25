@@ -168,7 +168,7 @@ function compileQueryProperty (variable, value, key) {
 
 function compileQuery (variable, query) {
   if (!isObjectLike(query)) {
-    throw new TypeError('Query must be an object')
+    throw new Error('Expected filter query object')
   }
 
   const keys = Object.keys(query).filter(key => key !== '$comment')

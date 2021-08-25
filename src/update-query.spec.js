@@ -1,11 +1,14 @@
 import test from 'ava'
 
-import { compileUpdateQuery as compile } from './update-query'
+import { compileUpdateQuery as compile } from './update-query.js'
 
-test('mql:double-negation', t => {
+test('mql:update-query', t => {
   const fn = compile({
     $set: {
       'a.2.c': 42
+    },
+    $inc: {
+      'a.0.k': 42
     }
   })
 
@@ -13,6 +16,9 @@ test('mql:double-negation', t => {
     fn({}),
     {
       a: {
+        0: {
+          k: 42
+        },
         2: {
           c: 42
         }
@@ -23,12 +29,12 @@ test('mql:double-negation', t => {
   t.deepEqual(
     fn({
       a: [
-        true
+        { k: -32 },
       ]
     }),
     {
       a: [
-        true,
+        { k: 10 },
         null,
         { c: 42 }
       ]

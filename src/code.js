@@ -39,7 +39,7 @@ export function _if (...items) {
 }
 
 export function _thrown (message) {
-  return `throw new Error(${JSON.stringify(message)})`
+  return `throw new Error(${JSON.stringify(message)});`
 }
 
 export function _isUndefined (variable) {
@@ -52,6 +52,10 @@ export function _isNull (variable) {
 
 export function _isNullish (variable) {
   return `${_isUndefined(variable)} || ${_isNull(variable)}`
+}
+
+export function _isFinite (variable) {
+  return `Number.isFinite(${variable})`
 }
 
 export function _isNotObjectLike (variable) {

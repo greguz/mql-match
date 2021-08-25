@@ -6,7 +6,9 @@ import {
   _thrown,
   _while
 } from './code.js'
+import { isObjectLike } from './utils.js'
 
+import { $inc } from './operators/inc.js'
 import { $set } from './operators/set.js'
 
 function escapePropertyName (property) {
@@ -53,30 +55,43 @@ function writePath (variable, path, callback) {
   return code
 }
 
+function compileObjectExpression (variable, expression, callback) {
+  if (!isObjectLike(expression)) {
+    throw new Error('Expected update object definition')
+  }
+
+  return Object.keys(expression)
+    .map(
+      key => writePath(
+        variable,
+        key.split('.'),
+        target => callback(target, expression[key])
+      )
+    )
+    .join(' ')
+}
+
 export function compileUpdateQuery (query) {
+  if (!isObjectLike(query)) {
+    throw new Error('Expected update query object')
+  }
+
   const variable = 'document'
 
   let code = ''
-
   for (const operator of Object.keys(query)) {
+    code += ' '
     switch (operator) {
+      case '$inc':
+        code += compileObjectExpression(variable, query.$inc, $inc)
+        break
       case '$set':
-        code += Object
-          .keys(query.$set)
-          .map(
-            key => writePath(
-              variable,
-              key.split('.'),
-              v => $set(v, query.$set[key])
-            )
-          )
-          .join(' ')
+        code += compileObjectExpression(variable, query.$set, $set)
         break
       default:
         throw new Error(`Unsupported operator ${operator}`)
     }
   }
-
   code += `; return ${variable};`
 
   return new Function(variable, code)

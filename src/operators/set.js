@@ -17,5 +17,5 @@ function serialize (value) {
 }
 
 export function $set (variable, value) {
-  return `${variable} = ${serialize(value)}`
+  return `${variable} = ${serialize(value)};`
 }
