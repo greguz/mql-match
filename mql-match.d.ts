@@ -1,6 +1,9 @@
 /**
- * Compile the MongoDB query to a match function.
- * @param {Object} query
- * @returns {Function}
+ * Compiles a MongoDB filter query to a match function.
  */
-export declare function compile (query: object): (value: any) => boolean
+export declare function compileFilterQuery (query: object): (value: any) => boolean
+
+/**
+ * Compiles a MongoDB update query to an update function.
+ */
+export declare function compileUpdateQuery (query: object): (value: any) => any

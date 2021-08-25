@@ -1,3 +1,6 @@
+import { _and, _or } from './code.js'
+import { isObjectLike } from './utils.js'
+
 import { $all } from './operators/all.js'
 import { $gt, $gte, $lt, $lte } from './operators/compare.js'
 import { $eq, $ne } from './operators/eq.js'
@@ -7,13 +10,6 @@ import { $mod } from './operators/mod.js'
 import { $regex } from './operators/regex.js'
 import { $size } from './operators/size.js'
 import { $type } from './operators/type.js'
-
-/**
- * Object type but not null
- */
-function isObjectLiteral (value) {
-  return typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype
-}
 
 /**
  * Recursive MongoDB path matching utility.
@@ -43,21 +39,8 @@ function match (value, path, callback) {
   return false
 }
 
-/**
- * Concat multiple (code) expressions.
- */
-function concat (values, or) {
-  if (values.length > 1) {
-    return values.map(value => `(${value})`).join(` ${or ? '||' : '&&'} `)
-  } else if (values.length === 1) {
-    return values[0]
-  } else {
-    throw new Error('Void condition')
-  }
-}
-
 function $elemMatch (variable, value) {
-  if (!isObjectLiteral(value)) {
+  if (!isObjectLike(value)) {
     throw new TypeError('Operator $elemMatch needs a query object')
   }
 
@@ -112,10 +95,10 @@ function compileOperator (variable, value, key, object = {}) {
 }
 
 function compileOperatorsExpression (variable, value) {
-  if (!isObjectLiteral(value)) {
+  if (!isObjectLike(value)) {
     throw new Error('Expected operators expression')
   }
-  return concat(
+  return _and(
     Object.keys(value).map(
       key => compileOperator(variable, value[key], key, value)
     )
@@ -123,7 +106,7 @@ function compileOperatorsExpression (variable, value) {
 }
 
 function compileValueMatching (variable, value) {
-  if (!isObjectLiteral(value)) {
+  if (!isObjectLike(value)) {
     return $eq(variable, value)
   }
 
@@ -147,9 +130,7 @@ function $and (variable, values) {
   if (values.length <= 0) {
     throw new Error('Operator $and needs at least one expression')
   }
-  return concat(
-    values.map(value => compileQuery(variable, value))
-  )
+  return _and(values.map(value => compileQuery(variable, value)))
 }
 
 function $nor (variable, values) {
@@ -169,10 +150,7 @@ function $or (variable, values) {
   if (values.length <= 0) {
     throw new Error('Operator $or needs at least one expression')
   }
-  return concat(
-    values.map(value => compileQuery(variable, value)),
-    true
-  )
+  return _or(values.map(value => compileQuery(variable, value)))
 }
 
 function compileQueryProperty (variable, value, key) {
@@ -189,7 +167,7 @@ function compileQueryProperty (variable, value, key) {
 }
 
 function compileQuery (variable, query) {
-  if (!isObjectLiteral(query)) {
+  if (!isObjectLike(query)) {
     throw new TypeError('Query must be an object')
   }
 
@@ -200,12 +178,10 @@ function compileQuery (variable, query) {
       : 'true'
   }
 
-  return concat(
-    keys.map(key => compileQueryProperty(variable, query[key], key))
-  )
+  return _and(keys.map(key => compileQueryProperty(variable, query[key], key)))
 }
 
-export function compile (query = {}) {
+export function compileFilterQuery (query = {}) {
   const fn = new Function(
     'match',
     'document',

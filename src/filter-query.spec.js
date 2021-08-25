@@ -1,7 +1,7 @@
 import test from 'ava'
 import { ObjectId } from 'bson'
 
-import { compile } from './mql-match.js'
+import { compileFilterQuery as compile } from './filter-query'
 
 test('mql:double-negation', t => {
   const match = compile({
