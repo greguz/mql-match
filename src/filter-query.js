@@ -39,6 +39,9 @@ function match (value, path, callback) {
   return false
 }
 
+// { "a.b": 0 }
+// { a: [[[[[[[[[[{ b: 0 }]]]]]]]]]] }
+
 function $elemMatch (variable, value) {
   if (!isObjectLike(value)) {
     throw new TypeError('Operator $elemMatch needs a query object')
@@ -190,3 +193,25 @@ export function compileFilterQuery (query = {}) {
 
   return fn.bind(null, match)
 }
+
+// const query = {
+//   a: {
+//     $exists: true
+//   }
+// }
+
+// function matchQuery (query, value) {
+//   if (typeof query.$exists !== 'boolean') {
+//     throw new Error()
+//   }
+// }
+
+// const documents = [
+//   {}, {}, {}
+// ]
+
+// for (const document of documents) {
+//   if (matchQuery(query, document)) {
+//     console.log('Weeeee')
+//   }
+// }

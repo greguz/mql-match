@@ -1,4 +1,6 @@
-function serialize (value) {
+import { compileSubject } from '../subject.js'
+
+function compileValue (value, subject) {
   if (value === undefined || value === null) {
     return 'null'
   } else if (typeof value === 'boolean') {
@@ -12,10 +14,10 @@ function serialize (value) {
   } else if (value instanceof Date) {
     return `new Date(${value.getTime()})`
   } else {
-    throw new Error(`Invalid value to set: ${value}`)
+    throw new Error(`Unsupported $set at ${compileSubject(subject)}`)
   }
 }
 
-export function $set (variable, value) {
-  return `${variable} = ${serialize(value)};`
+export function $set (subject, value) {
+  return `${compileSubject(subject)} = ${compileValue(value, subject)};`
 }

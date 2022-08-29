@@ -6,35 +6,25 @@ import {
   _thrown,
   _while
 } from './code.js'
+import { compileSubject, createSubject } from './subject.js'
 import { isObjectLike } from './utils.js'
 
 import { $inc } from './operators/inc.js'
 import { $set } from './operators/set.js'
-
-function escapePropertyName (property) {
-  if (/^\d+$/.test(property)) {
-    return `[${property}]`
-  } else if (/^[-_A-Za-z][-_0-9A-Za-z]*$/.test(property)) {
-    return `.${property}`
-  } else {
-    return `[${JSON.stringify(property)}]`
-  }
-}
+import { $unset } from './operators/unset.js'
 
 function writePath (variable, path, callback) {
-  let code = _if({
-    condition: _isNotObjectLike(variable),
-    code: _thrown(`Expected object at ${variable}`)
-  })
+  let code = ''
 
   for (let i = 1; i <= path.length; i++) {
-    const target = variable + path.slice(0, i).map(escapePropertyName).join('')
-    code += ' '
+    const subject = createSubject(variable, path.slice(0, i))
+    const target = compileSubject(subject)
+    code += '\n'
     if (i < path.length) {
       code += _if(
         {
           condition: _isNullish(target),
-          code: `${target} = {}`
+          code: `${target} = {};`
         },
         {
           condition: _isArray(target),
@@ -48,7 +38,7 @@ function writePath (variable, path, callback) {
         }
       )
     } else {
-      code += callback(target)
+      code += callback(subject)
     }
   }
 
@@ -65,10 +55,23 @@ function compileObjectExpression (variable, expression, callback) {
       key => writePath(
         variable,
         key.split('.'),
-        target => callback(target, expression[key])
+        subject => callback(subject, expression[key])
       )
     )
-    .join(' ')
+    .join('\n')
+}
+
+function compileOperator (variable, key, value) {
+  switch (key) {
+    case '$inc':
+      return compileObjectExpression(variable, value, $inc)
+    case '$set':
+      return compileObjectExpression(variable, value, $set)
+    case '$unset':
+      return compileObjectExpression(variable, value, $unset)
+    default:
+      throw new Error(`Unsupported operator ${key}`)
+  }
 }
 
 export function compileUpdateQuery (query) {
@@ -78,21 +81,18 @@ export function compileUpdateQuery (query) {
 
   const variable = 'document'
 
-  let code = ''
-  for (const operator of Object.keys(query)) {
-    code += ' '
-    switch (operator) {
-      case '$inc':
-        code += compileObjectExpression(variable, query.$inc, $inc)
-        break
-      case '$set':
-        code += compileObjectExpression(variable, query.$set, $set)
-        break
-      default:
-        throw new Error(`Unsupported operator ${operator}`)
-    }
-  }
-  code += `; return ${variable};`
+  const blocks = Object.keys(query).map(
+    key => compileOperator(variable, key, query[key])
+  )
 
-  return new Function(variable, code)
+  blocks.unshift(
+    _if({
+      condition: _isNotObjectLike(variable),
+      code: _thrown(`Expected object at ${variable}`)
+    })
+  )
+
+  blocks.push(`return ${variable};`)
+
+  return new Function(variable, blocks.join('\n'))
 }

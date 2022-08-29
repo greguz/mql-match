@@ -1,9 +1,12 @@
 import test from 'ava'
 
+import { createSubject } from '../subject.js'
 import { $inc } from './inc.js'
 
 function compile (path, value) {
-  return new Function('obj', $inc(`obj.${path}`, value) + `; return obj;`)
+  const variable = 'obj'
+  const subject = createSubject(variable, path.split('.'))
+  return new Function(variable, $inc(subject, value) + `; return ${variable};`)
 }
 
 test('$inc:undefined', t => {
