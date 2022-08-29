@@ -1,6 +1,7 @@
-.nyc_output
-.vscode
+.*
+!.editorconfig
+!.gitignore
 coverage
-/mql-match.js
+mql-match.cjs
 node_modules
 package-lock.json

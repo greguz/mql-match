@@ -2,18 +2,22 @@
   "name": "mql-match",
   "version": "0.4.0",
   "description": "MongoDB Query Language match function compiler",
-  "main": "mql-match.js",
+  "type": "module",
+  "main": "mql-match.cjs",
   "types": "mql-match.d.ts",
   "files": [
-    "mql-match.js",
-    "mql-match.d.ts"
+    "!**/*.spec.mjs",
+    "lib",
+    "mql-match.cjs",
+    "mql-match.d.ts",
+    "mql-match.mjs"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/greguz/mql-match.git"
   },
   "scripts": {
-    "lint": "eslint src",
+    "lint": "standard",
     "build": "rollup -c rollup.config.js",
     "test": "ava",
     "prepublishOnly": "npm run lint && npm run build && npm run test"
@@ -29,25 +33,17 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "devDependencies": {
-    "ava": "^3.15.0",
-    "bson": "^4.5.1",
-    "eslint": "^7.32.0",
-    "eslint-config-standard": "^16.0.3",
-    "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "esm": "^3.2.25",
-    "rollup": "^2.56.3"
+    "ava": "^4.3.3",
+    "bson": "^4.7.0",
+    "rollup": "^2.78.1",
+    "standard": "^17.0.0"
   },
   "ava": {
     "extensions": [
-      "js"
+      "mjs"
     ],
     "files": [
-      "**/*.spec.js"
-    ],
-    "require": [
-      "esm"
+      "**/*.spec.mjs"
     ]
   }
 }

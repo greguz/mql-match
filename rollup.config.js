@@ -1,7 +1,7 @@
 export default {
-  input: 'src/index.js',
+  input: './mql-match.mjs',
   output: {
-    file: 'mql-match.js',
+    file: './mql-match.cjs',
     format: 'cjs'
   }
 }
