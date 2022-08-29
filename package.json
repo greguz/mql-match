@@ -3,6 +3,10 @@
   "version": "0.4.0",
   "description": "MongoDB Query Language match function compiler",
   "type": "module",
+  "exports": {
+    "import": "./mql-match.mjs",
+    "require": "./mql-match.cjs"
+  },
   "main": "mql-match.cjs",
   "types": "mql-match.d.ts",
   "files": [
