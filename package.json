@@ -7,11 +7,9 @@
     "import": "./mql-match.mjs",
     "require": "./mql-match.cjs"
   },
-  "main": "mql-match.cjs",
-  "types": "mql-match.d.ts",
+  "main": "./mql-match.cjs",
+  "types": "./mql-match.d.ts",
   "files": [
-    "!**/*.spec.mjs",
-    "lib",
     "mql-match.cjs",
     "mql-match.d.ts",
     "mql-match.mjs"
