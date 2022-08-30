@@ -3,5 +3,6 @@
 !.gitignore
 coverage
 mql-match.cjs
+mql-match.mjs
 node_modules
 package-lock.json
