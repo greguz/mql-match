@@ -2,14 +2,17 @@
   "name": "mql-match",
   "version": "0.4.0",
   "description": "MongoDB Query Language match function compiler",
+  "main": "./mql-match.cjs",
+  "types": "./mql-match.d.ts",
   "type": "module",
   "exports": {
     "import": "./mql-match.mjs",
-    "require": "./mql-match.cjs"
+    "require": "./mql-match.cjs",
+    "types": "./mql-match.d.ts"
   },
-  "main": "./mql-match.cjs",
-  "types": "./mql-match.d.ts",
   "files": [
+    "!**/*.spec.mjs",
+    "lib",
     "mql-match.cjs",
     "mql-match.d.ts",
     "mql-match.mjs"
@@ -21,7 +24,7 @@
   "scripts": {
     "lint": "standard",
     "build": "rollup -c rollup.config.js",
-    "test": "ava",
+    "test": "c8 ava",
     "prepublishOnly": "npm run lint && npm run build && npm run test"
   },
   "keywords": [
@@ -35,9 +38,10 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "devDependencies": {
-    "ava": "^4.3.3",
+    "ava": "^5.0.1",
     "bson": "^4.7.0",
-    "rollup": "^2.78.1",
+    "c8": "^7.12.0",
+    "rollup": "^2.79.1",
     "standard": "^17.0.0"
   },
   "ava": {

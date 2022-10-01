@@ -9,11 +9,11 @@ This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/que
 
 This project can be useful to mock some basic functionality of MongoDB's driver or simply using its query syntax for object matching.
 
-## [Operators](https://docs.mongodb.com/manual/reference/operator/query/) support
+## Operators support
 
-Currently, not all operators are supported. Future updates will bring support for more operators.
+### [Query Operators](https://docs.mongodb.com/manual/reference/operator/query/)
 
-### Comparison
+#### Comparison
 
 - [x] `$eq`
 - [x] `$gt` Numbers, dates, and strings only.
@@ -24,19 +24,19 @@ Currently, not all operators are supported. Future updates will bring support fo
 - [x] `$ne`
 - [x] `$nin`
 
-### Logical
+#### Logical
 
 - [x] `$and`
 - [x] `$not`
 - [x] `$nor`
 - [x] `$or`
 
-### Element
+#### Element
 
 - [x] `$exists`
 - [x] `$type` Types `"binData"`, `"dbPointer"`, `"javascript"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` are **not** supported.
 
-### Evaluation
+#### Evaluation
 
 - [ ] `$expr`
 - [ ] `$jsonSchema`
@@ -45,37 +45,73 @@ Currently, not all operators are supported. Future updates will bring support fo
 - [ ] `$text`
 - [ ] `$where`
 
-### Geospatial
+#### Geospatial
 
 - [ ] `$geoIntersects`
 - [ ] `$geoWithin`
 - [ ] `$near`
 - [ ] `$nearSphere`
 
-### Array
+#### Array
 
 - [x] `$all`
 - [x] `$elemMatch`
 - [x] `$size`
 
-### Bitwise
+#### Bitwise
 
 - [ ] `$bitsAllClear`
 - [ ] `$bitsAllSet`
 - [ ] `$bitsAnyClear`
 - [ ] `$bitsAnySet`
 
-### Projection
+#### Projection
 
 - [ ] `$`
 - [ ] `$elemMatch`
 - [ ] `$meta`
 - [ ] `$slice`
 
-### Miscellaneous
+#### Miscellaneous
 
 - [x] `$comment` Stub.
 - [ ] `$rand`
+
+### [Update Operators](https://www.mongodb.com/docs/manual/reference/operator/update/)
+
+#### Fields
+
+- [ ] `$currentDate`
+- [x] `$inc`
+- [ ] `$min`
+- [ ] `$max`
+- [x] `$mul`
+- [ ] `$rename`
+- [x] `$set`
+- [ ] `$setOnInsert`
+- [x] `$unset`
+
+#### Array
+
+- [ ] `$`
+- [ ] `$[]`
+- [ ] `$[<identifier>]`
+- [ ] `$addToSet`
+- [ ] `$pop`
+- [ ] `$pull`
+- [ ] `$push`
+- [ ] `$pullAll`
+
+#### Modifiers
+
+- [ ] `$each`
+- [ ] `$position`
+- [ ] `$slice`
+- [ ] `$sort`
+
+#### Bitwise
+
+- [ ] `$bit`
 
 ## Example
 

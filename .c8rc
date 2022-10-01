@@ -1,0 +1,10 @@
+{
+  "all": true,
+  "reporter": ["html", "lcov", "text"],
+  "include": [
+    "**/*.mjs"
+  ],
+  "exclude": [
+    "**/*.spec.mjs"
+  ]
+}
