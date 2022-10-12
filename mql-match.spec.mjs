@@ -98,6 +98,45 @@ test('$pop', t => {
   )
 })
 
+test('$pull', t => {
+  t.deepEqual(
+    update(
+      [
+        {
+          _id: 1,
+          fruits: ['apples', 'pears', 'oranges', 'grapes', 'bananas'],
+          vegetables: ['carrots', 'celery', 'squash', 'carrots']
+        },
+        {
+          _id: 2,
+          fruits: ['plums', 'kiwis', 'oranges', 'bananas', 'apples'],
+          vegetables: ['broccoli', 'zucchini', 'carrots', 'onions']
+        }
+      ],
+      {
+        $pull: {
+          fruits: {
+            $in: ['apples', 'oranges']
+          },
+          vegetables: 'carrots'
+        }
+      }
+    ),
+    [
+      {
+        _id: 1,
+        fruits: ['pears', 'grapes', 'bananas'],
+        vegetables: ['celery', 'squash']
+      },
+      {
+        _id: 2,
+        fruits: ['plums', 'kiwis', 'bananas'],
+        vegetables: ['broccoli', 'zucchini', 'onions']
+      }
+    ]
+  )
+})
+
 test('$rename', t => {
   t.deepEqual(
     update(
