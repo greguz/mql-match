@@ -80,3 +80,27 @@ test('$mul', t => {
     { _id: 2, item: 'Unknown', price: 0 }
   )
 })
+
+test('$rename', t => {
+  t.deepEqual(
+    update(
+      {
+        _id: 1,
+        alias: ['The American Cincinnatus', 'The American Fabius'],
+        mobile: '555-555-5555',
+        nmae: { first: 'george', last: 'washington' }
+      },
+      {
+        $rename: {
+          nmae: 'name'
+        }
+      }
+    ),
+    {
+      _id: 1,
+      alias: ['The American Cincinnatus', 'The American Fabius'],
+      mobile: '555-555-5555',
+      name: { first: 'george', last: 'washington' }
+    }
+  )
+})

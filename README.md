@@ -87,7 +87,7 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 - [ ] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/update/min/)
 - [ ] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/update/max/)
 - [x] [`$mul`](https://www.mongodb.com/docs/manual/reference/operator/update/mul/)
-- [ ] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
+- [x] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
 - [ ] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/update/unset/)
