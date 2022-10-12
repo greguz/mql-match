@@ -81,6 +81,23 @@ test('$mul', t => {
   )
 })
 
+test('$pop', t => {
+  t.deepEqual(
+    update(
+      { _id: 1, scores: [8, 9, 10] },
+      { $pop: { scores: -1 } }
+    ),
+    { _id: 1, scores: [9, 10] }
+  )
+  t.deepEqual(
+    update(
+      { _id: 10, scores: [9, 10] },
+      { $pop: { scores: 1 } }
+    ),
+    { _id: 10, scores: [9] }
+  )
+})
+
 test('$rename', t => {
   t.deepEqual(
     update(

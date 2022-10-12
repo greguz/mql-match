@@ -98,7 +98,7 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 - [ ] [`$[]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/)
 - [ ] [`$[<identifier>]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/)
 - [ ] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
-- [ ] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
+- [x] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
 - [ ] [`$pull`](https://www.mongodb.com/docs/manual/reference/operator/update/pull/)
 - [ ] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
 - [ ] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
