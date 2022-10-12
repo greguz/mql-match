@@ -1,2 +1,2 @@
-export { compileFilterQuery } from './lib/filter-query.mjs'
-export { compileUpdateQuery } from './lib/update-query.mjs'
+export { compileFilterQuery } from './lib/filterQuery.mjs'
+export { compileUpdateQuery } from './lib/updateQuery.mjs'
