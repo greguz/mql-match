@@ -6,12 +6,12 @@ function filter (data, query) {
   return data.filter(compileFilterQuery(query))
 }
 
-function update (data, query) {
+function update (data, query, insert) {
   const fn = compileUpdateQuery(query)
   if (Array.isArray(data)) {
-    return data.map(fn)
+    return data.map(item => fn(item, insert))
   } else {
-    return fn(data)
+    return fn(data, insert)
   }
 }
 
@@ -158,5 +158,23 @@ test('$rename', t => {
       mobile: '555-555-5555',
       name: { first: 'george', last: 'washington' }
     }
+  )
+})
+
+test('$setOnInsert', t => {
+  t.deepEqual(
+    update(
+      {
+        _id: 1,
+        item: 'apple'
+      },
+      {
+        $setOnInsert: {
+          defaultQty: 100
+        }
+      },
+      true
+    ),
+    { _id: 1, item: 'apple', defaultQty: 100 }
   )
 })

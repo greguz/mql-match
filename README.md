@@ -4,7 +4,7 @@
 ![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
-This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function. It uses code generation technics to improve matching performance.
+This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function.
 
 ## Why
 
@@ -89,7 +89,7 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 - [x] [`$mul`](https://www.mongodb.com/docs/manual/reference/operator/update/mul/)
 - [x] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
-- [ ] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
+- [x] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/update/unset/)
 
 #### Array
