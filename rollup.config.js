@@ -3,5 +3,6 @@ export default {
   output: {
     file: './mql-match.cjs',
     format: 'cjs'
-  }
+  },
+  external: ['bson']
 }

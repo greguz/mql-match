@@ -14,7 +14,11 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 
 ```javascript
 import { ObjectId } from 'bson' // or 'mongodb'
-import { compileFilterQuery, compileUpdateQuery } from 'mql-match'
+import {
+  compileFilterQuery,
+  compileUpdateQuery,
+  compileAggregationPipeline
+} from 'mql-match'
 
 const documents = [
   {
@@ -53,9 +57,27 @@ const newObject = {}
 update(newObject, true)
 // logs { _id: new ObjectId("xxxxxxxxxxxxxxxxxxxxxxxx"), hello: 'World', my: 'Pleasure' }
 console.log(newObject)
+
+// Returns a function that accepts an iterable (both sync or async) and returns an async iterable
+const aggregate = compileAggregationPipeline([
+  {
+    $match: {
+      value: 42
+    }
+  }
+])
+
+async function pipelineExample () {
+  // logs { _id: new ObjectId("507f191e810c19729de860ea"), value: 42 }
+  for await (const document of aggregate(documents)) {
+    console.log(document)
+  }
+}
+
+pipelineExample().catch(err => console.error(err))
 ```
 
-## Operators support
+## Supported features
 
 ### [Query Operators](https://docs.mongodb.com/manual/reference/operator/query/)
 
@@ -158,3 +180,44 @@ console.log(newObject)
 #### Bitwise
 
 - [ ] [`$bit`](https://www.mongodb.com/docs/manual/reference/operator/update/bit/)
+
+### [Aggregation Pipeline Stages](https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#alphabetical-listing-of-stages)
+
+- [ ] [`$addFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/addFields/)
+- [ ] [`$bucket`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucket/)
+- [ ] [`$bucketAuto`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/)
+- [ ] [`$changeStream`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/changeStream/)
+- [ ] [`$collStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/)
+- [x] [`$count`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/count/)
+- [ ] [`$currentOp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/currentOp/)
+- [ ] [`$densify`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/densify/)
+- [ ] [`$documents`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/documents/)
+- [ ] [`$facet`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/facet/)
+- [ ] [`$fill`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/fill/)
+- [ ] [`$geoNear`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/geoNear/)
+- [ ] [`$graphLookup`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/)
+- [ ] [`$group`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/group/)
+- [ ] [`$indexStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/indexStats/)
+- [ ] [`$limit`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/limit/)
+- [ ] [`$listLocalSessions`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/listLocalSessions/)
+- [ ] [`$listSessions`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/listSessions/)
+- [ ] [`$lookup`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/lookup/)
+- [x] [`$match`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/match/)
+- [ ] [`$merge`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/merge/)
+- [ ] [`$out`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/out/)
+- [ ] [`$planCacheStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/planCacheStats/)
+- [ ] [`$project`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/project/)
+- [ ] [`$redact`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/redact/)
+- [ ] [`$replaceRoot`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceRoot/)
+- [ ] [`$replaceWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceWith/)
+- [ ] [`$sample`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sample/)
+- [ ] [`$search`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/search/)
+- [ ] [`$searchMeta`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/searchMeta/)
+- [ ] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/)
+- [ ] [`$setWindowFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/)
+- [ ] [`$skip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/skip/)
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
+- [ ] [`$sortByCount`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortByCount/)
+- [ ] [`$unionWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unionWith/)
+- [ ] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/)
+- [ ] [`$unwind`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unwind/)
