@@ -4,11 +4,56 @@
 ![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
-This project compiles a valid [MQL](https://docs.mongodb.com/manual/tutorial/query-documents/) (MongoDB Query Language) query to a native JavaScript matching function.
+This project compiles a valid MQL (MongoDB Query Language) query to a native JavaScript function. It uses code generation techniques to improve performance. Both filter and update queries are supported.
 
 ## Why
 
 This project can be useful to mock some basic functionality of MongoDB's driver or simply using its query syntax for object matching.
+
+## Example
+
+```javascript
+import { ObjectId } from 'bson' // or 'mongodb'
+import { compileFilterQuery, compileUpdateQuery } from 'mql-match'
+
+const documents = [
+  {
+    _id: new ObjectId("507f1f77bcf86cd799439011"),
+    value: 130
+  },
+  {
+    _id: new ObjectId("507f191e810c19729de860ea"),
+    value: 42
+  }
+]
+
+const match = compileFilterQuery({
+  _id: new ObjectId("507f1f77bcf86cd799439011")
+})
+
+// logs { _id: new ObjectId("507f1f77bcf86cd799439011"), value: 130 }
+console.log(documents.find(match))
+
+const update = compileUpdateQuery({
+  $setOnInsert: {
+    hello: 'World'
+  },
+  $set: {
+    my: 'Pleasure'
+  }
+})
+
+const oldObject = { _id: "my_doc" }
+update(oldObject)
+// logs { _id: 'my_doc', my: 'Pleasure' }
+console.log(oldObject)
+
+const newObject = {}
+// the `true` say that this document was inserted
+update(newObject, true)
+// logs { _id: new ObjectId("xxxxxxxxxxxxxxxxxxxxxxxx"), hello: 'World', my: 'Pleasure' }
+console.log(newObject)
+```
 
 ## Operators support
 
@@ -17,11 +62,11 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 #### Comparison
 
 - [x] [`$eq`](https://www.mongodb.com/docs/manual/reference/operator/query/eq/)
-- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/) Numbers, dates, and strings **only**.
-- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/) Numbers, dates, and strings **only**.
+- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/) Uses a simple `>` compare when types are matching.
+- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/) Uses a simple `>=` compare when types are matching.
 - [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/query/in/)
-- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/) Numbers, dates, and strings **only**.
-- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/) Numbers, dates, and strings **only**.
+- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/) Uses a simple `<` compare when types are matching.
+- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/) Uses a simple `<=` compare when types are matching.
 - [x] [`$ne`](https://www.mongodb.com/docs/manual/reference/operator/query/ne/)
 - [x] [`$nin`](https://www.mongodb.com/docs/manual/reference/operator/query/nin/)
 
@@ -100,50 +145,16 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 - [ ] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
 - [x] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
 - [x] [`$pull`](https://www.mongodb.com/docs/manual/reference/operator/update/pull/)
-- [ ] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
+- [x] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
 - [ ] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
 
 #### Modifiers
 
-- [ ] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
-- [ ] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
-- [ ] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
-- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
+- [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
+- [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
+- [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
+- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/) Limited to a single field.
 
 #### Bitwise
 
 - [ ] [`$bit`](https://www.mongodb.com/docs/manual/reference/operator/update/bit/)
-
-## Example
-
-```javascript
-import { ObjectId } from 'mongodb'
-import { compileFilterQuery, compileUpdateQuery } from 'mql-match'
-
-const match = compileFilterQuery({
-  value: {
-    $in: [42, 130]
-  }
-})
-
-const documents = [
-  {
-    _id: new ObjectId(),
-    value: 130
-  },
-  {
-    _id: new ObjectId(),
-    value: 0
-  },
-  {
-    _id: new ObjectId(),
-    value: 42
-  }
-]
-
-for (const document of documents) {
-  if (match(document)) {
-    console.log(document._id) // will log 2 documents
-  }
-}
-```

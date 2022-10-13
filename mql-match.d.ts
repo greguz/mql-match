@@ -10,4 +10,4 @@ export declare function compileFilterQuery(
  */
 export declare function compileUpdateQuery(
   query: object
-): (document: any) => any;
+): (document: any, insert?: boolean) => any;
