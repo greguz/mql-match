@@ -246,3 +246,9 @@ pipelineExample().catch(err => console.error(err))
 #### Literal Expression Operator
 
 - [x] [$literal](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/)
+
+## Support
+
+If this library helps you in your organization, you can show some love by giving the repo a star or support by making a nominal monetary contribution.
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/greguz)
