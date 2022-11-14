@@ -4,7 +4,7 @@
 ![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
-This project compiles a valid MQL (MongoDB Query Language) query to a native JavaScript function. It uses code generation techniques to improve performance. Both filter and update queries are supported.
+This project is a MQL (MongoDB Query Language) compiler. Filter, Update, and Aggregation queries are supported. See the [support table](#supported-features) table for more info.
 
 ## Why
 
@@ -183,7 +183,7 @@ pipelineExample().catch(err => console.error(err))
 
 ### [Aggregation Pipeline Stages](https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#alphabetical-listing-of-stages)
 
-- [ ] [`$addFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/addFields/)
+- [x] [`$addFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/addFields/)
 - [ ] [`$bucket`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucket/)
 - [ ] [`$bucketAuto`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/)
 - [ ] [`$changeStream`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/changeStream/)
@@ -229,19 +229,19 @@ pipelineExample().catch(err => console.error(err))
 - [x] [$abs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/)
 - [x] [$add](https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/)
 - [x] [$ceil](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ceil/)
-- [ ] [$divide](https://www.mongodb.com/docs/manual/reference/operator/aggregation/divide/)
-- [ ] [$exp](https://www.mongodb.com/docs/manual/reference/operator/aggregation/exp/)
-- [ ] [$floor](https://www.mongodb.com/docs/manual/reference/operator/aggregation/floor/)
-- [ ] [$ln](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ln/)
-- [ ] [$log](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/)
-- [ ] [$log10](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log10/)
-- [ ] [$mod](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mod/)
-- [ ] [$multiply](https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/)
-- [ ] [$pow](https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/)
-- [ ] [$round](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/)
-- [ ] [$sqrt](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/)
+- [x] [$divide](https://www.mongodb.com/docs/manual/reference/operator/aggregation/divide/)
+- [x] [$exp](https://www.mongodb.com/docs/manual/reference/operator/aggregation/exp/)
+- [x] [$floor](https://www.mongodb.com/docs/manual/reference/operator/aggregation/floor/)
+- [x] [$ln](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ln/)
+- [x] [$log](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/)
+- [x] [$log10](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log10/)
+- [x] [$mod](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mod/)
+- [x] [$multiply](https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/)
+- [x] [$pow](https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/)
+- [x] [$round](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/) Negative `place` is unstable.
+- [x] [$sqrt](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/)
 - [x] [$subtract](https://www.mongodb.com/docs/manual/reference/operator/aggregation/subtract/)
-- [ ] [$trunc](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/)
+- [x] [$trunc](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/)
 
 #### Literal Expression Operator
 
