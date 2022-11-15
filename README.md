@@ -1,8 +1,10 @@
 # mql-match
 
-[![npm version](https://badge.fury.io/js/mql-match.svg)](https://badge.fury.io/js/mql-match)
-![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)
+[![npm](https://img.shields.io/npm/v/mql-match)](https://badge.fury.io/js/mql-match)
+[![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)](https://img.shields.io/npm/dm/mql-match)
+[![npm](https://img.shields.io/npm/dm/mql-match)](https://img.shields.io/npm/dm/mql-match)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![GitHub last commit](https://img.shields.io/github/last-commit/greguz/mql-match)](https://github.com/greguz/mql-match)
 
 This project is a MQL (MongoDB Query Language) compiler. Filter, Update, and Aggregation queries are supported. See the [support table](#supported-features) table for more info.
 
@@ -224,28 +226,55 @@ pipelineExample().catch(err => console.error(err))
 
 ### [Aggregation Pipeline Operators](https://www.mongodb.com/docs/manual/reference/operator/aggregation/)
 
+Operators not listed here are currently not supported. Feel free to open an [GitHub Issue](https://github.com/greguz/mql-match/issues/new) if you need something in particular.
+
 #### Arithmetic Expression Operators
 
-- [x] [$abs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/)
-- [x] [$add](https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/)
-- [x] [$ceil](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ceil/)
-- [x] [$divide](https://www.mongodb.com/docs/manual/reference/operator/aggregation/divide/)
-- [x] [$exp](https://www.mongodb.com/docs/manual/reference/operator/aggregation/exp/)
-- [x] [$floor](https://www.mongodb.com/docs/manual/reference/operator/aggregation/floor/)
-- [x] [$ln](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ln/)
-- [x] [$log](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/)
-- [x] [$log10](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log10/)
-- [x] [$mod](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mod/)
-- [x] [$multiply](https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/)
-- [x] [$pow](https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/)
-- [x] [$round](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/) Negative `place` is unstable.
-- [x] [$sqrt](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/)
-- [x] [$subtract](https://www.mongodb.com/docs/manual/reference/operator/aggregation/subtract/)
-- [x] [$trunc](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/)
+- [x] [`$abs`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/)
+- [x] [`$add`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/)
+- [x] [`$ceil`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ceil/)
+- [x] [`$divide`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/divide/)
+- [x] [`$exp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/exp/)
+- [x] [`$floor`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/floor/)
+- [x] [`$ln`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ln/)
+- [x] [`$log`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/)
+- [x] [`$log10`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/log10/)
+- [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mod/)
+- [x] [`$multiply`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/)
+- [x] [`$pow`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/)
+- [x] [`$round`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/) Negative `place` is unstable.
+- [x] [`$sqrt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/)
+- [x] [`$subtract`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/subtract/)
+- [x] [`$trunc`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/)
+
+#### Array Expression Operators
+
+- [ ] [`$arrayElemAt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/arrayElemAt/)
+- [ ] [`$arrayToObject`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/arrayToObject/)
+- [ ] [`$concatArrays`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/concatArrays/)
+- [ ] [`$filter`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/filter/)
+- [ ] [`$first`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/first/)
+- [ ] [`$firstN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/firstN/)
+- [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/in/)
+- [ ] [`$indexOfArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/indexOfArray/)
+- [ ] [`$isArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isArray/)
+- [ ] [`$last`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/last/)
+- [ ] [`$lastN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/lastN/)
+- [ ] [`$map`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/map/)
+- [ ] [`$maxN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/maxN/)
+- [ ] [`$minN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/minN/)
+- [ ] [`$objectToArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/objectToArray/)
+- [ ] [`$range`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/range/)
+- [ ] [`$reduce`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/reduce/)
+- [ ] [`$reverseArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/reverseArray/)
+- [ ] [`$size`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/size/)
+- [ ] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/slice/)
+- [ ] [`$sortArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortArray/)
+- [ ] [`$zip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/zip/)
 
 #### Literal Expression Operator
 
-- [x] [$literal](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/)
+- [x] [`$literal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/)
 
 ## Support
 
