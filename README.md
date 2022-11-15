@@ -267,7 +267,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$range`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/range/)
 - [ ] [`$reduce`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/reduce/)
 - [ ] [`$reverseArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/reverseArray/)
-- [ ] [`$size`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/size/)
+- [x] [`$size`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/size/)
 - [ ] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/slice/)
 - [ ] [`$sortArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortArray/)
 - [ ] [`$zip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/zip/)
