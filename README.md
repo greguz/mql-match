@@ -17,9 +17,10 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 ```javascript
 import { ObjectId } from 'bson' // or 'mongodb'
 import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
   compileFilterQuery,
-  compileUpdateQuery,
-  compileAggregationPipeline
+  compileUpdateQuery
 } from 'mql-match'
 
 const documents = [
@@ -59,6 +60,21 @@ const newObject = {}
 update(newObject, true)
 // logs { _id: new ObjectId("xxxxxxxxxxxxxxxxxxxxxxxx"), hello: 'World', my: 'Pleasure' }
 console.log(newObject)
+
+const map = compileAggregationExpression({
+  _id: 0,
+  item: 1,
+  discount: {
+    $cond: {
+      if: { $gte: ['$qty', 250] },
+      then: 30,
+      else: 20
+    }
+  }
+})
+
+// logs { item: 'xyz1', discount: 30 }
+console.log(map({ _id: 3, item: 'xyz1', qty: 250 }))
 
 // Returns a function that accepts an iterable (both sync or async) and returns an async iterable
 const aggregate = compileAggregationPipeline([

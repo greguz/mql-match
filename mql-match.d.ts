@@ -1,6 +1,13 @@
 /**
  * Compiles a MongoDB aggregation pipeline to a mapping function.
  */
+export declare function compileAggregationExpression(
+  expression: any
+): (data: any) => any;
+
+/**
+ * Compiles a MongoDB aggregation pipeline to a mapping function.
+ */
 export declare function compileAggregationPipeline(
   pipeline: any[]
 ): (iterable: Iterable<any> | AsyncIterable<any>) => AsyncIterable<any>;
