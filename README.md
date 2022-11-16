@@ -1,8 +1,8 @@
 # mql-match
 
-[![npm](https://img.shields.io/npm/v/mql-match)](https://badge.fury.io/js/mql-match)
-[![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/mql-match)](https://img.shields.io/npm/dm/mql-match)
-[![npm](https://img.shields.io/npm/dm/mql-match)](https://img.shields.io/npm/dm/mql-match)
+[![NPM Version](https://img.shields.io/npm/v/mql-match)](https://www.npmjs.com/package/mql-match)
+[![NPM Dependency status](https://img.shields.io/librariesio/release/npm/mql-match)](https://www.npmjs.com/package/mql-match)
+[![NPM Downloads](https://img.shields.io/npm/dm/mql-match)](https://www.npmjs.com/package/mql-match)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 [![GitHub last commit](https://img.shields.io/github/last-commit/greguz/mql-match)](https://github.com/greguz/mql-match)
 
@@ -251,13 +251,13 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 
 - [ ] [`$arrayElemAt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/arrayElemAt/)
 - [ ] [`$arrayToObject`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/arrayToObject/)
-- [ ] [`$concatArrays`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/concatArrays/)
+- [x] [`$concatArrays`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/concatArrays/)
 - [ ] [`$filter`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/filter/)
 - [ ] [`$first`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/first/)
 - [ ] [`$firstN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/firstN/)
 - [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/in/)
 - [ ] [`$indexOfArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/indexOfArray/)
-- [ ] [`$isArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isArray/)
+- [x] [`$isArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isArray/)
 - [ ] [`$last`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/last/)
 - [ ] [`$lastN`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/lastN/)
 - [ ] [`$map`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/map/)
@@ -271,6 +271,28 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/slice/)
 - [ ] [`$sortArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortArray/)
 - [ ] [`$zip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/zip/)
+
+#### Boolean Expression Operators
+
+- [x] [`$and`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/and/)
+- [x] [`$not`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/not/)
+- [x] [`$or`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/or/)
+
+#### Comparison Expression Operators
+
+- [x] [`$cmp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/cmp/)
+- [x] [`$eq`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/eq/)
+- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/gt/)
+- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/gte/)
+- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/lt/)
+- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/lte/)
+- [x] [`$ne`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ne/)
+
+#### Conditional Expression Operators
+
+- [x] [`$cond`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/cond/)
+- [ ] [`$ifNull`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifNull/)
+- [ ] [`$switch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/switch/)
 
 #### Literal Expression Operator
 
