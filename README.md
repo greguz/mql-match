@@ -124,7 +124,7 @@ pipelineExample().catch(err => console.error(err))
 
 #### Evaluation
 
-- [ ] [`$expr`](https://www.mongodb.com/docs/manual/reference/operator/query/expr/)
+- [x] [`$expr`](https://www.mongodb.com/docs/manual/reference/operator/query/expr/)
 - [ ] [`$jsonSchema`](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/)
 - [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/query/mod/)
 - [x] [`$regex`](https://www.mongodb.com/docs/manual/reference/operator/query/regex/)
@@ -167,7 +167,7 @@ pipelineExample().catch(err => console.error(err))
 
 #### Fields
 
-- [ ] [`$currentDate`](https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/)
+- [x] [`$currentDate`](https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/) Timestamp is **not** supported.
 - [x] [`$inc`](https://www.mongodb.com/docs/manual/reference/operator/update/inc/)
 - [ ] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/update/min/)
 - [ ] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/update/max/)
@@ -182,11 +182,11 @@ pipelineExample().catch(err => console.error(err))
 - [ ] [`$`](https://www.mongodb.com/docs/manual/reference/operator/update/positional/)
 - [ ] [`$[]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/)
 - [ ] [`$[<identifier>]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/)
-- [ ] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
+- [x] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
 - [x] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
 - [x] [`$pull`](https://www.mongodb.com/docs/manual/reference/operator/update/pull/)
 - [x] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
-- [ ] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
+- [x] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
 
 #### Modifiers
 
@@ -239,6 +239,16 @@ pipelineExample().catch(err => console.error(err))
 - [ ] [`$unionWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unionWith/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/)
 - [x] [`$unwind`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unwind/)
+
+### [Aggregation Variables](https://www.mongodb.com/docs/manual/reference/aggregation-variables/)
+
+- [x] `$$NOW`
+- [ ] `$$CLUSTER_TIME`
+- [x] `$$ROOT`
+- [ ] `$$CURRENT`
+- [ ] `$$REMOVE`
+- [ ] `$$DESCEND`
+- [ ] `$$PRUNE`
 
 ### [Aggregation Pipeline Operators](https://www.mongodb.com/docs/manual/reference/operator/aggregation/)
 
@@ -307,12 +317,12 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 #### Conditional Expression Operators
 
 - [x] [`$cond`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/cond/)
-- [ ] [`$ifNull`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifNull/)
-- [ ] [`$switch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/switch/)
+- [x] [`$ifNull`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifNull/)
+- [x] [`$switch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/switch/)
 
 #### Literal Expression Operator
 
-- [x] [`$literal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/)
+- [x] [`$literal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/) No validation.
 
 ## Support
 
