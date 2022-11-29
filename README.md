@@ -120,7 +120,7 @@ pipelineExample().catch(err => console.error(err))
 #### Element
 
 - [x] [`$exists`](https://www.mongodb.com/docs/manual/reference/operator/query/exists/)
-- [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/query/type/) Types `"binData"`, `"dbPointer"`, `"javascript"`, `"javascriptWithScope"`, `"timestamp"`, `"minKey"`, and `"maxKey"` are **not** supported.
+- [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/query/type/)
 
 #### Evaluation
 
@@ -169,8 +169,8 @@ pipelineExample().catch(err => console.error(err))
 
 - [x] [`$currentDate`](https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/) Timestamp is **not** supported.
 - [x] [`$inc`](https://www.mongodb.com/docs/manual/reference/operator/update/inc/)
-- [ ] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/update/min/)
-- [ ] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/update/max/)
+- [x] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/update/min/)
+- [x] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/update/max/)
 - [x] [`$mul`](https://www.mongodb.com/docs/manual/reference/operator/update/mul/)
 - [x] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
@@ -243,7 +243,7 @@ pipelineExample().catch(err => console.error(err))
 ### [Aggregation Variables](https://www.mongodb.com/docs/manual/reference/aggregation-variables/)
 
 - [x] `$$NOW`
-- [ ] `$$CLUSTER_TIME`
+- [x] `$$CLUSTER_TIME`
 - [x] `$$ROOT`
 - [ ] `$$CURRENT`
 - [ ] `$$REMOVE`
@@ -268,7 +268,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mod/)
 - [x] [`$multiply`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/)
 - [x] [`$pow`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/)
-- [x] [`$round`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/) Negative `place` is unstable.
+- [x] [`$round`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/)
 - [x] [`$sqrt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/)
 - [x] [`$subtract`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/subtract/)
 - [x] [`$trunc`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/)
@@ -320,9 +320,50 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [x] [`$ifNull`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifNull/)
 - [x] [`$switch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/switch/)
 
+#### Custom Aggregation Expression Operators
+
+- [ ] [`$accumulator`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/accumulator/)
+- [ ] [`$function`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/function/)
+
+#### Data Size Operators
+
+- [ ] [`$binarySize`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/binarySize/)
+- [ ] [`$bsonSize`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bsonSize/)
+
+#### Date Expression Operators
+
+- [ ] [`$dateAdd`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateAdd/)
+- [ ] [`$dateDiff`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateDiff/)
+- [ ] [`$dateFromParts`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateFromParts/)
+- [ ] [`$dateFromString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateFromString/)
+- [ ] [`$dateSubtract`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateSubtract/)
+- [ ] [`$dateToParts`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateToParts/)
+- [ ] [`$dateToString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateToString/)
+- [ ] [`$dateTrunc`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateTrunc/)
+- [ ] [`$dayOfMonth`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dayOfMonth/)
+- [ ] [`$dayOfWeek`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dayOfWeek/)
+- [ ] [`$dayOfYear`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dayOfYear/)
+- [ ] [`$hour`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/hour/)
+- [ ] [`$isoDayOfWeek`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isoDayOfWeek/)
+- [ ] [`$isoWeek`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isoWeek/)
+- [ ] [`$isoWeekYear`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isoWeekYear/)
+- [ ] [`$millisecond`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/millisecond/)
+- [ ] [`$minute`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/minute/)
+- [ ] [`$month`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/month/)
+- [ ] [`$second`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/second/)
+- [ ] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
+- [ ] [`$week`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/week/)
+- [ ] [`$year`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/year/)
+
 #### Literal Expression Operator
 
 - [x] [`$literal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/) No validation.
+
+#### Miscellaneous Operators
+
+- [ ] [`$getField`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/getField/)
+- [ ] [`$rand`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rand/)
+- [ ] [`$sampleRate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sampleRate/)
 
 ## Support
 

@@ -4,5 +4,5 @@ export default {
     file: './mql-match.cjs',
     format: 'cjs'
   },
-  external: ['big.js', 'bson']
+  external: ['decimal.js', 'bson', 'buffer']
 }
