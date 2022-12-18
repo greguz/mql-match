@@ -102,11 +102,11 @@ pipelineExample().catch(err => console.error(err))
 #### Comparison
 
 - [x] [`$eq`](https://www.mongodb.com/docs/manual/reference/operator/query/eq/)
-- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/) Uses a simple `>` compare when types are matching.
-- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/) Uses a simple `>=` compare when types are matching.
+- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/)
+- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/)
 - [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/query/in/)
-- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/) Uses a simple `<` compare when types are matching.
-- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/) Uses a simple `<=` compare when types are matching.
+- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/)
+- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/)
 - [x] [`$ne`](https://www.mongodb.com/docs/manual/reference/operator/query/ne/)
 - [x] [`$nin`](https://www.mongodb.com/docs/manual/reference/operator/query/nin/)
 
@@ -234,7 +234,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/)
 - [ ] [`$setWindowFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/)
 - [x] [`$skip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/skip/)
-- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
+- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
 - [ ] [`$sortByCount`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortByCount/)
 - [ ] [`$unionWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unionWith/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/)
@@ -364,6 +364,89 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$getField`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/getField/)
 - [ ] [`$rand`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rand/)
 - [ ] [`$sampleRate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sampleRate/)
+
+#### Object Expression Operators
+
+- [ ] [`$mergeObjects`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/mergeObjects/)
+- [ ] [`$objectToArray`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/objectToArray/)
+- [ ] [`$setField`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setField/)
+
+#### Set Expression Operators
+
+- [ ] [`$allElementsTrue`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/allElementsTrue/)
+- [ ] [`$anyElementTrue`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/anyElementTrue/)
+- [ ] [`$setDifference`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setDifference/)
+- [ ] [`$setEquals`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setEquals/)
+- [ ] [`$setIntersection`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setIntersection/)
+- [ ] [`$setIsSubset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setIsSubset/)
+- [ ] [`$setUnion`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setUnion/)
+
+#### String Expression Operators
+
+- [ ] [`$concat`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/concat/)
+- [ ] [`$dateFromString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateFromString/)
+- [ ] [`$dateToString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateToString/)
+- [ ] [`$indexOfBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/indexOfBytes/)
+- [ ] [`$indexOfCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/indexOfCP/)
+- [ ] [`$ltrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ltrim/)
+- [ ] [`$regexFind`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFind/)
+- [ ] [`$regexFindAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFindAll/)
+- [ ] [`$regexMatch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/)
+- [ ] [`$replaceOne`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceOne/)
+- [ ] [`$replaceAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceAll/)
+- [ ] [`$rtrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rtrim/)
+- [ ] [`$split`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/split/)
+- [ ] [`$strLenBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/strLenBytes/)
+- [ ] [`$strLenCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/strLenCP/)
+- [ ] [`$strcasecmp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/strcasecmp/)
+- [ ] [`$substr`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substr/)
+- [ ] [`$substrBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrBytes/)
+- [ ] [`$substrCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrCP/)
+- [ ] [`$toLower`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/)
+- [ ] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
+- [ ] [`$trim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trim/)
+- [ ] [`$toUpper`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toUpper/)
+
+#### Text Expression Operator
+
+- [ ] [`$meta`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/meta/)
+
+#### Timestamp Expression Operators
+
+- [ ] [`$tsIncrement`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/tsIncrement/)
+- [ ] [`$tsSecond`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/tsSecond/)
+
+#### Trigonometry Expression Operators
+
+- [ ] [`$sin`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sin/)
+- [ ] [`$cos`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/cos/)
+- [ ] [`$tan`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/tan/)
+- [ ] [`$asin`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/asin/)
+- [ ] [`$acos`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/acos/)
+- [ ] [`$atan`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/atan/)
+- [ ] [`$atan2`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/atan2/)
+- [ ] [`$asinh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/asinh/)
+- [ ] [`$acosh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/acosh/)
+- [ ] [`$atanh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/atanh/)
+- [ ] [`$sinh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sinh/)
+- [ ] [`$cosh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/cosh/)
+- [ ] [`$tanh`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/tanh/)
+- [ ] [`$degreesToRadians`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/degreesToRadians/)
+- [ ] [`$radiansToDegrees`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/radiansToDegrees/)
+
+#### Type Expression Operators
+
+- [x] [`$convert`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/)
+- [x] [`$isNumber`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isNumber/)
+- [x] [`$toBool`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/)
+- [ ] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
+- [ ] [`$toDecimal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDecimal/)
+- [x] [`$toDouble`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/)
+- [ ] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
+- [ ] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
+- [x] [`$toObjectId`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/)
+- [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
+- [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/) Adds `"unknown"` type.
 
 ## Support
 
