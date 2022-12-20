@@ -167,7 +167,7 @@ pipelineExample().catch(err => console.error(err))
 
 #### Fields
 
-- [x] [`$currentDate`](https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/) Timestamp is **not** supported.
+- [x] [`$currentDate`](https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/)
 - [x] [`$inc`](https://www.mongodb.com/docs/manual/reference/operator/update/inc/)
 - [x] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/update/min/)
 - [x] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/update/max/)
