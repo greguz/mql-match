@@ -1,6 +1,6 @@
 {
   "name": "mql-match",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A MongoDB Query Language compiler.",
   "main": "./mql-match.cjs",
   "types": "./mql-match.d.ts",
