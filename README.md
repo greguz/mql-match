@@ -362,7 +362,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 #### Miscellaneous Operators
 
 - [ ] [`$getField`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/getField/)
-- [ ] [`$rand`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rand/)
+- [x] [`$rand`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rand/)
 - [ ] [`$sampleRate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sampleRate/)
 
 #### Object Expression Operators
