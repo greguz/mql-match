@@ -21,11 +21,13 @@ import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
 import {
   type ExpressionNode,
   type Node,
+  nPath,
   type Operator,
   type OperatorNode,
   type ValueNode,
   withoutExpansion,
 } from './node.js'
+import { getPathValue } from './path.js'
 import {
   isArray,
   isBinary,
@@ -71,14 +73,27 @@ export function compileExpression(value: unknown) {
  * Recursive downgrade from `Node` to `ValueNode` (unwraps `OperatorNode`s)
  */
 function applyOperators(node: Node, subject: ValueNode): ValueNode {
-  if (node.kind === 'EXPRESSION') {
-    throw new Error('Unexpected node kind (expression)')
+  switch (node.kind) {
+    // Shouldn't be here (recursive resoluzione is done during build time)
+    case 'EXPRESSION': {
+      throw new Error(`Unexpected node kind: ${node.kind}`)
+    }
+
+    // Apply operators
+    case 'OPERATOR': {
+      const args = node.args.map(a => applyOperators(a, subject))
+      return applyOperators(node.operator(...args), subject)
+    }
+
+    // Resolve paths
+    case 'PATH': {
+      return parseValueNode(getPathValue(node.path, subject.value))
+    }
+
+    // Should be a raw value
+    default:
+      return node
   }
-  if (node.kind !== 'OPERATOR') {
-    return node
-  }
-  const args = node.args.map(a => applyOperators(a, subject))
-  return applyOperators(node.operator(...args), subject)
 }
 
 /**
@@ -121,11 +136,11 @@ function parseValueNode(value: unknown): ValueNode {
     return parseBSONNode(value)
   }
 
-  if (isObjectLike(value)) {
-    return { kind: 'OBJECT', value }
+  if (!isObjectLike(value)) {
+    throw new TypeError(`Unsupported expression: ${value}`)
   }
 
-  throw new TypeError(`Unsupported expression: ${value}`)
+  return { kind: 'OBJECT', value }
 }
 
 /**
@@ -226,8 +241,7 @@ function parseStringNode(value: string): Node {
   }
 
   if (value[0] === '$') {
-    // TODO: getter
-    throw new TypeError(`TODO: getter (${value})`)
+    return nPath(value.substring(1))
   }
 
   return { kind: 'STRING', value }

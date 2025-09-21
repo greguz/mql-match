@@ -1,5 +1,7 @@
 import type { ObjectId, Timestamp } from 'bson'
 
+import { type Path, parsePath } from './path.js'
+
 export interface BigIntNode {
   kind: 'BIG_INT'
   value: bigint
@@ -162,7 +164,19 @@ export function nExpression(expression: unknown): ExpressionNode {
   return { kind: 'EXPRESSION', expression }
 }
 
+export interface PathNode {
+  kind: 'PATH'
+  path: Path
+}
+
+export function nPath(value: string): PathNode {
+  return {
+    kind: 'PATH',
+    path: parsePath(value),
+  }
+}
+
 /**
  * All types of nodes.
  */
-export type Node = ExpressionNode | OperatorNode | ValueNode
+export type Node = ExpressionNode | OperatorNode | PathNode | ValueNode

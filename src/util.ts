@@ -22,6 +22,10 @@ export function isNullish(value: unknown): value is null | undefined {
   return isNull(value) || isUndefined(value)
 }
 
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number'
+}
+
 export function isObjectLike(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }

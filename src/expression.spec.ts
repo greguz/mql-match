@@ -73,6 +73,11 @@ test('$toDouble', t => {
   t.is(exec({ $toDouble: new Date('2018-03-27T05:04:47.890Z') }), 1522127087890)
 })
 
+test('$', t => {
+  t.is(exec('$v', { v: 4 }), 4)
+  t.is(exec('$a.b', { a: { b: 2 } }), 2)
+})
+
 test('project', t => {
   t.deepEqual(
     exec(
