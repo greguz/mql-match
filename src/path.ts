@@ -89,6 +89,6 @@ export function setPathValue(
   }
 }
 
-export function unsetValue(path: Path, subject: unknown): void {
+export function unsetPathValue(path: Path, subject: unknown): void {
   throw new Error('TODO: unsetValue')
 }

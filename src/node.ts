@@ -1,6 +1,22 @@
-import type { ObjectId, Timestamp } from 'bson'
+import type {
+  Binary,
+  BSONValue,
+  Double,
+  Int32,
+  ObjectId,
+  Timestamp,
+} from 'bson'
 
+import { isBSON } from './bson.js'
 import { type Path, parsePath } from './path.js'
+import {
+  isArray,
+  isBinary,
+  isDate,
+  isNullish,
+  isObjectLike,
+  isRegExp,
+} from './util.js'
 
 export interface BigIntNode {
   kind: 'BIG_INT'
@@ -78,6 +94,10 @@ export interface ObjectNode {
   value: Record<string, unknown>
 }
 
+export function nObject(value: Record<string, unknown>): ObjectNode {
+  return { kind: 'OBJECT', value }
+}
+
 /**
  * A node that can be unwrapped directly (value)
  */
@@ -94,6 +114,91 @@ export type ValueNode =
   | RegExpNode
   | StringNode
   | TimestampNode
+
+/**
+ * Parse literal values.
+ */
+export function parseValueNode(value?: unknown): ValueNode {
+  if (isNullish(value)) {
+    return nNullish()
+  }
+
+  switch (typeof value) {
+    case 'bigint':
+      return value >= Number.MIN_SAFE_INTEGER &&
+        value <= Number.MAX_SAFE_INTEGER
+        ? nNumber(Number(value))
+        : { kind: 'BIG_INT', value }
+    case 'boolean':
+      return nBoolean(value)
+    case 'function':
+      throw new TypeError('Functions are not supported')
+    case 'number':
+      return nNumber(value)
+    case 'string':
+      return nString(value)
+    case 'symbol':
+      throw new TypeError('Symbols are not supported')
+  }
+
+  if (isArray(value)) {
+    return { kind: 'ARRAY', value }
+  }
+  if (isDate(value)) {
+    return { kind: 'DATE', value }
+  }
+  if (isBinary(value)) {
+    return { kind: 'BINARY', value }
+  }
+  if (isRegExp(value)) {
+    return { kind: 'REG_EXP', value }
+  }
+
+  if (isBSON(value)) {
+    return parseBSONNode(value)
+  }
+
+  if (!isObjectLike(value)) {
+    throw new TypeError(`Unsupported expression: ${value}`)
+  }
+
+  return { kind: 'OBJECT', value }
+}
+
+/**
+ * Parse supported BSON objects.
+ */
+function parseBSONNode(obj: BSONValue): ValueNode {
+  switch (obj._bsontype.toLowerCase()) {
+    case 'binary':
+      return {
+        kind: 'BINARY',
+        value: (obj as Binary).buffer,
+      }
+    case 'objectid':
+      return {
+        kind: 'OBJECT_ID',
+        value: obj as ObjectId,
+      }
+    case 'timestamp':
+      return {
+        kind: 'TIMESTAMP',
+        value: obj as Timestamp,
+      }
+    case 'int32':
+      return {
+        kind: 'NUMBER',
+        value: (obj as Int32).value,
+      }
+    case 'double':
+      return {
+        kind: 'NUMBER',
+        value: (obj as Double).value,
+      }
+    default:
+      throw new TypeError(`Unsupported BSON type: ${obj._bsontype}`)
+  }
+}
 
 export interface Operator {
   /**
@@ -164,19 +269,64 @@ export function nExpression(expression: unknown): ExpressionNode {
   return { kind: 'EXPRESSION', expression }
 }
 
-export interface PathNode {
-  kind: 'PATH'
+export interface ProjectionNode {
+  kind: 'PROJECTION'
+  nodes: SetterNode[]
+}
+
+export function nProjection(nodes: SetterNode[]): ProjectionNode {
+  return {
+    kind: 'PROJECTION',
+    nodes,
+  }
+}
+
+export interface GetterNode {
+  kind: 'GETTER'
   path: Path
 }
 
-export function nPath(value: string): PathNode {
+export function nGetter(path: string): GetterNode {
   return {
-    kind: 'PATH',
-    path: parsePath(value),
+    kind: 'GETTER',
+    path: parsePath(path),
+  }
+}
+
+export interface SetterNode {
+  kind: 'SETTER'
+  path: Path
+  node: Node
+}
+
+export function nSetter(path: string, node: Node): SetterNode {
+  return {
+    kind: 'SETTER',
+    path: parsePath(path),
+    node,
+  }
+}
+
+export interface DeleterNode {
+  kind: 'DELETER'
+  path: Path
+}
+
+export function nDeleter(path: string): DeleterNode {
+  return {
+    kind: 'DELETER',
+    path: parsePath(path),
   }
 }
 
 /**
- * All types of nodes.
+ * All types of node.
  */
-export type Node = ExpressionNode | OperatorNode | PathNode | ValueNode
+export type Node =
+  | DeleterNode
+  | ExpressionNode
+  | GetterNode
+  | OperatorNode
+  | ProjectionNode
+  | SetterNode
+  | ValueNode

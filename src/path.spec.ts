@@ -1,6 +1,11 @@
 import test from 'ava'
 
-import { getPathValue, parsePath, setPathValue, unsetValue } from './path.js'
+import {
+  getPathValue,
+  parsePath,
+  setPathValue,
+  unsetPathValue,
+} from './path.js'
 
 function writeValue(subject: unknown, path: string, value: unknown) {
   setPathValue(parsePath(path), subject, value)
@@ -8,7 +13,7 @@ function writeValue(subject: unknown, path: string, value: unknown) {
 }
 
 function deleteValue(subject: unknown, path: string) {
-  unsetValue(parsePath(path), subject)
+  unsetPathValue(parsePath(path), subject)
   return subject
 }
 

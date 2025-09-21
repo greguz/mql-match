@@ -1,13 +1,21 @@
-import type {
-  Binary,
-  BSONValue,
-  Double,
-  Int32,
-  ObjectId,
-  Timestamp,
-} from 'bson'
-
-import { isBSON } from './bson.js'
+import {
+  $abs,
+  $add,
+  $ceil,
+  $divide,
+  $exp,
+  $floor,
+  $ln,
+  $log,
+  $log10,
+  $mod,
+  $multiply,
+  $pow,
+  $round,
+  $sqrt,
+  $subtract,
+  $trunc,
+} from './expression/arithmetic.js'
 import {
   $convert,
   $isNumber,
@@ -21,33 +29,48 @@ import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
 import {
   type ExpressionNode,
   type Node,
-  nPath,
+  nGetter,
+  nNullish,
+  nObject,
+  nProjection,
+  nSetter,
   type Operator,
   type OperatorNode,
+  parseValueNode,
+  type SetterNode,
   type ValueNode,
   withoutExpansion,
 } from './node.js'
-import { getPathValue } from './path.js'
-import {
-  isArray,
-  isBinary,
-  isDate,
-  isNullish,
-  isObjectLike,
-  isRegExp,
-} from './util.js'
+import { getPathValue, setPathValue, unsetPathValue } from './path.js'
+import { isArray, isNullish } from './util.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/mql/expressions/
  */
 const OPERATORS: Record<string, Operator | undefined> = {
+  $abs,
+  $add,
+  $ceil,
   $convert,
+  $divide,
+  $exp,
+  $floor,
   $isNumber,
   $literal: withoutExpansion(arg => arg),
+  $ln,
+  $log,
+  $log10,
+  $mod,
+  $multiply,
+  $pow,
+  $round,
+  $sqrt,
+  $subtract,
   $toBool,
   $toDouble,
   $toObjectId,
   $toString,
+  $trunc,
   $type,
 }
 
@@ -65,14 +88,27 @@ const VARIABLES: Record<string, OperatorNode | undefined> = {
  */
 export function compileExpression(value: unknown) {
   const node = parseNode(value)
-  return (value?: unknown): ValueNode['value'] =>
-    applyOperators(node, parseValueNode(value)).value
+  return (value?: unknown): ValueNode['value'] => {
+    const root = parseValueNode(value)
+    const ctx: Context = {
+      root,
+      source: root,
+      target: nNullish(),
+    }
+    return applyOperators(node, ctx).value
+  }
+}
+
+interface Context {
+  root: ValueNode
+  source: ValueNode
+  target: ValueNode
 }
 
 /**
  * Recursive downgrade from `Node` to `ValueNode` (unwraps `OperatorNode`s)
  */
-function applyOperators(node: Node, subject: ValueNode): ValueNode {
+function applyOperators(node: Node, ctx: Context): ValueNode {
   switch (node.kind) {
     // Shouldn't be here (recursive resoluzione is done during build time)
     case 'EXPRESSION': {
@@ -81,66 +117,48 @@ function applyOperators(node: Node, subject: ValueNode): ValueNode {
 
     // Apply operators
     case 'OPERATOR': {
-      const args = node.args.map(a => applyOperators(a, subject))
-      return applyOperators(node.operator(...args), subject)
+      const args = node.args.map(a => applyOperators(a, ctx))
+      return applyOperators(node.operator(...args), ctx)
     }
 
     // Resolve paths
-    case 'PATH': {
-      return parseValueNode(getPathValue(node.path, subject.value))
+    case 'GETTER': {
+      return parseValueNode(getPathValue(node.path, ctx.source.value))
+    }
+
+    //
+    case 'SETTER': {
+      setPathValue(
+        node.path,
+        ctx.target.value,
+        applyOperators(node.node, ctx).value,
+      )
+      return ctx.target // TODO: huh?
+    }
+
+    //
+    case 'DELETER': {
+      unsetPathValue(node.path, ctx.target.value)
+      return ctx.target // TODO: huh?
+    }
+
+    // Resolve expression objects
+    case 'PROJECTION': {
+      const scope: Context = {
+        root: ctx.root,
+        source: ctx.source,
+        target: nObject({}),
+      }
+      for (const n of node.nodes) {
+        applyOperators(n, scope)
+      }
+      return scope.target
     }
 
     // Should be a raw value
     default:
       return node
   }
-}
-
-/**
- * Parse literal values.
- */
-function parseValueNode(value: unknown): ValueNode {
-  if (isNullish(value)) {
-    return { kind: 'NULLISH', value: null }
-  }
-
-  switch (typeof value) {
-    case 'bigint':
-      return parseBigIntNode(value)
-    case 'boolean':
-      return { kind: 'BOOLEAN', value }
-    case 'function':
-      throw new TypeError('Functions are not supported')
-    case 'number':
-      return { kind: 'NUMBER', value }
-    case 'string':
-      return { kind: 'STRING', value }
-    case 'symbol':
-      throw new TypeError('Symbols are not supported')
-  }
-
-  if (isArray(value)) {
-    return { kind: 'ARRAY', value }
-  }
-  if (isDate(value)) {
-    return { kind: 'DATE', value }
-  }
-  if (isBinary(value)) {
-    return { kind: 'BINARY', value }
-  }
-  if (isRegExp(value)) {
-    return { kind: 'REG_EXP', value }
-  }
-
-  if (isBSON(value)) {
-    return parseBSONNode(value)
-  }
-
-  if (!isObjectLike(value)) {
-    throw new TypeError(`Unsupported expression: ${value}`)
-  }
-
-  return { kind: 'OBJECT', value }
 }
 
 /**
@@ -184,51 +202,6 @@ function parseNode(value: unknown): Node {
 }
 
 /**
- * Parse supported BSON objects.
- */
-function parseBSONNode(obj: BSONValue): ValueNode {
-  switch (obj._bsontype.toLowerCase()) {
-    case 'binary':
-      return {
-        kind: 'BINARY',
-        value: (obj as Binary).buffer,
-      }
-    case 'objectid':
-      return {
-        kind: 'OBJECT_ID',
-        value: obj as ObjectId,
-      }
-    case 'timestamp':
-      return {
-        kind: 'TIMESTAMP',
-        value: obj as Timestamp,
-      }
-    case 'int32':
-      return {
-        kind: 'NUMBER',
-        value: (obj as Int32).value,
-      }
-    case 'double':
-      return {
-        kind: 'NUMBER',
-        value: (obj as Double).value,
-      }
-    default:
-      throw new TypeError(`Unsupported BSON type: ${obj._bsontype}`)
-  }
-}
-
-/**
- * Downgrade BigInt to Number when possible.
- */
-function parseBigIntNode(value: bigint): ValueNode {
-  if (value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER) {
-    return { kind: 'NUMBER', value: Number(value) }
-  }
-  return { kind: 'BIG_INT', value }
-}
-
-/**
  * Apply operators and system variables.
  */
 function parseStringNode(value: string): Node {
@@ -241,7 +214,7 @@ function parseStringNode(value: string): Node {
   }
 
   if (value[0] === '$') {
-    return nPath(value.substring(1))
+    return nGetter(value.substring(1))
   }
 
   return { kind: 'STRING', value }
@@ -273,7 +246,7 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
         `${key} operator requires at least ${minArgs} arguments (got ${args.length})`,
       )
     }
-    if (args.length > minArgs) {
+    if (args.length > maxArgs) {
       throw new TypeError(
         `${key} operator requires at most ${maxArgs} arguments (got ${args.length})`,
       )
@@ -288,8 +261,22 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
     }
   }
 
-  // TODO: projection
-  throw new TypeError('TODO: projection')
+  const nodes: SetterNode[] = []
+
+  for (const key of keys) {
+    const value = obj[key]
+    if (value === 0 || value === false) {
+      throw new Error('Omit is currently not supported')
+    }
+
+    if (value === 1 || value === true) {
+      nodes.push(nSetter(key, nGetter(key)))
+    } else {
+      nodes.push(nSetter(key, parseNode(value)))
+    }
+  }
+
+  return nProjection(nodes)
 }
 
 /**
