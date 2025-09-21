@@ -1,10 +1,12 @@
-import type {
-  Binary,
-  BSONValue,
-  Double,
-  Int32,
-  ObjectId,
-  Timestamp,
+import {
+  type Binary,
+  BSONType,
+  type BSONValue,
+  type Double,
+  type Int32,
+  Long,
+  type ObjectId,
+  type Timestamp,
 } from 'bson'
 
 import { isBSON } from './bson.js'
@@ -18,84 +20,90 @@ import {
   isRegExp,
 } from './util.js'
 
-export interface BigIntNode {
-  kind: 'BIG_INT'
-  value: bigint
-}
-
 export interface BooleanNode {
-  kind: 'BOOLEAN'
+  kind: typeof BSONType.bool
   value: boolean
 }
 
 export function nBoolean(value: boolean): BooleanNode {
-  return { kind: 'BOOLEAN', value }
+  return { kind: BSONType.bool, value }
 }
 
 export interface NullishNode {
-  kind: 'NULLISH'
+  kind: typeof BSONType.null
   value: null
 }
 
 export function nNullish(): NullishNode {
-  return { kind: 'NULLISH', value: null }
+  return { kind: BSONType.null, value: null }
 }
 
-export interface NumberNode {
-  kind: 'NUMBER'
+export interface DoubleNode {
+  kind: typeof BSONType.double
   value: number
 }
 
-export function nNumber(value: number): NumberNode {
-  return { kind: 'NUMBER', value }
+export function nDouble(value: number): DoubleNode {
+  return { kind: BSONType.double, value }
+}
+
+export interface LongNode {
+  kind: typeof BSONType.long
+  value: Long
+}
+
+export function nLongNode(value: bigint): LongNode | DoubleNode {
+  return value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
+    ? nDouble(Number(value))
+    : { kind: BSONType.long, value: Long.fromBigInt(value) }
 }
 
 export interface StringNode {
-  kind: 'STRING'
+  kind: typeof BSONType.string
   value: string
 }
 
 export function nString(value: string): StringNode {
-  return { kind: 'STRING', value }
+  return { kind: BSONType.string, value }
 }
 
 export interface TimestampNode {
-  kind: 'TIMESTAMP'
+  kind: typeof BSONType.timestamp
   value: Timestamp
 }
 
 export interface DateNode {
-  kind: 'DATE'
+  kind: typeof BSONType.date
   value: Date
 }
 
 export interface ArrayNode<T = unknown> {
-  kind: 'ARRAY'
+  kind: typeof BSONType.array
   value: T[]
 }
 
 export interface BinaryNode {
-  kind: 'BINARY'
+  kind: typeof BSONType.binData
   value: Uint8Array
 }
 
 export interface ObjectIdNode {
-  kind: 'OBJECT_ID'
+  kind: typeof BSONType.objectId
   value: ObjectId
 }
 
 export interface RegExpNode {
-  kind: 'REG_EXP'
+  kind: typeof BSONType.regex
   value: RegExp
 }
 
 export interface ObjectNode {
-  kind: 'OBJECT'
+  kind: typeof BSONType.object
   value: Record<string, unknown>
 }
 
 export function nObject(value: Record<string, unknown>): ObjectNode {
-  return { kind: 'OBJECT', value }
+  return { kind: BSONType.object, value }
 }
 
 /**
@@ -103,12 +111,12 @@ export function nObject(value: Record<string, unknown>): ObjectNode {
  */
 export type ValueNode =
   | ArrayNode
-  | BigIntNode
   | BinaryNode
   | BooleanNode
   | DateNode
+  | DoubleNode
+  | LongNode
   | NullishNode
-  | NumberNode
   | ObjectIdNode
   | ObjectNode
   | RegExpNode
@@ -125,16 +133,13 @@ export function parseValueNode(value?: unknown): ValueNode {
 
   switch (typeof value) {
     case 'bigint':
-      return value >= Number.MIN_SAFE_INTEGER &&
-        value <= Number.MAX_SAFE_INTEGER
-        ? nNumber(Number(value))
-        : { kind: 'BIG_INT', value }
+      return nLongNode(value)
     case 'boolean':
       return nBoolean(value)
     case 'function':
       throw new TypeError('Functions are not supported')
     case 'number':
-      return nNumber(value)
+      return nDouble(value)
     case 'string':
       return nString(value)
     case 'symbol':
@@ -142,16 +147,16 @@ export function parseValueNode(value?: unknown): ValueNode {
   }
 
   if (isArray(value)) {
-    return { kind: 'ARRAY', value }
+    return { kind: BSONType.array, value }
   }
   if (isDate(value)) {
-    return { kind: 'DATE', value }
+    return { kind: BSONType.date, value }
   }
   if (isBinary(value)) {
-    return { kind: 'BINARY', value }
+    return { kind: BSONType.binData, value }
   }
   if (isRegExp(value)) {
-    return { kind: 'REG_EXP', value }
+    return { kind: BSONType.regex, value }
   }
 
   if (isBSON(value)) {
@@ -162,7 +167,7 @@ export function parseValueNode(value?: unknown): ValueNode {
     throw new TypeError(`Unsupported expression: ${value}`)
   }
 
-  return { kind: 'OBJECT', value }
+  return { kind: BSONType.object, value }
 }
 
 /**
@@ -172,28 +177,33 @@ function parseBSONNode(obj: BSONValue): ValueNode {
   switch (obj._bsontype.toLowerCase()) {
     case 'binary':
       return {
-        kind: 'BINARY',
+        kind: BSONType.binData,
         value: (obj as Binary).buffer,
       }
     case 'objectid':
       return {
-        kind: 'OBJECT_ID',
+        kind: BSONType.objectId,
         value: obj as ObjectId,
       }
     case 'timestamp':
       return {
-        kind: 'TIMESTAMP',
+        kind: BSONType.timestamp,
         value: obj as Timestamp,
       }
     case 'int32':
       return {
-        kind: 'NUMBER',
+        kind: BSONType.double,
         value: (obj as Int32).value,
       }
     case 'double':
       return {
-        kind: 'NUMBER',
+        kind: BSONType.double,
         value: (obj as Double).value,
+      }
+    case 'long':
+      return {
+        kind: BSONType.long,
+        value: obj as Long,
       }
     default:
       throw new TypeError(`Unsupported BSON type: ${obj._bsontype}`)

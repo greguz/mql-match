@@ -1,11 +1,14 @@
-import { ObjectId } from 'bson'
+import { BSONType, ObjectId } from 'bson'
 
-import { BSONType, parseBSONAlias } from '../bson.js'
+import { parseBSONAlias } from '../bson.js'
 import {
+  type BooleanNode,
+  type DoubleNode,
+  type NullishNode,
   nBoolean,
+  nDouble,
   nExpression,
   nNullish,
-  nNumber,
   nString,
   type ValueNode,
   withParsing,
@@ -17,29 +20,29 @@ import { isNullish, isObjectLike } from '../util.js'
  */
 export function $type(arg: ValueNode): ValueNode {
   switch (arg.kind) {
-    case 'ARRAY':
+    case BSONType.array:
       return nString('array')
-    case 'BOOLEAN':
+    case BSONType.bool:
       return nString('bool')
-    case 'DATE':
+    case BSONType.date:
       return nString('date')
-    case 'BINARY':
+    case BSONType.binData:
       return nString('binData')
-    case 'BIG_INT':
+    case BSONType.long:
       return nString('long')
-    case 'NULLISH':
+    case BSONType.null:
       return nString('null')
-    case 'NUMBER':
+    case BSONType.double:
       return nString('double')
-    case 'OBJECT_ID':
+    case BSONType.objectId:
       return nString('objectId')
-    case 'REG_EXP':
+    case BSONType.regex:
       return nString('regex')
-    case 'STRING':
+    case BSONType.string:
       return nString('string')
-    case 'TIMESTAMP':
+    case BSONType.timestamp:
       return nString('timestamp')
-    case 'OBJECT':
+    case BSONType.object:
       return nString('object')
   }
 }
@@ -64,15 +67,15 @@ export function $convert(
   onError: ValueNode,
   onNullish: ValueNode,
 ): ValueNode {
-  if (input.kind === 'NULLISH') {
+  if (input.kind === BSONType.null) {
     return onNullish
   }
 
   try {
     switch (parseBSONAlias(toType.value)) {
-      case BSONType.BOOLEAN:
+      case BSONType.bool:
         return $toBool(input)
-      case BSONType.OBJECT_ID:
+      case BSONType.objectId:
         return $toObjectId(input)
       default:
         throw new TypeError(
@@ -80,7 +83,7 @@ export function $convert(
         )
     }
   } catch (err) {
-    if (onError.kind === 'NULLISH') {
+    if (onError.kind === BSONType.null) {
       throw err
     }
     return onError
@@ -88,7 +91,7 @@ export function $convert(
 }
 
 withParsing($convert, arg => {
-  if (arg.kind !== 'OBJECT') {
+  if (arg.kind !== BSONType.object) {
     throw new TypeError('$convert operator expects an object as argument')
   }
   const obj = arg.value
@@ -153,8 +156,8 @@ function parseConvertFormat(value: unknown): ValueNode {
  */
 export function $isNumber(arg: ValueNode): ValueNode {
   switch (arg.kind) {
-    case 'BIG_INT':
-    case 'NUMBER':
+    case BSONType.long:
+    case BSONType.double:
       return nBoolean(true)
     default:
       return nBoolean(false)
@@ -164,24 +167,24 @@ export function $isNumber(arg: ValueNode): ValueNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/
  */
-export function $toBool(arg: ValueNode): ValueNode {
+export function $toBool(arg: ValueNode): BooleanNode | NullishNode {
   switch (arg.kind) {
-    case 'BOOLEAN':
-    case 'NULLISH':
+    case BSONType.bool:
+    case BSONType.null:
       return arg
 
-    case 'ARRAY':
-    case 'BINARY':
-    case 'DATE':
-    case 'OBJECT_ID':
-    case 'OBJECT':
-    case 'REG_EXP':
-    case 'STRING':
-    case 'TIMESTAMP':
+    case BSONType.array:
+    case BSONType.binData:
+    case BSONType.date:
+    case BSONType.object:
+    case BSONType.objectId:
+    case BSONType.regex:
+    case BSONType.string:
+    case BSONType.timestamp:
       return nBoolean(true)
 
-    case 'BIG_INT':
-    case 'NUMBER':
+    case BSONType.double:
+    case BSONType.long:
       return nBoolean(arg.value !== 0)
   }
 }
@@ -189,16 +192,16 @@ export function $toBool(arg: ValueNode): ValueNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/
  */
-export function $toDouble(arg: ValueNode): ValueNode {
+export function $toDouble(arg: ValueNode): DoubleNode {
   switch (arg.kind) {
-    case 'NUMBER':
+    case BSONType.double:
       return arg
-    case 'BOOLEAN':
-      return nNumber(arg.value ? 1 : 0)
-    case 'DATE':
-      return nNumber(arg.value.getTime())
-    case 'STRING':
-      return nNumber(Number.parseFloat(arg.value)) // TODO: fix?
+    case BSONType.bool:
+      return nDouble(arg.value ? 1 : 0)
+    case BSONType.date:
+      return nDouble(arg.value.getTime())
+    case BSONType.string:
+      return nDouble(Number.parseFloat(arg.value)) // TODO: fix?
     default:
       throw new TypeError(`Unsupported conversion to double: ${arg.value}`)
   }
@@ -208,11 +211,11 @@ export function $toDouble(arg: ValueNode): ValueNode {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/
  */
 export function $toObjectId(arg: ValueNode): ValueNode {
-  if (arg.kind === 'OBJECT_ID') {
+  if (arg.kind === BSONType.objectId) {
     return arg
   }
-  if (arg.kind === 'STRING' && ObjectId.isValid(arg.value)) {
-    return { kind: 'OBJECT_ID', value: new ObjectId(arg.value) }
+  if (arg.kind === BSONType.string && ObjectId.isValid(arg.value)) {
+    return { kind: BSONType.objectId, value: new ObjectId(arg.value) }
   }
   throw new TypeError(`Cannot cast to ObjectId: ${arg.value}`)
 }
@@ -223,13 +226,13 @@ export function $toObjectId(arg: ValueNode): ValueNode {
 export function $toString(arg: ValueNode): ValueNode {
   // TODO: binData
   switch (arg.kind) {
-    case 'BIG_INT':
-    case 'BOOLEAN':
-    case 'NUMBER':
+    case BSONType.bool:
+    case BSONType.double:
+    case BSONType.long:
       return nString(`${arg.value}`)
-    case 'OBJECT_ID':
+    case BSONType.objectId:
       return nString(arg.value.toHexString())
-    case 'DATE':
+    case BSONType.date:
       return nString(arg.value.toISOString())
     default:
       throw new TypeError(`Unsupported string casting: ${arg.value}`)

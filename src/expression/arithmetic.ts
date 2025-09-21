@@ -1,6 +1,7 @@
+import { BSONType } from 'bson'
 import { Decimal } from 'decimal.js'
 
-import { nNullish, nNumber, type ValueNode, withArguments } from '../node.js'
+import { nDouble, nNullish, type ValueNode, withArguments } from '../node.js'
 
 /**
  *
@@ -63,25 +64,25 @@ export function $mod(arg: ValueNode): ValueNode {
  */
 export function $multiply(...args: ValueNode[]): ValueNode {
   if (!args.length) {
-    return nNumber(1)
+    return nDouble(1)
   }
 
   let result = Decimal(1)
 
   for (const arg of args) {
-    if (arg.kind === 'NULLISH') {
+    if (arg.kind === BSONType.null) {
       return nNullish()
     }
-    if (arg.kind !== 'NUMBER') {
+    if (arg.kind !== BSONType.double) {
       throw new TypeError(`Values of kind ${arg.kind} cannot be multiplied`)
     }
     if (Number.isNaN(arg.value)) {
-      return nNumber(Number.NaN)
+      return nDouble(Number.NaN)
     }
     result = result.times(arg.value)
   }
 
-  return nNumber(result.toNumber())
+  return nDouble(result.toNumber())
 }
 
 withArguments($multiply, 0, Number.POSITIVE_INFINITY)

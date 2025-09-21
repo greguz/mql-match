@@ -1,3 +1,5 @@
+import { BSONType } from 'bson'
+
 import {
   $abs,
   $add,
@@ -16,6 +18,16 @@ import {
   $subtract,
   $trunc,
 } from './expression/arithmetic.js'
+import { $and, $not, $or } from './expression/boolean.js'
+import {
+  $cmp,
+  $eq,
+  $gt,
+  $gte,
+  $lt,
+  $lte,
+  $ne,
+} from './expression/comparison.js'
 import {
   $convert,
   $isNumber,
@@ -39,6 +51,7 @@ import {
   parseValueNode,
   type SetterNode,
   type ValueNode,
+  withArguments,
   withoutExpansion,
 } from './node.js'
 import { getPathValue, setPathValue, unsetPathValue } from './path.js'
@@ -50,18 +63,28 @@ import { isArray, isNullish } from './util.js'
 const OPERATORS: Record<string, Operator | undefined> = {
   $abs,
   $add,
+  $and,
   $ceil,
+  $cmp,
   $convert,
   $divide,
+  $eq,
   $exp,
   $floor,
+  $gt,
+  $gte,
   $isNumber,
   $literal: withoutExpansion(arg => arg),
   $ln,
   $log,
   $log10,
+  $lt,
+  $lte,
   $mod,
   $multiply,
+  $ne,
+  $not,
+  $or,
   $pow,
   $round,
   $sqrt,
@@ -166,18 +189,22 @@ function applyOperators(node: Node, ctx: Context): ValueNode {
  */
 function expandNode(node: ExpressionNode | ValueNode): Node {
   switch (node.kind) {
-    case 'ARRAY':
+    case BSONType.array:
       return {
         kind: 'OPERATOR',
         args: node.value.map(parseNode),
-        operator: (...args) => ({
-          kind: 'ARRAY',
-          value: args.map(a => a.value),
-        }),
+        operator: withArguments(
+          (...args) => ({
+            kind: BSONType.array,
+            value: args.map(a => a.value),
+          }),
+          0,
+          Number.POSITIVE_INFINITY,
+        ),
       }
-    case 'OBJECT':
+    case BSONType.object:
       return parseObjectNode(node.value)
-    case 'STRING':
+    case BSONType.string:
       return parseStringNode(node.value)
     default:
       return node
@@ -217,7 +244,7 @@ function parseStringNode(value: string): Node {
     return nGetter(value.substring(1))
   }
 
-  return { kind: 'STRING', value }
+  return { kind: BSONType.string, value }
 }
 
 function parseObjectNode(obj: Record<string, unknown>): Node {

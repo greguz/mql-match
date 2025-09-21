@@ -1,4 +1,4 @@
-import type { BSONValue } from 'bson'
+import { BSONType, type BSONValue } from 'bson'
 
 /**
  * Detects BSON object instances.
@@ -8,81 +8,97 @@ export function isBSON(value: unknown): value is BSONValue {
 }
 
 /**
- * https://www.mongodb.com/docs/manual/reference/bson-types/
- */
-export const BSONType = Object.freeze({
-  DOUBLE: 1,
-  STRING: 2,
-  OBJECT: 3,
-  ARRAY: 4,
-  BINARY: 5,
-  /**
-   * Alias for `BSONType.NULL`
-   */
-  UNDEFINED: 10,
-  OBJECT_ID: 7,
-  BOOLEAN: 8,
-  DATE: 9,
-  NULL: 10,
-  REG_EXP: 11,
-  DB_POINTER: 12,
-  JAVASCRIPT: 13,
-  SYMBOL: 14,
-  JAVASCRIPT_WITH_SCOPE: 15,
-  INT32: 16,
-  TIMESTAMP: 17,
-  LONG: 18,
-  DECIMAL128: 19,
-  MIN_KEY: -1,
-  MAX_KEY: 127,
-})
-
-/**
  * Cast from string alias to `BSONType` enum.
  */
 export function parseBSONAlias(value: unknown): unknown {
   switch (value) {
     case 'double':
-      return BSONType.DOUBLE
+      return BSONType.double
     case 'string':
-      return BSONType.STRING
+      return BSONType.string
     case 'object':
-      return BSONType.OBJECT
+      return BSONType.object
     case 'array':
-      return BSONType.ARRAY
+      return BSONType.array
     case 'binData':
-      return BSONType.BINARY
+      return BSONType.binData
     case 'undefined':
-      return BSONType.NULL // same as 'null'
+      return BSONType.null // same as 'null'
     case 'objectId':
-      return BSONType.OBJECT_ID
+      return BSONType.objectId
     case 'bool':
-      return BSONType.BOOLEAN
+      return BSONType.bool
     case 'date':
-      return BSONType.DATE
+      return BSONType.date
     case 'null':
-      return BSONType.NULL
+      return BSONType.null
     case 'regex':
-      return BSONType.REG_EXP
+      return BSONType.regex
     case 'dbPointer':
-      return BSONType.DB_POINTER
+      return BSONType.dbPointer
     case 'javascript':
-      return BSONType.JAVASCRIPT
+      return BSONType.javascript
     case 'symbol':
-      return BSONType.SYMBOL
+      return BSONType.symbol
     case 'int':
-      return BSONType.INT32
+      return BSONType.int
     case 'timestamp':
-      return BSONType.TIMESTAMP
+      return BSONType.timestamp
     case 'long':
-      return BSONType.LONG
+      return BSONType.long
     case 'decimal':
-      return BSONType.DECIMAL128
+      return BSONType.decimal
     case 'minKey':
-      return BSONType.MIN_KEY
+      return BSONType.minKey
     case 'maxKey':
-      return BSONType.MAX_KEY
+      return BSONType.maxKey
     default:
       return value
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/#std-label-bson-types-comparison-order
+ */
+export function getBSONTypeWeight(value: unknown): number {
+  switch (value) {
+    case BSONType.minKey:
+      return 1
+    case BSONType.null:
+      return 2
+    case BSONType.decimal:
+    case BSONType.double:
+    case BSONType.int:
+    case BSONType.long:
+      return 3
+    case BSONType.string:
+    case BSONType.symbol:
+      return 4
+    case BSONType.object:
+      return 5
+    case BSONType.array:
+      return 6
+    case BSONType.binData:
+      return 7
+    case BSONType.undefined:
+      return 6
+    case BSONType.objectId:
+      return 8
+    case BSONType.bool:
+      return 9
+    case BSONType.date:
+      return 10
+    case BSONType.timestamp:
+      return 11
+    case BSONType.regex:
+      return 12
+    case BSONType.javascript:
+      return 13
+    case BSONType.javascriptWithScope:
+      return 14
+    case BSONType.maxKey:
+      return 15
+    default:
+      throw new TypeError(`Unsupported BSON type: ${value}`)
   }
 }

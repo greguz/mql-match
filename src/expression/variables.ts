@@ -1,4 +1,4 @@
-import { Timestamp } from 'bson'
+import { BSONType, Timestamp } from 'bson'
 
 import type { OperatorNode } from '../node.js'
 
@@ -6,7 +6,7 @@ export const $$CLUSTER_TIME: OperatorNode = {
   kind: 'OPERATOR',
   args: [],
   operator: () => ({
-    kind: 'TIMESTAMP',
+    kind: BSONType.timestamp,
     value: Timestamp.fromNumber(Date.now() / 1000),
   }),
 }
@@ -15,7 +15,7 @@ export const $$NOW: OperatorNode = {
   kind: 'OPERATOR',
   args: [],
   operator: () => ({
-    kind: 'DATE',
+    kind: BSONType.date,
     value: new Date(),
   }),
 }
