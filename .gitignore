@@ -2,7 +2,8 @@
 !.c8rc
 !.editorconfig
 !.gitignore
-coverage
-mql-match.cjs
-node_modules
-package-lock.json
+/build
+/coverage
+/mql-match.cjs
+/node_modules
+/package-lock.json
