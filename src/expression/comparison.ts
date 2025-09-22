@@ -1,18 +1,20 @@
-import { BSONType, type Long, type Timestamp } from 'bson'
+import type { Long, Timestamp } from 'bson'
 
-import { getBSONTypeWeight } from '../bson.js'
+import { getBSONTypeWeight } from '../lib/bson.js'
 import {
   type BooleanNode,
+  type BSONNode,
   type DoubleNode,
+  NodeKind,
   nBoolean,
   nDouble,
-  type ValueNode,
-} from '../node.js'
+} from '../lib/node.js'
+import { withArguments } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/cmp/
  */
-export function $cmp(left: ValueNode, right: ValueNode): DoubleNode {
+export function $cmp([left, right]: BSONNode[]): DoubleNode {
   const lw = getBSONTypeWeight(left.kind)
   const rw = getBSONTypeWeight(right.kind)
   if (lw !== rw) {
@@ -20,75 +22,77 @@ export function $cmp(left: ValueNode, right: ValueNode): DoubleNode {
   }
 
   switch (left.kind) {
-    case BSONType.null:
+    case NodeKind.NULLISH:
       return nDouble(0)
-    case BSONType.bool:
+    case NodeKind.BOOLEAN:
       return cmp(fromBoolean(left), fromBoolean(right))
-    case BSONType.string:
+    case NodeKind.STRING:
       return cmp(fromString(left), fromString(right))
-    case BSONType.date:
+    case NodeKind.DATE:
       return cmp(fromDate(left), fromDate(right))
-    case BSONType.objectId:
+    case NodeKind.OBJECT_ID:
       return cmp(fromObjectId(left), fromObjectId(right))
-    case BSONType.timestamp:
+    case NodeKind.TIMESTAMP:
       return nDouble(left.value.compare(fromTimestamp(right)))
-    case BSONType.double: {
-      if (right.kind === BSONType.double) {
+    case NodeKind.DOUBLE: {
+      if (right.kind === NodeKind.DOUBLE) {
         return cmp(left.value, right.value)
       }
-      if (right.kind === BSONType.long) {
+      if (right.kind === NodeKind.LONG) {
         return nDouble(-right.value.compare(left.value))
       }
       throw new TypeError('Expected numeric node')
     }
-    case BSONType.long:
+    case NodeKind.LONG:
       return nDouble(left.value.compare(fromNumber(right)))
     default:
       throw new TypeError(`Unsupported BSON type: ${left.kind}`)
   }
 }
 
-function fromBoolean(node: ValueNode): number {
-  if (node.kind !== BSONType.bool) {
+withArguments($cmp, 2)
+
+function fromBoolean(node: BSONNode): number {
+  if (node.kind !== NodeKind.BOOLEAN) {
     throw new TypeError('Expected boolean node')
   }
   return node.value ? 1 : 0
 }
 
-function fromDate(node: ValueNode): string {
-  if (node.kind !== BSONType.date) {
+function fromDate(node: BSONNode): string {
+  if (node.kind !== NodeKind.DATE) {
     throw new TypeError('Expected Date node')
   }
   return node.value.toISOString()
 }
 
-function fromNumber(node: ValueNode): number | Long {
+function fromNumber(node: BSONNode): number | Long {
   switch (node.kind) {
-    case BSONType.double:
+    case NodeKind.DOUBLE:
       return node.value
-    case BSONType.long:
+    case NodeKind.LONG:
       return node.value
     default:
       throw new TypeError('Expected numeric node')
   }
 }
 
-function fromObjectId(node: ValueNode): string {
-  if (node.kind !== BSONType.objectId) {
+function fromObjectId(node: BSONNode): string {
+  if (node.kind !== NodeKind.OBJECT_ID) {
     throw new TypeError('Expected ObjectId node')
   }
   return node.value.toHexString()
 }
 
-function fromString(node: ValueNode): string {
-  if (node.kind !== BSONType.string) {
+function fromString(node: BSONNode): string {
+  if (node.kind !== NodeKind.STRING) {
     throw new TypeError('Expected string node')
   }
   return node.value
 }
 
-function fromTimestamp(node: ValueNode): Timestamp {
-  if (node.kind !== BSONType.timestamp) {
+function fromTimestamp(node: BSONNode): Timestamp {
+  if (node.kind !== NodeKind.TIMESTAMP) {
     throw new TypeError('Expected Timestamp node')
   }
   return node.value
@@ -101,41 +105,53 @@ function cmp<T extends number | string>(left: T, right: T) {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/eq/
  */
-export function $eq(left: ValueNode, right: ValueNode): BooleanNode {
-  return nBoolean($cmp(left, right).value === 0)
+export function $eq(args: BSONNode[]): BooleanNode {
+  return nBoolean($cmp(args).value === 0)
 }
+
+withArguments($eq, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/gt/
  */
-export function $gt(left: ValueNode, right: ValueNode): BooleanNode {
-  return nBoolean($cmp(left, right).value > 0)
+export function $gt(args: BSONNode[]): BooleanNode {
+  return nBoolean($cmp(args).value > 0)
 }
+
+withArguments($gt, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/lt/
  */
-export function $lt(left: ValueNode, right: ValueNode): BooleanNode {
-  return nBoolean($cmp(left, right).value < 0)
+export function $lt(args: BSONNode[]): BooleanNode {
+  return nBoolean($cmp(args).value < 0)
 }
+
+withArguments($lt, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/gte/
  */
-export function $gte(left: ValueNode, right: ValueNode): ValueNode {
-  return nBoolean($cmp(left, right).value >= 0)
+export function $gte(args: BSONNode[]): BSONNode {
+  return nBoolean($cmp(args).value >= 0)
 }
+
+withArguments($gte, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/lte/
  */
-export function $lte(left: ValueNode, right: ValueNode): ValueNode {
-  return nBoolean($cmp(left, right).value <= 0)
+export function $lte(args: BSONNode[]): BSONNode {
+  return nBoolean($cmp(args).value <= 0)
 }
+
+withArguments($lte, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ne/
  */
-export function $ne(left: ValueNode, right: ValueNode): ValueNode {
-  return nBoolean($cmp(left, right).value !== 0)
+export function $ne(args: BSONNode[]): BSONNode {
+  return nBoolean($cmp(args).value !== 0)
 }
+
+withArguments($lte, 2)

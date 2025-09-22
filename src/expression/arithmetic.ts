@@ -1,68 +1,68 @@
-import { BSONType } from 'bson'
 import { Decimal } from 'decimal.js'
 
-import { nDouble, nNullish, type ValueNode, withArguments } from '../node.js'
+import { type BSONNode, NodeKind, nDouble, nNullish } from '../lib/node.js'
+import { withArguments } from '../lib/operator.js'
 
 /**
  *
  */
-export function $abs(arg: ValueNode): ValueNode {
+export function $abs(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $add(arg: ValueNode): ValueNode {
+export function $add(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $ceil(arg: ValueNode): ValueNode {
+export function $ceil(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $divide(arg: ValueNode): ValueNode {
+export function $divide(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $exp(arg: ValueNode): ValueNode {
+export function $exp(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $floor(arg: ValueNode): ValueNode {
+export function $floor(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $log(arg: ValueNode): ValueNode {
+export function $log(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $mod(arg: ValueNode): ValueNode {
+export function $mod(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/
  */
-export function $multiply(...args: ValueNode[]): ValueNode {
+export function $multiply(args: BSONNode[]): BSONNode {
   if (!args.length) {
     return nDouble(1)
   }
@@ -70,10 +70,10 @@ export function $multiply(...args: ValueNode[]): ValueNode {
   let result = Decimal(1)
 
   for (const arg of args) {
-    if (arg.kind === BSONType.null) {
+    if (arg.kind === NodeKind.NULLISH) {
       return nNullish()
     }
-    if (arg.kind !== BSONType.double) {
+    if (arg.kind !== NodeKind.DOUBLE) {
       throw new TypeError(`Values of kind ${arg.kind} cannot be multiplied`)
     }
     if (Number.isNaN(arg.value)) {
@@ -90,48 +90,48 @@ withArguments($multiply, 0, Number.POSITIVE_INFINITY)
 /**
  *
  */
-export function $pow(arg: ValueNode): ValueNode {
+export function $pow(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $round(arg: ValueNode): ValueNode {
+export function $round(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $sqrt(arg: ValueNode): ValueNode {
+export function $sqrt(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $subtract(arg: ValueNode): ValueNode {
+export function $subtract(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $trunc(arg: ValueNode): ValueNode {
+export function $trunc(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $log10(arg: ValueNode): ValueNode {
+export function $log10(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $ln(arg: ValueNode): ValueNode {
+export function $ln(args: BSONNode[]): BSONNode {
   throw new Error('TODO')
 }

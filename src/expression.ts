@@ -1,5 +1,3 @@
-import { BSONType } from 'bson'
-
 import {
   $abs,
   $add,
@@ -38,29 +36,36 @@ import {
   $type,
 } from './expression/type.js'
 import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
+import { normalizeArguments, wrapBSON } from './lib/bson.js'
 import {
-  type ExpressionNode,
+  type BSONNode,
   type Node,
+  NodeKind,
   nGetter,
   nNullish,
   nObject,
+  nOperator,
   nProjection,
   nSetter,
-  type Operator,
-  type OperatorNode,
-  parseValueNode,
   type SetterNode,
-  type ValueNode,
-  withArguments,
+} from './lib/node.js'
+import {
+  type Context,
+  type Operator,
+  parseOperatorArguments,
   withoutExpansion,
-} from './node.js'
-import { getPathValue, setPathValue, unsetPathValue } from './path.js'
-import { isArray, isNullish } from './util.js'
+} from './lib/operator.js'
+import { getPathValue, setPathValue, unsetPathValue } from './lib/path.js'
+import { expected } from './lib/util.js'
 
 /**
+ * https://www.mongodb.com/docs/v7.0/reference/aggregation-variables/
  * https://www.mongodb.com/docs/manual/reference/mql/expressions/
  */
 const OPERATORS: Record<string, Operator | undefined> = {
+  $$CLUSTER_TIME,
+  $$NOW,
+  $$ROOT,
   $abs,
   $add,
   $and,
@@ -74,7 +79,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $gt,
   $gte,
   $isNumber,
-  $literal: withoutExpansion(arg => arg),
+  $literal: withoutExpansion(([arg]) => arg),
   $ln,
   $log,
   $log10,
@@ -98,55 +103,48 @@ const OPERATORS: Record<string, Operator | undefined> = {
 }
 
 /**
- * https://www.mongodb.com/docs/v7.0/reference/aggregation-variables/
- */
-const VARIABLES: Record<string, OperatorNode | undefined> = {
-  $$CLUSTER_TIME,
-  $$NOW,
-  $$ROOT,
-}
-
-/**
  * Compiles an aggregation expression into a map function.
  */
 export function compileExpression(value: unknown) {
-  const node = parseNode(value)
-  return (value?: unknown): ValueNode['value'] => {
-    const root = parseValueNode(value)
+  const node = parseExpression(value)
+  return (value?: unknown): BSONNode['value'] => {
+    const root = wrapBSON(value)
     const ctx: Context = {
       root,
       source: root,
       target: nNullish(),
     }
-    return applyOperators(node, ctx).value
+    return resolveExpression(node, ctx).value
   }
 }
 
-interface Context {
-  root: ValueNode
-  source: ValueNode
-  target: ValueNode
-}
-
 /**
- * Recursive downgrade from `Node` to `ValueNode` (unwraps `OperatorNode`s)
+ * Recursive downgrade from `Node` to `BSONNode`.
  */
-function applyOperators(node: Node, ctx: Context): ValueNode {
+export function resolveExpression(node: Node, ctx: Context): BSONNode {
   switch (node.kind) {
     // Shouldn't be here (recursive resoluzione is done during build time)
-    case 'EXPRESSION': {
+    case NodeKind.EXPRESSION: {
       throw new Error(`Unexpected node kind: ${node.kind}`)
     }
 
     // Apply operators
-    case 'OPERATOR': {
-      const args = node.args.map(a => applyOperators(a, ctx))
-      return applyOperators(node.operator(...args), ctx)
+    case NodeKind.OPERATOR: {
+      const fn = expected(OPERATORS[node.operator])
+      const args = node.args.map(a => resolveExpression(a, ctx))
+      return resolveExpression(fn(args), ctx)
     }
+
+    // Resolve array items
+    case NodeKind.NODE_ARRAY:
+      return {
+        kind: NodeKind.ARRAY,
+        value: node.nodes.map(n => resolveExpression(n, ctx)),
+      }
 
     // Resolve paths
     case 'GETTER': {
-      return parseValueNode(getPathValue(node.path, ctx.source.value))
+      return wrapBSON(getPathValue(node.path, ctx.source.value))
     }
 
     //
@@ -154,7 +152,7 @@ function applyOperators(node: Node, ctx: Context): ValueNode {
       setPathValue(
         node.path,
         ctx.target.value,
-        applyOperators(node.node, ctx).value,
+        resolveExpression(node.node, ctx).value,
       )
       return ctx.target // TODO: huh?
     }
@@ -173,7 +171,7 @@ function applyOperators(node: Node, ctx: Context): ValueNode {
         target: nObject({}),
       }
       for (const n of node.nodes) {
-        applyOperators(n, scope)
+        resolveExpression(n, scope)
       }
       return scope.target
     }
@@ -185,26 +183,18 @@ function applyOperators(node: Node, ctx: Context): ValueNode {
 }
 
 /**
- *
+ * Objects, strings, and arrays are "expanded" by default.
  */
-function expandNode(node: ExpressionNode | ValueNode): Node {
+function expandNode(node: Node): Node {
   switch (node.kind) {
-    case BSONType.array:
+    case NodeKind.ARRAY:
       return {
-        kind: 'OPERATOR',
-        args: node.value.map(parseNode),
-        operator: withArguments(
-          (...args) => ({
-            kind: BSONType.array,
-            value: args.map(a => a.value),
-          }),
-          0,
-          Number.POSITIVE_INFINITY,
-        ),
+        kind: NodeKind.NODE_ARRAY,
+        nodes: node.value.map(parseExpression),
       }
-    case BSONType.object:
+    case NodeKind.OBJECT:
       return parseObjectNode(node.value)
-    case BSONType.string:
+    case NodeKind.STRING:
       return parseStringNode(node.value)
     default:
       return node
@@ -212,20 +202,10 @@ function expandNode(node: ExpressionNode | ValueNode): Node {
 }
 
 /**
- *
- */
-function expandExpression(node: Node): Node {
-  if (node.kind === 'EXPRESSION') {
-    return parseNode(node.expression)
-  }
-  return node
-}
-
-/**
  * Parse both values and operators.
  */
-function parseNode(value: unknown): Node {
-  return expandNode(parseValueNode(value))
+export function parseExpression(value: unknown): Node {
+  return expandNode(wrapBSON(value))
 }
 
 /**
@@ -233,18 +213,22 @@ function parseNode(value: unknown): Node {
  */
 function parseStringNode(value: string): Node {
   if (value[0] === '$' && value[1] === '$') {
-    const node = VARIABLES[value]
-    if (!node) {
+    const fn = OPERATORS[value]
+    if (!fn) {
       throw new TypeError(`Unsupported system variable: ${value}`)
     }
-    return node
+    return {
+      kind: NodeKind.OPERATOR,
+      operator: value,
+      args: parseOperatorArguments(fn, []),
+    }
   }
 
   if (value[0] === '$') {
     return nGetter(value.substring(1))
   }
 
-  return { kind: BSONType.string, value }
+  return { kind: NodeKind.STRING, value }
 }
 
 function parseObjectNode(obj: Record<string, unknown>): Node {
@@ -258,34 +242,22 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
       throw new TypeError(`Unsupported expression operator: ${key}`)
     }
 
-    const args = parseOperatorArguments(obj[key])
-    const minArgs =
-      operator.minArgs || operator.parse?.length || operator.length
-    const maxArgs = operator.maxArgs || minArgs
-
-    if (minArgs === maxArgs && args.length !== minArgs) {
-      throw new TypeError(
-        `${key} operator requires ${minArgs} arguments (got ${args.length})`,
-      )
-    }
-    if (args.length < minArgs) {
-      throw new TypeError(
-        `${key} operator requires at least ${minArgs} arguments (got ${args.length})`,
-      )
-    }
-    if (args.length > maxArgs) {
-      throw new TypeError(
-        `${key} operator requires at most ${maxArgs} arguments (got ${args.length})`,
-      )
-    }
-
-    return {
-      kind: 'OPERATOR',
-      args: operator.parse
-        ? operator.parse(...args).map(expandExpression)
-        : args.map(expandNode),
+    const args: Node[] = parseOperatorArguments(
       operator,
+      normalizeArguments(obj[key]),
+    )
+
+    for (let i = 0; i < args.length; i++) {
+      const node = args[i]
+
+      if (!operator.parse) {
+        args[i] = expandNode(node)
+      } else if (node.kind === NodeKind.EXPRESSION) {
+        args[i] = parseExpression(node.expression)
+      }
     }
+
+    return nOperator(key, args)
   }
 
   const nodes: SetterNode[] = []
@@ -299,22 +271,9 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
     if (value === 1 || value === true) {
       nodes.push(nSetter(key, nGetter(key)))
     } else {
-      nodes.push(nSetter(key, parseNode(value)))
+      nodes.push(nSetter(key, parseExpression(value)))
     }
   }
 
   return nProjection(nodes)
-}
-
-/**
- * Prepare operator's arguments array.
- */
-function parseOperatorArguments(arg: unknown): ValueNode[] {
-  if (isNullish(arg)) {
-    return []
-  }
-  if (isArray(arg)) {
-    return arg.map(parseValueNode)
-  }
-  return [parseValueNode(arg)]
 }

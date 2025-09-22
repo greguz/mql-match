@@ -1,15 +1,19 @@
 import test from 'ava'
 import { Long } from 'bson'
 
-import { parseValueNode as n } from '../node.js'
+import { wrapBSON } from '../lib/bson.js'
 import { $cmp, $gt } from './comparison.js'
 
 test('$cmp', t => {
-  t.like($cmp(n('lol'), n('lol')), { value: 0 })
-  t.like($cmp(n('42'), n(42)), { value: 1 })
+  const cmp = (l: unknown, r: unknown) => $cmp([wrapBSON(l), wrapBSON(r)]).value
+
+  t.is(cmp('lol', 'lol'), 0)
+  t.is(cmp('42', 42), 1)
 })
 
 test('$gt', t => {
-  t.like($gt(n(Long.fromNumber(43)), n(42)), { value: true })
-  t.like($gt(n(Long.fromNumber(42)), n(42)), { value: false })
+  const gt = (l: unknown, r: unknown) => $gt([wrapBSON(l), wrapBSON(r)]).value
+
+  t.is(gt(Long.fromNumber(43), 42), true)
+  t.is(gt(Long.fromNumber(42), 42), false)
 })

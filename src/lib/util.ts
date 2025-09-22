@@ -1,3 +1,10 @@
+export function expected<T>(value: T): T & {} {
+  if (value === null || value === undefined) {
+    throw new Error('Expected a value')
+  }
+  return value
+}
+
 export function isArray(value: unknown): value is unknown[] {
   return Array.isArray(value)
 }
@@ -26,8 +33,17 @@ export function isNumber(value: unknown): value is number {
   return typeof value === 'number'
 }
 
-export function isObjectLike(value: unknown): value is Record<string, unknown> {
+export type ObjectLike = Record<string, unknown>
+
+export function isObjectLike(value: unknown): value is ObjectLike {
   return typeof value === 'object' && value !== null
+}
+
+export function isPlainObject(value: unknown): value is ObjectLike {
+  return (
+    Object.prototype.toString.call(value) === '[object Object]' &&
+    (value as object).constructor === Object
+  )
 }
 
 export function isRegExp(value: unknown): value is RegExp {
