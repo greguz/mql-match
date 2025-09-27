@@ -5,14 +5,14 @@ import { wrapBSON } from '../lib/bson.js'
 import { $cmp, $gt } from './comparison.js'
 
 test('$cmp', t => {
-  const cmp = (l: unknown, r: unknown) => $cmp([wrapBSON(l), wrapBSON(r)]).value
+  const cmp = (l: unknown, r: unknown) => $cmp(wrapBSON(l), wrapBSON(r)).value
 
   t.is(cmp('lol', 'lol'), 0)
   t.is(cmp('42', 42), 1)
 })
 
 test('$gt', t => {
-  const gt = (l: unknown, r: unknown) => $gt([wrapBSON(l), wrapBSON(r)]).value
+  const gt = (l: unknown, r: unknown) => $gt(wrapBSON(l), wrapBSON(r)).value
 
   t.is(gt(Long.fromNumber(43), 42), true)
   t.is(gt(Long.fromNumber(42), 42), false)

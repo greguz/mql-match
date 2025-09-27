@@ -9,12 +9,11 @@ import {
   nBoolean,
   nDouble,
 } from '../lib/node.js'
-import { withArguments } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/cmp/
  */
-export function $cmp([left, right]: BSONNode[]): DoubleNode {
+export function $cmp(left: BSONNode, right: BSONNode): DoubleNode {
   const lw = getBSONTypeWeight(left.kind)
   const rw = getBSONTypeWeight(right.kind)
   if (lw !== rw) {
@@ -49,8 +48,6 @@ export function $cmp([left, right]: BSONNode[]): DoubleNode {
       throw new TypeError(`Unsupported BSON type: ${left.kind}`)
   }
 }
-
-withArguments($cmp, 2)
 
 function fromBoolean(node: BSONNode): number {
   if (node.kind !== NodeKind.BOOLEAN) {
@@ -105,53 +102,41 @@ function cmp<T extends number | string>(left: T, right: T) {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/eq/
  */
-export function $eq(args: BSONNode[]): BooleanNode {
-  return nBoolean($cmp(args).value === 0)
+export function $eq(left: BSONNode, right: BSONNode): BooleanNode {
+  return nBoolean($cmp(left, right).value === 0)
 }
-
-withArguments($eq, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/gt/
  */
-export function $gt(args: BSONNode[]): BooleanNode {
-  return nBoolean($cmp(args).value > 0)
+export function $gt(left: BSONNode, right: BSONNode): BooleanNode {
+  return nBoolean($cmp(left, right).value > 0)
 }
-
-withArguments($gt, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/lt/
  */
-export function $lt(args: BSONNode[]): BooleanNode {
-  return nBoolean($cmp(args).value < 0)
+export function $lt(left: BSONNode, right: BSONNode): BooleanNode {
+  return nBoolean($cmp(left, right).value < 0)
 }
-
-withArguments($lt, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/gte/
  */
-export function $gte(args: BSONNode[]): BSONNode {
-  return nBoolean($cmp(args).value >= 0)
+export function $gte(left: BSONNode, right: BSONNode): BSONNode {
+  return nBoolean($cmp(left, right).value >= 0)
 }
-
-withArguments($gte, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/lte/
  */
-export function $lte(args: BSONNode[]): BSONNode {
-  return nBoolean($cmp(args).value <= 0)
+export function $lte(left: BSONNode, right: BSONNode): BSONNode {
+  return nBoolean($cmp(left, right).value <= 0)
 }
-
-withArguments($lte, 2)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ne/
  */
-export function $ne(args: BSONNode[]): BSONNode {
-  return nBoolean($cmp(args).value !== 0)
+export function $ne(left: BSONNode, right: BSONNode): BSONNode {
+  return nBoolean($cmp(left, right).value !== 0)
 }
-
-withArguments($lte, 2)

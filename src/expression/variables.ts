@@ -6,7 +6,7 @@ import {
   NodeKind,
   type TimestampNode,
 } from '../lib/node.js'
-import { withArguments } from '../lib/operator.js'
+import { withParsing } from '../lib/operator.js'
 
 export function $$CLUSTER_TIME(): TimestampNode {
   return {
@@ -15,8 +15,6 @@ export function $$CLUSTER_TIME(): TimestampNode {
   }
 }
 
-withArguments($$CLUSTER_TIME, 0)
-
 export function $$NOW(): DateNode {
   return {
     kind: NodeKind.DATE,
@@ -24,10 +22,10 @@ export function $$NOW(): DateNode {
   }
 }
 
-withArguments($$NOW, 0)
-
-export function $$ROOT(): BSONNode {
-  throw new Error('TODO: $$ROOT variable')
+export function $$ROOT(root: BSONNode): BSONNode {
+  return root
 }
 
-withArguments($$ROOT, 0)
+withParsing($$ROOT, () => {
+  throw new Error('TODO: $$ROOT')
+})

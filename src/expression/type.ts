@@ -19,7 +19,7 @@ import { isNullish, isObjectLike } from '../lib/util.js'
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/
  */
-export function $type([arg]: BSONNode[]): BSONNode {
+export function $type(arg: BSONNode): BSONNode {
   switch (arg.kind) {
     case NodeKind.ARRAY:
       return nString('array')
@@ -59,15 +59,15 @@ const ConvertFormat = Object.freeze({
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/
  */
-export function $convert([
-  input,
-  toType,
-  toSubtype,
-  byteOrder,
-  format,
-  onError,
-  onNullish,
-]: BSONNode[]): BSONNode {
+export function $convert(
+  input: BSONNode,
+  toType: BSONNode,
+  toSubtype: BSONNode,
+  byteOrder: BSONNode,
+  format: BSONNode,
+  onError: BSONNode,
+  onNullish: BSONNode,
+): BSONNode {
   if (input.kind === NodeKind.NULLISH) {
     return onNullish
   }
@@ -75,9 +75,9 @@ export function $convert([
   try {
     switch (castBSONAlias(toType.value)) {
       case NodeKind.BOOLEAN:
-        return $toBool([input])
+        return $toBool(input)
       case NodeKind.OBJECT_ID:
-        return $toObjectId([input])
+        return $toObjectId(input)
       default:
         throw new TypeError(
           `$convert.to.type=${toType.value} is currently not supported`,
@@ -155,7 +155,7 @@ function parseConvertFormat(value: unknown): BSONNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/isNumber/
  */
-export function $isNumber([arg]: BSONNode[]): BSONNode {
+export function $isNumber(arg: BSONNode): BSONNode {
   switch (arg.kind) {
     case NodeKind.LONG:
     case NodeKind.DOUBLE:
@@ -168,7 +168,7 @@ export function $isNumber([arg]: BSONNode[]): BSONNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/
  */
-export function $toBool([arg]: BSONNode[]): BooleanNode | NullishNode {
+export function $toBool(arg: BSONNode): BooleanNode | NullishNode {
   switch (arg.kind) {
     case NodeKind.BOOLEAN:
     case NodeKind.NULLISH:
@@ -193,7 +193,7 @@ export function $toBool([arg]: BSONNode[]): BooleanNode | NullishNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/
  */
-export function $toDouble([arg]: BSONNode[]): DoubleNode {
+export function $toDouble(arg: BSONNode): DoubleNode {
   switch (arg.kind) {
     case NodeKind.DOUBLE:
       return arg
@@ -211,7 +211,7 @@ export function $toDouble([arg]: BSONNode[]): DoubleNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/
  */
-export function $toObjectId([arg]: BSONNode[]): BSONNode {
+export function $toObjectId(arg: BSONNode): BSONNode {
   if (arg.kind === NodeKind.OBJECT_ID) {
     return arg
   }
@@ -224,7 +224,7 @@ export function $toObjectId([arg]: BSONNode[]): BSONNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/
  */
-export function $toString([arg]: BSONNode[]): BSONNode {
+export function $toString(arg: BSONNode): BSONNode {
   // TODO: binData
   switch (arg.kind) {
     case NodeKind.BOOLEAN:

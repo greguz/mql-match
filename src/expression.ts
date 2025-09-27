@@ -41,13 +41,9 @@ import {
   type BSONNode,
   type Node,
   NodeKind,
-  nGetter,
-  nNullish,
   nObject,
   nOperator,
-  nProjection,
-  nSetter,
-  type SetterNode,
+  type ProjectNode,
 } from './lib/node.js'
 import {
   type Context,
@@ -55,7 +51,8 @@ import {
   parseOperatorArguments,
   withoutExpansion,
 } from './lib/operator.js'
-import { getPathValue, setPathValue, unsetPathValue } from './lib/path.js'
+import { getPathValue, parsePath, setPathValue } from './lib/path.js'
+import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
 
 /**
@@ -79,7 +76,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $gt,
   $gte,
   $isNumber,
-  $literal: withoutExpansion(([arg]) => arg),
+  $literal: withoutExpansion(arg => arg),
   $ln,
   $log,
   $log10,
@@ -111,8 +108,7 @@ export function compileExpression(value: unknown) {
     const root = wrapBSON(value)
     const ctx: Context = {
       root,
-      source: root,
-      target: nNullish(),
+      subject: root,
     }
     return resolveExpression(node, ctx).value
   }
@@ -123,7 +119,6 @@ export function compileExpression(value: unknown) {
  */
 export function resolveExpression(node: Node, ctx: Context): BSONNode {
   switch (node.kind) {
-    // Shouldn't be here (recursive resoluzione is done during build time)
     case NodeKind.EXPRESSION: {
       throw new Error(`Unexpected node kind: ${node.kind}`)
     }
@@ -132,54 +127,50 @@ export function resolveExpression(node: Node, ctx: Context): BSONNode {
     case NodeKind.OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
       const args = node.args.map(a => resolveExpression(a, ctx))
-      return resolveExpression(fn(args), ctx)
+      return resolveExpression(fn(...args), ctx)
     }
 
     // Resolve array items
     case NodeKind.NODE_ARRAY:
       return {
         kind: NodeKind.ARRAY,
-        value: node.nodes.map(n => resolveExpression(n, ctx)),
+        value: node.nodes.map(n => resolveExpression(n, ctx).value),
       }
 
     // Resolve paths
-    case 'GETTER': {
-      return wrapBSON(getPathValue(node.path, ctx.source.value))
-    }
-
-    //
-    case 'SETTER': {
-      setPathValue(
-        node.path,
-        ctx.target.value,
-        resolveExpression(node.node, ctx).value,
-      )
-      return ctx.target // TODO: huh?
-    }
-
-    //
-    case 'DELETER': {
-      unsetPathValue(node.path, ctx.target.value)
-      return ctx.target // TODO: huh?
+    case NodeKind.PATH: {
+      return wrapBSON(getPathValue(node.path, ctx.subject.value))
     }
 
     // Resolve expression objects
-    case 'PROJECTION': {
-      const scope: Context = {
-        root: ctx.root,
-        source: ctx.source,
-        target: nObject({}),
+    case NodeKind.PROJECT: {
+      if (node.exclusion) {
+        throw new Error('TODO: exclusion')
       }
+
+      const result = nObject({})
       for (const n of node.nodes) {
-        resolveExpression(n, scope)
+        setPathValue(
+          n.path,
+          result.value,
+          resolveExpression(n.value, ctx).value,
+        )
       }
-      return scope.target
+
+      return result
     }
 
     // Should be a raw value
     default:
       return node
   }
+}
+
+/**
+ * Parse both values and operators.
+ */
+export function parseExpression(value: unknown): Node {
+  return expandNode(wrapBSON(value))
 }
 
 /**
@@ -202,13 +193,6 @@ function expandNode(node: Node): Node {
 }
 
 /**
- * Parse both values and operators.
- */
-export function parseExpression(value: unknown): Node {
-  return expandNode(wrapBSON(value))
-}
-
-/**
  * Apply operators and system variables.
  */
 function parseStringNode(value: string): Node {
@@ -217,15 +201,15 @@ function parseStringNode(value: string): Node {
     if (!fn) {
       throw new TypeError(`Unsupported system variable: ${value}`)
     }
-    return {
-      kind: NodeKind.OPERATOR,
-      operator: value,
-      args: parseOperatorArguments(fn, []),
-    }
+    return nOperator(value, parseOperatorArguments(fn, []))
   }
 
   if (value[0] === '$') {
-    return nGetter(value.substring(1))
+    return {
+      kind: NodeKind.PATH,
+      path: parsePath(value.substring(1)),
+      value: wrapBSON(value),
+    }
   }
 
   return { kind: NodeKind.STRING, value }
@@ -260,20 +244,32 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
     return nOperator(key, args)
   }
 
-  const nodes: SetterNode[] = []
-
-  for (const key of keys) {
-    const value = obj[key]
-    if (value === 0 || value === false) {
-      throw new Error('Omit is currently not supported')
-    }
-
-    if (value === 1 || value === true) {
-      nodes.push(nSetter(key, nGetter(key)))
-    } else {
-      nodes.push(nSetter(key, parseExpression(value)))
+  const project = parseProjection(obj)
+  if (!project.exclusion) {
+    expandInclusion(project)
+    if (!project.nodes.some(n => n.path.length === 1 && n.path[0] === '_id')) {
+      project.nodes.push({
+        kind: NodeKind.PATH, // Setter
+        path: ['_id'],
+        value: {
+          kind: NodeKind.PATH, // Getter
+          path: ['_id'],
+          value: wrapBSON('$_id'),
+        },
+      })
     }
   }
 
-  return nProjection(nodes)
+  return project
+}
+
+function expandInclusion(project: ProjectNode): void {
+  for (let i = 0; i < project.nodes.length; i++) {
+    const node = project.nodes[i]
+    if (node.value.kind === NodeKind.PROJECT) {
+      expandInclusion(node.value)
+    } else {
+      node.value = expandNode(node.value)
+    }
+  }
 }

@@ -6,63 +6,63 @@ import { withArguments } from '../lib/operator.js'
 /**
  *
  */
-export function $abs(args: BSONNode[]): BSONNode {
+export function $abs(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $add(args: BSONNode[]): BSONNode {
+export function $add(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $ceil(args: BSONNode[]): BSONNode {
+export function $ceil(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $divide(args: BSONNode[]): BSONNode {
+export function $divide(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $exp(args: BSONNode[]): BSONNode {
+export function $exp(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $floor(args: BSONNode[]): BSONNode {
+export function $floor(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $log(args: BSONNode[]): BSONNode {
+export function $log(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $mod(args: BSONNode[]): BSONNode {
+export function $mod(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/multiply/
  */
-export function $multiply(args: BSONNode[]): BSONNode {
+export function $multiply(...args: BSONNode[]): BSONNode {
   if (!args.length) {
     return nDouble(1)
   }
@@ -90,48 +90,48 @@ withArguments($multiply, 0, Number.POSITIVE_INFINITY)
 /**
  *
  */
-export function $pow(args: BSONNode[]): BSONNode {
+export function $pow(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $round(args: BSONNode[]): BSONNode {
+export function $round(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $sqrt(args: BSONNode[]): BSONNode {
+export function $sqrt(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $subtract(args: BSONNode[]): BSONNode {
+export function $subtract(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $trunc(args: BSONNode[]): BSONNode {
+export function $trunc(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $log10(args: BSONNode[]): BSONNode {
+export function $log10(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }
 
 /**
  *
  */
-export function $ln(args: BSONNode[]): BSONNode {
+export function $ln(arg: BSONNode): BSONNode {
   throw new Error('TODO')
 }

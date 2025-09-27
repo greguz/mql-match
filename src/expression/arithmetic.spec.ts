@@ -4,7 +4,8 @@ import { wrapBSON } from '../lib/bson.js'
 import { $multiply } from './arithmetic.js'
 
 test('$multiply', t => {
-  const multiply = (...args: unknown[]) => $multiply(args.map(wrapBSON)).value
+  const multiply = (...args: unknown[]) =>
+    $multiply(...args.map(wrapBSON)).value
 
   t.is(multiply(), 1)
   t.is(multiply(2, Number.NaN, 2), Number.NaN)

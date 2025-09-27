@@ -1,6 +1,6 @@
 import { BSONType, Long, type ObjectId, type Timestamp } from 'bson'
 
-import { type Path, parsePath } from './path.js'
+import type { Path } from './path.js'
 
 export const NodeKind = Object.freeze({
   ARRAY: BSONType.array,
@@ -31,16 +31,18 @@ export const NodeKind = Object.freeze({
   /**
    * Operator declaration.
    */
-  OPERATOR: 'mql.operator',
+  OPERATOR: 'OPERATOR',
   /**
    * Implementation specific node.
    * Returned by operators.
    */
-  EXPRESSION: 'mql.expression',
+  EXPRESSION: 'EXPRESSION',
   /**
    * An array containing other nodes.
    */
-  NODE_ARRAY: 'mql.node_array',
+  NODE_ARRAY: 'NODE_ARRAY',
+  PROJECT: 'PROJECT',
+  PATH: 'PATH',
 })
 
 export interface BooleanNode {
@@ -174,51 +176,16 @@ export interface NodeArrayNode {
   nodes: Node[]
 }
 
-export interface ProjectionNode {
-  kind: 'PROJECTION'
-  nodes: SetterNode[]
+export interface ProjectNode {
+  kind: typeof NodeKind.PROJECT
+  nodes: PathNode[]
+  exclusion: boolean
 }
 
-export function nProjection(nodes: SetterNode[]): ProjectionNode {
-  return { kind: 'PROJECTION', nodes }
-}
-
-export interface GetterNode {
-  kind: 'GETTER'
+export interface PathNode {
+  kind: typeof NodeKind.PATH
   path: Path
-}
-
-export function nGetter(path: string): GetterNode {
-  return {
-    kind: 'GETTER',
-    path: parsePath(path),
-  }
-}
-
-export interface SetterNode {
-  kind: 'SETTER'
-  path: Path
-  node: Node
-}
-
-export function nSetter(path: string, node: Node): SetterNode {
-  return {
-    kind: 'SETTER',
-    path: parsePath(path),
-    node,
-  }
-}
-
-export interface DeleterNode {
-  kind: 'DELETER'
-  path: Path
-}
-
-export function nDeleter(path: string): DeleterNode {
-  return {
-    kind: 'DELETER',
-    path: parsePath(path),
-  }
+  value: Node
 }
 
 /**
@@ -226,10 +193,8 @@ export function nDeleter(path: string): DeleterNode {
  */
 export type Node =
   | BSONNode
-  | DeleterNode
   | ExpressionNode
-  | GetterNode
   | NodeArrayNode
   | OperatorNode
-  | ProjectionNode
-  | SetterNode
+  | PathNode
+  | ProjectNode

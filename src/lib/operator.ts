@@ -1,4 +1,9 @@
-import type { BSONNode, ExpressionNode, Node } from './node.js'
+import type { BSONNode, Node } from './node.js'
+
+export interface Context {
+  root: BSONNode
+  subject: BSONNode
+}
 
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
@@ -7,7 +12,7 @@ export interface Operator {
   /**
    * Operator spec.
    */
-  (args: BSONNode[]): Node
+  (...args: BSONNode[]): Node
   /**
    * @default 1
    */
@@ -20,7 +25,7 @@ export interface Operator {
    * Maps from X input arguments to Y input arguments.
    * Changes the `minArgs` default value.
    */
-  parse?: (args: BSONNode[]) => Array<BSONNode | ExpressionNode>
+  parse?: (args: BSONNode[]) => Node[]
 }
 
 export function withArguments(
@@ -54,8 +59,8 @@ export function withoutExpansion(fn: Operator): Operator {
 export function parseOperatorArguments(
   operator: Operator,
   args: BSONNode[],
-): Array<BSONNode | ExpressionNode> {
-  const minArgs = operator.minArgs ?? 1
+): Node[] {
+  const minArgs = operator.minArgs ?? operator.parse?.length ?? operator.length
   const maxArgs = operator.maxArgs ?? minArgs
 
   if (minArgs === maxArgs && args.length !== minArgs) {
@@ -75,10 +80,4 @@ export function parseOperatorArguments(
   }
 
   return operator.parse ? operator.parse(args) : args
-}
-
-export interface Context {
-  root: BSONNode
-  source: BSONNode
-  target: BSONNode
 }

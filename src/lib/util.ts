@@ -1,6 +1,6 @@
-export function expected<T>(value: T): T & {} {
+export function expected<T>(value: T, message = 'Expected a value'): T & {} {
   if (value === null || value === undefined) {
-    throw new Error('Expected a value')
+    throw new TypeError(message)
   }
   return value
 }
