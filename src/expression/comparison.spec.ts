@@ -22,6 +22,7 @@ test('$cmp objects', t => {
   const cmp = (l: unknown, r: unknown) => $cmp(wrapBSON(l), wrapBSON(r)).value
 
   t.is(cmp({}, {}), 0)
+  t.is(cmp({ hello: 'world' }, { hello: 'world' }), 0)
 })
 
 test('$gt', t => {

@@ -1,10 +1,5 @@
 import type { BSONNode, Node } from './node.js'
 
-export interface Context {
-  root: BSONNode
-  subject: BSONNode
-}
-
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
  */
@@ -14,7 +9,7 @@ export interface Operator {
    */
   (...args: BSONNode[]): BSONNode
   /**
-   * @default 1
+   * @default operator.length
    */
   minArgs?: number
   /**
@@ -25,57 +20,65 @@ export interface Operator {
    * Maps from X input arguments to Y input arguments.
    * Changes the `minArgs` default value.
    */
-  parse?: (...args: BSONNode[]) => Node[]
+  parseArguments?: (...args: BSONNode[]) => Node[]
   /**
-   *
+   * Push root value into Operator's arguments.
    */
-  fromContext?: (ctx: Context, ...args: BSONNode[]) => BSONNode[]
+  useRoot?: boolean
 }
 
+/**
+ * Explicit number of arguments declaration.
+ */
 export function withArguments(
   fn: Operator,
   minArgs: number,
   maxArgs?: number,
 ): Operator {
+  if (fn.minArgs !== undefined || fn.maxArgs !== undefined) {
+    throw new Error(`Operator ${fn.name} has already arguments specified`)
+  }
   fn.minArgs = minArgs
   fn.maxArgs = maxArgs
   return fn
 }
 
+/**
+ * Custom arguments parsing.
+ */
 export function withParsing(
   fn: Operator,
-  parse: NonNullable<Operator['parse']>,
+  parseArguments: NonNullable<Operator['parseArguments']>,
 ): Operator {
-  if (fn.parse !== undefined) {
-    throw new Error('Double parsing')
+  if (fn.parseArguments) {
+    throw new Error(
+      `Operator ${fn.name} cannot specify a custom arguments parser`,
+    )
   }
-  fn.parse = parse
+  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
+    fn.minArgs = parseArguments.length
+    fn.maxArgs = parseArguments.length
+  }
+  fn.parseArguments = parseArguments
   return fn
 }
 
-/**
- * Prevents arguments expansion.
- */
-export function withoutExpansion(fn: Operator): Operator {
-  return withParsing(fn, arg => [arg])
-}
-
-/**
- *
- */
-export function withContext(
-  fn: Operator,
-  fromContext: NonNullable<Operator['fromContext']>,
-): Operator {
-  fn.fromContext = fromContext
-  return fn
+export function useRoot(fn: Operator) {
+  if (fn.useRoot !== undefined) {
+    throw new Error()
+  }
+  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
+    fn.minArgs = fn.length - 1
+    fn.maxArgs = fn.length - 1
+  }
+  fn.useRoot = true
 }
 
 export function parseOperatorArguments(
   operator: Operator,
   args: BSONNode[],
 ): Node[] {
-  const minArgs = operator.minArgs ?? operator.parse?.length ?? operator.length
+  const minArgs = operator.minArgs ?? operator.length
   const maxArgs = operator.maxArgs ?? minArgs
 
   if (minArgs === maxArgs && args.length !== minArgs) {
@@ -94,5 +97,5 @@ export function parseOperatorArguments(
     )
   }
 
-  return operator.parse ? operator.parse(...args) : args
+  return operator.parseArguments ? operator.parseArguments(...args) : args
 }

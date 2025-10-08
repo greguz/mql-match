@@ -189,8 +189,10 @@ export interface ExpressionNode {
   expression: Node
 }
 
-export function nExpression(expression: Node = nNullish()): ExpressionNode {
-  return { kind: NodeKind.EXPRESSION, expression }
+export function nExpression(
+  expression: Node | undefined,
+): ExpressionNode | NullishNode {
+  return expression ? { kind: NodeKind.EXPRESSION, expression } : nNullish()
 }
 
 export interface OperatorNode {

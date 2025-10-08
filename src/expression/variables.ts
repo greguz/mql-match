@@ -6,7 +6,7 @@ import {
   NodeKind,
   type TimestampNode,
 } from '../lib/node.js'
-import { withArguments, withContext } from '../lib/operator.js'
+import { useRoot } from '../lib/operator.js'
 
 export function $$CLUSTER_TIME(): TimestampNode {
   return {
@@ -26,5 +26,4 @@ export function $$ROOT(root: BSONNode): BSONNode {
   return root
 }
 
-withArguments($$ROOT, 0, 0)
-withContext($$ROOT, ctx => [ctx.root])
+useRoot($$ROOT)

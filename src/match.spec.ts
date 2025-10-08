@@ -238,12 +238,10 @@ test('$eq', t => {
   )
   t.true(
     match(
-      { obj: { hello: 'world' } },
+      { obj: { $eq: { hello: 'world' } } },
       {
         obj: {
-          $eq: {
-            hello: 'world',
-          },
+          hello: 'world',
         },
       },
     ),
@@ -267,6 +265,18 @@ test('$expr', t => {
       {
         $expr: true,
         hello: 'world', // manually tested
+      },
+      {
+        hello: 'world',
+        pdor: 'kmer',
+      },
+    ),
+  )
+  t.false(
+    match(
+      {
+        $expr: false,
+        hello: 'world',
       },
       {
         hello: 'world',

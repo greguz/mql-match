@@ -2,7 +2,7 @@ import { $size } from './expression/array.js'
 import { $and } from './expression/boolean.js'
 import { $eq } from './expression/comparison.js'
 import { $toBool } from './expression/type.js'
-import { resolveExpression } from './expression.js'
+import { parseExpression, resolveExpression } from './expression.js'
 import { wrapBSON } from './lib/bson.js'
 import {
   type BSONNode,
@@ -11,7 +11,7 @@ import {
   nBoolean,
   nOperator,
 } from './lib/node.js'
-import type { Context, Operator } from './lib/operator.js'
+import type { Operator } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
 
@@ -25,25 +25,29 @@ const OPERATORS: Record<string, Operator | undefined> = {
 }
 
 export function compileMatch(query: unknown = {}, options?: unknown) {
-  const r = compilePredicate(isPlainObject(query) ? query : { $eq: query })
-
+  const node = compilePredicate(isPlainObject(query) ? query : { $eq: query })
   return (value?: unknown): boolean => {
-    const root = wrapBSON(value)
-    const ctx: Context = { root, subject: root }
-    return resolveMatch(r, ctx).value === true
+    return resolveMatch(node, wrapBSON(value)).value === true
   }
 }
 
 export function compilePredicate(predicate: Record<string, unknown>): Node {
-  return nOperator(
-    '$and',
-    Object.keys(predicate).map(key =>
-      compilePredicateKey(parsePath(key), predicate[key]),
-    ),
+  const nodes = Object.keys(predicate).map(key =>
+    compilePredicateKey(key, predicate[key]),
   )
+  return nodes.length === 1 ? nodes[0] : nOperator('$and', nodes)
 }
 
-function compilePredicateKey(path: Path, value: unknown): Node {
+function compilePredicateKey(key: string, value: unknown): Node {
+  if (key === '$expr') {
+    return {
+      kind: NodeKind.EXPRESSION,
+      expression: parseExpression(value),
+    }
+  }
+
+  const path = parsePath(key)
+
   if (isPlainObject(value)) {
     const keys = Object.keys(value)
     if (keys.some(k => k[0] === '$')) {
@@ -74,7 +78,7 @@ function compileOperator(path: Path, key: string, value: unknown): Node {
 /**
  * Resolve parsed node into raw value.
  */
-export function resolveMatch(node: Node, ctx: Context): BSONNode {
+export function resolveMatch(node: Node, root: BSONNode): BSONNode {
   switch (node.kind) {
     case NodeKind.NODE_ARRAY:
     case NodeKind.PATH:
@@ -82,17 +86,23 @@ export function resolveMatch(node: Node, ctx: Context): BSONNode {
       throw new Error(`Unexpected node kind: ${node.kind}`)
 
     case NodeKind.EXPRESSION:
-      return resolveExpression(node.expression as Node, ctx)
+      return resolveExpression(node.expression, root)
 
     case NodeKind.OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
-      return resolveMatch(fn(...node.args.map(n => resolveMatch(n, ctx))), ctx)
+
+      const args = node.args.map(n => resolveMatch(n, root))
+      if (fn.useRoot) {
+        args.push(root)
+      }
+
+      return fn(...args)
     }
 
     case NodeKind.MATCH_PATH: {
       const fn = expected(OPERATORS[node.operator])
 
-      for (const left of getPathValues(node.path, ctx.subject)) {
+      for (const left of getPathValues(node.path, root)) {
         const result = $toBool(fn(left, node.right))
         if (result.value) {
           return result

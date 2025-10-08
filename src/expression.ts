@@ -27,6 +27,7 @@ import {
   $lte,
   $ne,
 } from './expression/comparison.js'
+import { $cond, $ifNull, $switch } from './expression/conditional.js'
 import {
   $convert,
   $isNumber,
@@ -52,10 +53,9 @@ import {
   type StringNode,
 } from './lib/node.js'
 import {
-  type Context,
   type Operator,
   parseOperatorArguments,
-  withoutExpansion,
+  withParsing,
 } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { parseProjection } from './lib/project.js'
@@ -75,6 +75,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $ceil,
   $cmp,
   $concatArrays,
+  $cond,
   $convert,
   $divide,
   $eq,
@@ -82,10 +83,17 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $floor,
   $gt,
   $gte,
+  $ifNull,
   $in,
   $isArray,
   $isNumber,
-  $literal: withoutExpansion(arg => arg),
+  /**
+   * Hack (skip expression parsing)
+   */
+  $literal: withParsing(
+    arg => arg,
+    arg => [arg],
+  ),
   $ln,
   $log,
   $log10,
@@ -101,6 +109,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $size,
   $sqrt,
   $subtract,
+  $switch,
   $toBool,
   $toDate,
   $toDouble,
@@ -117,19 +126,14 @@ const OPERATORS: Record<string, Operator | undefined> = {
 export function compileExpression(value: unknown) {
   const node = parseExpression(value)
   return <T = unknown>(value?: unknown): T => {
-    const root = wrapBSON(value)
-    const ctx: Context = {
-      root,
-      subject: root,
-    }
-    return unwrapBSON(resolveExpression(node, ctx)) as T
+    return unwrapBSON(resolveExpression(node, wrapBSON(value))) as T
   }
 }
 
 /**
  * Recursive downgrade from `Node` to `BSONNode`.
  */
-export function resolveExpression(node: Node, ctx: Context): BSONNode {
+export function resolveExpression(node: Node, root: BSONNode): BSONNode {
   switch (node.kind) {
     case NodeKind.EXPRESSION:
     case NodeKind.MATCH_PATH:
@@ -138,21 +142,25 @@ export function resolveExpression(node: Node, ctx: Context): BSONNode {
     // Apply operators
     case NodeKind.OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
-      const oldArgs = node.args.map(a => resolveExpression(a, ctx))
-      const newArgs = fn.fromContext ? fn.fromContext(ctx, ...oldArgs) : oldArgs
-      return resolveExpression(fn(...newArgs), ctx)
+
+      const args = node.args.map(a => resolveExpression(a, root))
+      if (fn.useRoot) {
+        args.push(root)
+      }
+
+      return fn(...args)
     }
 
     // Resolve array items
     case NodeKind.NODE_ARRAY:
       return {
         kind: NodeKind.ARRAY,
-        value: node.nodes.map(n => resolveExpression(n, ctx)),
+        value: node.nodes.map(n => resolveExpression(n, root)),
       }
 
     // Resolve paths
     case NodeKind.PATH:
-      return getPathValue(node.path, ctx.subject)
+      return getPathValue(node.path, root)
 
     // Resolve expression objects
     case NodeKind.PROJECT: {
@@ -166,7 +174,7 @@ export function resolveExpression(node: Node, ctx: Context): BSONNode {
         value: {},
       }
       for (const n of node.nodes) {
-        setPathValue(n.path, obj, resolveExpression(n.value, ctx))
+        setPathValue(n.path, obj, resolveExpression(n.value, root))
       }
 
       return obj
@@ -244,7 +252,7 @@ function parseObjectNode(node: ObjectNode): Node {
     for (let i = 0; i < args.length; i++) {
       const node = args[i]
 
-      if (!operator.parse) {
+      if (!operator.parseArguments) {
         args[i] = expandNode(node)
       } else if (node.kind === NodeKind.EXPRESSION) {
         args[i] = expandNode(node.expression)
