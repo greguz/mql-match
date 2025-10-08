@@ -16,6 +16,7 @@ import {
   $subtract,
   $trunc,
 } from './expression/arithmetic.js'
+import { $concatArrays, $in, $isArray, $size } from './expression/array.js'
 import { $and, $not, $or } from './expression/boolean.js'
 import {
   $cmp,
@@ -30,20 +31,25 @@ import {
   $convert,
   $isNumber,
   $toBool,
+  $toDate,
   $toDouble,
+  $toLong,
   $toObjectId,
   $toString,
   $type,
 } from './expression/type.js'
 import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
-import { normalizeArguments, wrapBSON } from './lib/bson.js'
+import { normalizeArguments, unwrapBSON, wrapBSON } from './lib/bson.js'
 import {
   type BSONNode,
   type Node,
   NodeKind,
-  nObject,
+  nNullish,
   nOperator,
+  nString,
+  type ObjectNode,
   type ProjectNode,
+  type StringNode,
 } from './lib/node.js'
 import {
   type Context,
@@ -51,7 +57,7 @@ import {
   parseOperatorArguments,
   withoutExpansion,
 } from './lib/operator.js'
-import { getPathValue, parsePath, setPathValue } from './lib/path.js'
+import { type Path, parsePath } from './lib/path.js'
 import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
 
@@ -68,6 +74,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $and,
   $ceil,
   $cmp,
+  $concatArrays,
   $convert,
   $divide,
   $eq,
@@ -75,6 +82,8 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $floor,
   $gt,
   $gte,
+  $in,
+  $isArray,
   $isNumber,
   $literal: withoutExpansion(arg => arg),
   $ln,
@@ -89,10 +98,13 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $or,
   $pow,
   $round,
+  $size,
   $sqrt,
   $subtract,
   $toBool,
+  $toDate,
   $toDouble,
+  $toLong,
   $toObjectId,
   $toString,
   $trunc,
@@ -104,13 +116,13 @@ const OPERATORS: Record<string, Operator | undefined> = {
  */
 export function compileExpression(value: unknown) {
   const node = parseExpression(value)
-  return (value?: unknown): BSONNode['value'] => {
+  return <T = unknown>(value?: unknown): T => {
     const root = wrapBSON(value)
     const ctx: Context = {
       root,
       subject: root,
     }
-    return resolveExpression(node, ctx).value
+    return unwrapBSON(resolveExpression(node, ctx)) as T
   }
 }
 
@@ -119,28 +131,28 @@ export function compileExpression(value: unknown) {
  */
 export function resolveExpression(node: Node, ctx: Context): BSONNode {
   switch (node.kind) {
-    case NodeKind.EXPRESSION: {
+    case NodeKind.EXPRESSION:
+    case NodeKind.MATCH_PATH:
       throw new Error(`Unexpected node kind: ${node.kind}`)
-    }
 
     // Apply operators
     case NodeKind.OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
-      const args = node.args.map(a => resolveExpression(a, ctx))
-      return resolveExpression(fn(...args), ctx)
+      const oldArgs = node.args.map(a => resolveExpression(a, ctx))
+      const newArgs = fn.fromContext ? fn.fromContext(ctx, ...oldArgs) : oldArgs
+      return resolveExpression(fn(...newArgs), ctx)
     }
 
     // Resolve array items
     case NodeKind.NODE_ARRAY:
       return {
         kind: NodeKind.ARRAY,
-        value: node.nodes.map(n => resolveExpression(n, ctx).value),
+        value: node.nodes.map(n => resolveExpression(n, ctx)),
       }
 
     // Resolve paths
-    case NodeKind.PATH: {
-      return wrapBSON(getPathValue(node.path, ctx.subject.value))
-    }
+    case NodeKind.PATH:
+      return getPathValue(node.path, ctx.subject)
 
     // Resolve expression objects
     case NodeKind.PROJECT: {
@@ -148,16 +160,16 @@ export function resolveExpression(node: Node, ctx: Context): BSONNode {
         throw new Error('TODO: exclusion')
       }
 
-      const result = nObject({})
+      const obj: ObjectNode = {
+        kind: NodeKind.OBJECT,
+        keys: [],
+        value: {},
+      }
       for (const n of node.nodes) {
-        setPathValue(
-          n.path,
-          result.value,
-          resolveExpression(n.value, ctx).value,
-        )
+        setPathValue(n.path, obj, resolveExpression(n.value, ctx))
       }
 
-      return result
+      return obj
     }
 
     // Should be a raw value
@@ -181,12 +193,12 @@ function expandNode(node: Node): Node {
     case NodeKind.ARRAY:
       return {
         kind: NodeKind.NODE_ARRAY,
-        nodes: node.value.map(parseExpression),
+        nodes: node.value.map(expandNode),
       }
     case NodeKind.OBJECT:
-      return parseObjectNode(node.value)
+      return parseObjectNode(node)
     case NodeKind.STRING:
-      return parseStringNode(node.value)
+      return parseStringNode(node)
     default:
       return node
   }
@@ -195,7 +207,7 @@ function expandNode(node: Node): Node {
 /**
  * Apply operators and system variables.
  */
-function parseStringNode(value: string): Node {
+function parseStringNode({ value }: StringNode): Node {
   if (value[0] === '$' && value[1] === '$') {
     const fn = OPERATORS[value]
     if (!fn) {
@@ -208,18 +220,16 @@ function parseStringNode(value: string): Node {
     return {
       kind: NodeKind.PATH,
       path: parsePath(value.substring(1)),
-      value: wrapBSON(value),
+      value: nString(value),
     }
   }
 
   return { kind: NodeKind.STRING, value }
 }
 
-function parseObjectNode(obj: Record<string, unknown>): Node {
-  const keys = Object.keys(obj)
-
-  if (keys.length === 1 && keys[0][0] === '$') {
-    const key = keys[0]
+function parseObjectNode(node: ObjectNode): Node {
+  if (node.keys.length === 1 && node.keys[0][0] === '$') {
+    const key = node.keys[0]
 
     const operator = OPERATORS[key]
     if (!operator) {
@@ -228,7 +238,7 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
 
     const args: Node[] = parseOperatorArguments(
       operator,
-      normalizeArguments(obj[key]),
+      normalizeArguments(expected(node.value[key])),
     )
 
     for (let i = 0; i < args.length; i++) {
@@ -237,14 +247,14 @@ function parseObjectNode(obj: Record<string, unknown>): Node {
       if (!operator.parse) {
         args[i] = expandNode(node)
       } else if (node.kind === NodeKind.EXPRESSION) {
-        args[i] = parseExpression(node.expression)
+        args[i] = expandNode(node.expression)
       }
     }
 
     return nOperator(key, args)
   }
 
-  const project = parseProjection(obj)
+  const project = parseProjection(node)
   if (!project.exclusion) {
     expandInclusion(project)
     if (!project.nodes.some(n => n.path.length === 1 && n.path[0] === '_id')) {
@@ -270,6 +280,63 @@ function expandInclusion(project: ProjectNode): void {
       expandInclusion(node.value)
     } else {
       node.value = expandNode(node.value)
+    }
+  }
+}
+
+/**
+ * Keeps only non-nullisth array items.
+ */
+export function getPathValue(path: Path, node: BSONNode): BSONNode {
+  if (!path.length) {
+    return node
+  }
+  if (node.kind === NodeKind.OBJECT) {
+    return getPathValue(path.slice(1), node.value[path[0]] || nNullish())
+  }
+
+  if (node.kind === NodeKind.ARRAY) {
+    const items: BSONNode[] = []
+
+    for (let i = 0; i < node.value.length; i++) {
+      const n = getPathValue(path, node.value[i])
+      if (n.kind !== NodeKind.NULLISH) {
+        items.push(n)
+      }
+    }
+
+    if (items.length) {
+      return { kind: NodeKind.ARRAY, value: items }
+    }
+  }
+
+  return nNullish()
+}
+
+export function setPathValue(
+  path: Path,
+  obj: ObjectNode,
+  node: BSONNode,
+): void {
+  for (let i = 0; i < path.length; i++) {
+    const key = `${path[i]}`
+    if (obj.value[key]) {
+      throw new TypeError(`Unable to write value at ${path.join('.')}`)
+    }
+
+    obj.keys.push(key)
+
+    if (i === path.length - 1) {
+      obj.value[key] = node
+    } else {
+      const child: BSONNode = {
+        kind: NodeKind.OBJECT,
+        keys: [],
+        value: {},
+      }
+
+      obj.value[key] = child
+      obj = child
     }
   }
 }

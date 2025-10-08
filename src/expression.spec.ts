@@ -24,6 +24,11 @@ test('$$NOW', t => {
   t.is(a === b, false)
 })
 
+test('$$ROOT', t => {
+  t.is(exec('$$ROOT'), null)
+  t.is(exec('$$ROOT', 42), 42)
+})
+
 test('$convert', t => {
   t.throws(() => exec({ $convert: 24 }))
   t.is(exec({ $convert: { input: 1.99999, to: 'bool' } }), true)
@@ -214,5 +219,26 @@ test('expressions:array', t => {
       { _id: 'my_doc', value: 4 },
     ),
     { _id: 'my_doc', a: [4, 2, 21] },
+  )
+})
+
+test('smoke', t => {
+  t.deepEqual(
+    exec(
+      {
+        a: {
+          b: { value: '$left' },
+          c: { value: '$right' },
+        },
+      },
+      { left: 4, right: 2 },
+    ),
+    {
+      _id: null,
+      a: {
+        b: { value: 4 },
+        c: { value: 2 },
+      },
+    },
   )
 })

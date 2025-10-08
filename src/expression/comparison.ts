@@ -1,13 +1,18 @@
-import type { Long, Timestamp } from 'bson'
+import type { Timestamp } from 'bson'
 
-import { getBSONTypeWeight } from '../lib/bson.js'
+import { assertBSON, getBSONTypeWeight } from '../lib/bson.js'
 import {
+  type ArrayNode,
   type BooleanNode,
   type BSONNode,
   type DoubleNode,
+  type IntNode,
+  type LongNode,
   NodeKind,
   nBoolean,
   nDouble,
+  nNullish,
+  type ObjectNode,
 } from '../lib/node.js'
 
 /**
@@ -24,79 +29,124 @@ export function $cmp(left: BSONNode, right: BSONNode): DoubleNode {
     case NodeKind.NULLISH:
       return nDouble(0)
     case NodeKind.BOOLEAN:
-      return cmp(fromBoolean(left), fromBoolean(right))
+      return compareRaw(mapBoolean(left), mapBoolean(right))
     case NodeKind.STRING:
-      return cmp(fromString(left), fromString(right))
+      return compareRaw(mapString(left), mapString(right))
     case NodeKind.DATE:
-      return cmp(fromDate(left), fromDate(right))
+      return compareRaw(mapDate(left), mapDate(right))
     case NodeKind.OBJECT_ID:
-      return cmp(fromObjectId(left), fromObjectId(right))
+      return compareRaw(mapObjectId(left), mapObjectId(right))
     case NodeKind.TIMESTAMP:
-      return nDouble(left.value.compare(fromTimestamp(right)))
-    case NodeKind.DOUBLE: {
-      if (right.kind === NodeKind.DOUBLE) {
-        return cmp(left.value, right.value)
-      }
-      if (right.kind === NodeKind.LONG) {
-        return nDouble(-right.value.compare(left.value))
-      }
-      throw new TypeError('Expected numeric node')
-    }
-    case NodeKind.LONG:
-      return nDouble(left.value.compare(fromNumber(right)))
-    default:
-      throw new TypeError(`Unsupported BSON type: ${left.kind}`)
-  }
-}
-
-function fromBoolean(node: BSONNode): number {
-  if (node.kind !== NodeKind.BOOLEAN) {
-    throw new TypeError('Expected boolean node')
-  }
-  return node.value ? 1 : 0
-}
-
-function fromDate(node: BSONNode): string {
-  if (node.kind !== NodeKind.DATE) {
-    throw new TypeError('Expected Date node')
-  }
-  return node.value.toISOString()
-}
-
-function fromNumber(node: BSONNode): number | Long {
-  switch (node.kind) {
+      return nDouble(left.value.compare(mapTimestamp(right)))
     case NodeKind.DOUBLE:
-      return node.value
+      return compareDouble(left, right)
     case NodeKind.LONG:
-      return node.value
+      return compareLong(left, right)
+    case NodeKind.INT:
+      return compareInt(left, right)
+    case NodeKind.ARRAY:
+      return compareArrays(left, assertBSON(right, NodeKind.ARRAY))
+    case NodeKind.OBJECT:
+      return compareObjects(left, assertBSON(right, NodeKind.OBJECT))
     default:
-      throw new TypeError('Expected numeric node')
+      throw new TypeError(`Unsupported BSON type comparison: ${left.kind}`)
   }
 }
 
-function fromObjectId(node: BSONNode): string {
-  if (node.kind !== NodeKind.OBJECT_ID) {
-    throw new TypeError('Expected ObjectId node')
+function compareInt(left: IntNode, right: BSONNode): DoubleNode {
+  switch (right.kind) {
+    case NodeKind.DOUBLE:
+      return compareRaw(left.value.value, right.value)
+    case NodeKind.INT:
+      return compareRaw(left.value.value, right.value.value)
+    case NodeKind.LONG:
+      return nDouble(-right.value.compare(left.value.value))
+    default:
+      throw new TypeError(`Unsupported comparison for ${right.kind} type`)
   }
-  return node.value.toHexString()
 }
 
-function fromString(node: BSONNode): string {
-  if (node.kind !== NodeKind.STRING) {
-    throw new TypeError('Expected string node')
+function compareDouble(left: DoubleNode, right: BSONNode) {
+  switch (right.kind) {
+    case NodeKind.DOUBLE:
+      return compareRaw(left.value, right.value)
+    case NodeKind.INT:
+      return compareRaw(left.value, right.value.value)
+    case NodeKind.LONG:
+      return nDouble(-right.value.compare(left.value))
+    default:
+      throw new TypeError(`Unsupported comparison for ${right.kind} type`)
   }
-  return node.value
 }
 
-function fromTimestamp(node: BSONNode): Timestamp {
-  if (node.kind !== NodeKind.TIMESTAMP) {
-    throw new TypeError('Expected Timestamp node')
+function compareLong(left: LongNode, right: BSONNode) {
+  switch (right.kind) {
+    case NodeKind.INT:
+      return nDouble(left.value.compare(right.value.value))
+    case NodeKind.DOUBLE:
+    case NodeKind.LONG:
+      return nDouble(left.value.compare(right.value))
+    default:
+      throw new TypeError(`Unsupported comparison for ${right.kind} type`)
   }
-  return node.value
 }
 
-function cmp<T extends number | string>(left: T, right: T) {
+function mapBoolean(node: BSONNode): number {
+  return assertBSON(node, NodeKind.BOOLEAN) ? 1 : 0
+}
+
+function mapDate(node: BSONNode): string {
+  return assertBSON(node, NodeKind.DATE).value.toISOString()
+}
+
+function mapObjectId(node: BSONNode): string {
+  return assertBSON(node, NodeKind.OBJECT_ID).value.toHexString()
+}
+
+function mapString(node: BSONNode): string {
+  return assertBSON(node, NodeKind.STRING).value
+}
+
+function mapTimestamp(node: BSONNode): Timestamp {
+  return assertBSON(node, NodeKind.TIMESTAMP).value
+}
+
+function compareRaw<T extends number | string>(left: T, right: T) {
   return nDouble(left === right ? 0 : left < right ? -1 : 1)
+}
+
+function compareArrays(left: ArrayNode, right: ArrayNode): DoubleNode {
+  for (let i = 0; i < Math.min(left.value.length, right.value.length); i++) {
+    const result = $cmp(left.value[i], right.value[i])
+    if (result.value !== 0) {
+      return result
+    }
+  }
+  return compareRaw(left.value.length, right.value.length)
+}
+
+function compareObjects(left: ObjectNode, right: ObjectNode): DoubleNode {
+  // TODO: check this thing...
+  const keys = [...left.keys]
+  for (const key of right.keys) {
+    if (!keys.includes(key)) {
+      keys.push(key)
+    }
+  }
+  keys.sort()
+
+  for (const key of keys) {
+    const result = $cmp(
+      left.value[key] || nNullish(),
+      right.value[key] || nNullish(),
+    )
+    if (result.value !== 0) {
+      return result
+    }
+  }
+
+  // TODO: incorrect (different keys)
+  return nDouble(0)
 }
 
 /**

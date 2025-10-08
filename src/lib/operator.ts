@@ -12,7 +12,7 @@ export interface Operator {
   /**
    * Operator spec.
    */
-  (...args: BSONNode[]): Node
+  (...args: BSONNode[]): BSONNode
   /**
    * @default 1
    */
@@ -25,7 +25,11 @@ export interface Operator {
    * Maps from X input arguments to Y input arguments.
    * Changes the `minArgs` default value.
    */
-  parse?: (args: BSONNode[]) => Node[]
+  parse?: (...args: BSONNode[]) => Node[]
+  /**
+   *
+   */
+  fromContext?: (ctx: Context, ...args: BSONNode[]) => BSONNode[]
 }
 
 export function withArguments(
@@ -53,7 +57,18 @@ export function withParsing(
  * Prevents arguments expansion.
  */
 export function withoutExpansion(fn: Operator): Operator {
-  return withParsing(fn, args => args)
+  return withParsing(fn, arg => [arg])
+}
+
+/**
+ *
+ */
+export function withContext(
+  fn: Operator,
+  fromContext: NonNullable<Operator['fromContext']>,
+): Operator {
+  fn.fromContext = fromContext
+  return fn
 }
 
 export function parseOperatorArguments(
@@ -79,5 +94,5 @@ export function parseOperatorArguments(
     )
   }
 
-  return operator.parse ? operator.parse(args) : args
+  return operator.parse ? operator.parse(...args) : args
 }

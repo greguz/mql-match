@@ -1,21 +1,18 @@
-import { wrapBSON } from './bson.js'
-import { NodeKind, type PathNode, type ProjectNode } from './node.js'
+import {
+  NodeKind,
+  type ObjectNode,
+  type PathNode,
+  type ProjectNode,
+} from './node.js'
 import { type Path, parsePath } from './path.js'
-import { expected, isPlainObject } from './util.js'
+import { expected } from './util.js'
 
-export function parseProjection(project: unknown): ProjectNode {
-  if (!isPlainObject(project)) {
-    throw new TypeError('Projection must be an object')
-  }
-  return parseProjectionInternal(project, true)
+export function parseProjection(node: ObjectNode): ProjectNode {
+  return parseProjectionInternal(node, true)
 }
 
-function parseProjectionInternal(
-  obj: Record<string, unknown>,
-  root: boolean,
-): ProjectNode {
-  const keys = Object.keys(obj)
-  if (!keys.length) {
+function parseProjectionInternal(node: ObjectNode, root: boolean): ProjectNode {
+  if (!node.keys.length) {
     throw new TypeError('Projection need at least one field')
   }
 
@@ -27,9 +24,9 @@ function parseProjectionInternal(
 
   let inclusion = false
 
-  for (const key of keys) {
+  for (const key of node.keys) {
     const path = parsePath(key)
-    const value = obj[key]
+    const childNode = expected(node.value[key])
 
     for (let i = 0; i < project.nodes.length; i++) {
       if (collides(path, project.nodes[i].path)) {
@@ -37,24 +34,28 @@ function parseProjectionInternal(
       }
     }
 
-    if (isPlainObject(value)) {
-      const child = parseProjectionInternal(value, false)
-      if (project.exclusion && !child.exclusion) {
+    if (childNode.kind === NodeKind.OBJECT) {
+      const childProject = parseProjectionInternal(childNode, false)
+      if (project.exclusion && !childProject.exclusion) {
         throw new TypeError(
           `Cannot do inclusion on field ${key} in exclusion projection`,
         )
       }
-      if (inclusion && child.exclusion) {
+      if (inclusion && childProject.exclusion) {
         throw new TypeError(
           `Cannot do exclusion on field ${key} in inclusion projection`,
         )
       }
-      inclusion = !child.exclusion
-      project.exclusion = child.exclusion
+      inclusion = !childProject.exclusion
+      project.exclusion = childProject.exclusion
 
-      project.nodes.push({ kind: NodeKind.PATH, path, value: child })
+      project.nodes.push({
+        kind: NodeKind.PATH,
+        path,
+        value: childProject,
+      })
     } else {
-      if (value !== 0 && value !== false) {
+      if (childNode.value !== 0 && childNode.value !== false) {
         inclusion = true
         if (project.exclusion) {
           throw new TypeError(
@@ -70,7 +71,11 @@ function parseProjectionInternal(
         }
       }
 
-      project.nodes.push({ kind: NodeKind.PATH, path, value: wrapBSON(value) })
+      project.nodes.push({
+        kind: NodeKind.PATH,
+        path,
+        value: childNode,
+      })
     }
   }
 

@@ -1,4 +1,4 @@
-import { isArray, isNullish, isNumber, isObjectLike } from './util.js'
+import { type BSONNode, NodeKind, nNullish } from './node.js'
 
 const REG_IDENTIFIER = /^[A-Za-z0-9_]*$/
 
@@ -30,65 +30,35 @@ export function parsePath(path: unknown): Path {
   return result
 }
 
-export function getPathValue(path: Path, subject: unknown): unknown {
-  let i = 0
-  for (; i < path.length && !isNullish(subject); i++) {
-    subject = Object(subject)[path[i]]
-  }
-  if (i === path.length) {
-    return subject
-  }
-}
-
-export function setPathValue(
-  path: Path,
-  subject: unknown,
-  value: unknown,
-): void {
+/**
+ * Applies a projection path.
+ * Keeps all array items only if at least one item is not nullish.
+ */
+export function applyProjection(path: Path, node: BSONNode): BSONNode {
   if (!path.length) {
-    throw new TypeError('Expected non-empty path')
+    return node
   }
 
-  let i = 0
-  for (i; i < path.length - 1 && !isNullish(subject); i++) {
-    const key = path[i]
+  if (node.kind === NodeKind.OBJECT) {
+    return applyProjection(path.slice(1), node.value[path[0]] || nNullish())
+  }
 
-    if (isNumber(key) && isArray(subject)) {
-      while (subject.length < key) {
-        subject.push(null)
+  if (node.kind === NodeKind.ARRAY) {
+    const items: BSONNode[] = []
+
+    let empty = true
+    for (let i = 0; i < node.value.length; i++) {
+      const n = applyProjection(path, node.value[i])
+      items.push(n)
+      if (n.kind !== NodeKind.NULLISH) {
+        empty = false
       }
-      if (subject.length === key) {
-        subject.push({})
-      }
-      subject = subject[key]
-    } else if (isObjectLike(subject)) {
-      if (isNullish(subject[key])) {
-        subject[key] = {}
-      }
-      subject = subject[key]
-    } else {
-      throw new Error()
+    }
+
+    if (!empty) {
+      return { kind: NodeKind.ARRAY, value: items }
     }
   }
 
-  const key = path[i]
-  if (isNumber(key) && isArray(subject)) {
-    while (subject.length < key) {
-      subject.push(null)
-    }
-
-    if (subject.length === key) {
-      subject.push(value)
-    } else {
-      subject[key] = value
-    }
-  } else if (isObjectLike(subject)) {
-    subject[key] = value
-  } else {
-    throw new Error()
-  }
-}
-
-export function unsetPathValue(path: Path, subject: unknown): void {
-  throw new Error('TODO: unsetValue')
+  return nNullish()
 }

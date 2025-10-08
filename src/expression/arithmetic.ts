@@ -1,13 +1,31 @@
 import { Decimal } from 'decimal.js'
 
-import { type BSONNode, NodeKind, nDouble, nNullish } from '../lib/node.js'
+import {
+  type BSONNode,
+  NodeKind,
+  nDouble,
+  nInt,
+  nLong,
+  nNullish,
+} from '../lib/node.js'
 import { withArguments } from '../lib/operator.js'
 
 /**
- *
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/
  */
 export function $abs(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
+  switch (arg.kind) {
+    case NodeKind.NULLISH:
+      return arg
+    case NodeKind.DOUBLE:
+      return nDouble(Math.abs(arg.value))
+    case NodeKind.LONG:
+      return arg.value.lt(0) ? nLong(arg.value.multiply(-1)) : arg
+    case NodeKind.INT:
+      return nInt(Math.abs(arg.value.value))
+    default:
+      throw new TypeError(`$abs doesn't support ${arg.kind} values`)
+  }
 }
 
 /**

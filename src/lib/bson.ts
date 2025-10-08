@@ -1,6 +1,8 @@
 import {
   type Binary,
+  type BSONRegExp,
   BSONType,
+  type Decimal128,
   type Double,
   type Int32,
   type Long,
@@ -9,19 +11,33 @@ import {
 } from 'bson'
 
 import {
+  type ArrayNode,
+  type BinaryNode,
+  type BooleanNode,
   type BSONNode,
+  type DateNode,
+  type DecimalNode,
+  type DoubleNode,
+  type IntNode,
+  type LongNode,
   NodeKind,
+  type NullishNode,
   nBoolean,
   nDouble,
-  nLongNode,
+  nLong,
   nNullish,
   nString,
+  type ObjectIdNode,
+  type ObjectNode,
+  type RegExpNode,
+  type StringNode,
+  type TimestampNode,
 } from './node.js'
 import {
+  expected,
   isArray,
   isBinary,
   isDate,
-  isNullish,
   isPlainObject,
   isRegExp,
 } from './util.js'
@@ -29,95 +45,101 @@ import {
 /**
  * Cast from string alias to `BSONType` enum.
  */
-export function castBSONAlias(value: unknown): unknown {
-  switch (value) {
-    case 'double':
-      return BSONType.double
-    case 'string':
-      return BSONType.string
-    case 'object':
-      return BSONType.object
-    case 'array':
-      return BSONType.array
-    case 'binData':
-      return BSONType.binData
+export function parseBSONType(node: BSONNode): BSONNode['kind'] {
+  switch (node.value) {
+    case BSONType.null:
     case BSONType.undefined:
-    case 'undefined':
-      return BSONType.null // same as 'null'
-    case 'objectId':
-      return BSONType.objectId
-    case 'bool':
-      return BSONType.bool
-    case 'date':
-      return BSONType.date
     case 'null':
-      return BSONType.null
+    case 'undefined':
+      return NodeKind.NULLISH
+
+    case BSONType.bool:
+    case 'bool':
+      return NodeKind.BOOLEAN
+
+    case BSONType.double:
+    case 'double':
+      return NodeKind.DOUBLE
+
+    case BSONType.string:
+    case 'string':
+      return NodeKind.STRING
+
+    case BSONType.array:
+    case 'array':
+      return NodeKind.ARRAY
+
+    case BSONType.binData:
+    case 'binData':
+      return NodeKind.BINARY
+
+    case BSONType.object:
+    case 'object':
+      return NodeKind.OBJECT
+
+    case BSONType.objectId:
+    case 'objectId':
+      return NodeKind.OBJECT_ID
+
+    case BSONType.date:
+    case 'date':
+      return NodeKind.DATE
+
+    case BSONType.regex:
     case 'regex':
-      return BSONType.regex
-    case 'dbPointer':
-      return BSONType.dbPointer
-    case 'javascript':
-      return BSONType.javascript
-    case 'symbol':
-      return BSONType.symbol
-    case 'int':
-      return BSONType.int
+      return NodeKind.REGEX
+
+    case BSONType.timestamp:
     case 'timestamp':
-      return BSONType.timestamp
+      return NodeKind.TIMESTAMP
+
+    case BSONType.long:
     case 'long':
-      return BSONType.long
+      return NodeKind.LONG
+
+    case BSONType.int:
+    case 'int':
+      return NodeKind.INT
+
+    case BSONType.decimal:
     case 'decimal':
-      return BSONType.decimal
-    case 'minKey':
-      return BSONType.minKey
-    case 'maxKey':
-      return BSONType.maxKey
+      return NodeKind.DECIMAL
+
     default:
-      return value
+      throw new TypeError(`Unsupported BSON type: ${node.value}`)
   }
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/#std-label-bson-types-comparison-order
  */
-export function getBSONTypeWeight(value: number): number {
+export function getBSONTypeWeight(value: BSONNode['kind']): number {
   switch (value) {
-    case BSONType.minKey:
-      return 1
-    case BSONType.null:
+    case NodeKind.NULLISH:
       return 2
-    case BSONType.decimal:
-    case BSONType.double:
-    case BSONType.int:
-    case BSONType.long:
+    case NodeKind.DECIMAL:
+    case NodeKind.DOUBLE:
+    case NodeKind.INT:
+    case NodeKind.LONG:
       return 3
-    case BSONType.string:
-    case BSONType.symbol:
+    case NodeKind.STRING:
       return 4
-    case BSONType.object:
+    case NodeKind.OBJECT:
       return 5
-    case BSONType.array:
+    case NodeKind.ARRAY:
       return 6
-    case BSONType.binData:
+    case NodeKind.BINARY:
       return 7
-    case BSONType.undefined:
-      return 6
-    case BSONType.objectId:
+    case NodeKind.OBJECT_ID:
       return 8
-    case BSONType.bool:
+    case NodeKind.BOOLEAN:
       return 9
-    case BSONType.date:
+    case NodeKind.DATE:
       return 10
-    case BSONType.timestamp:
+    case NodeKind.TIMESTAMP:
       return 11
-    case BSONType.regex:
+    case NodeKind.REGEX:
       return 12
-    case BSONType.javascript:
-      return 13
-    case BSONType.javascriptWithScope:
-      return 14
-    case BSONType.maxKey:
-      return 15
     default:
       throw new TypeError(`Unsupported BSON type: ${value}`)
   }
@@ -129,7 +151,7 @@ export function getBSONTypeWeight(value: number): number {
 export function wrapBSON(value?: unknown): BSONNode {
   switch (typeof value) {
     case 'bigint':
-      return nLongNode(value)
+      return nLong(value)
     case 'boolean':
       return nBoolean(value)
     case 'function':
@@ -149,11 +171,22 @@ export function wrapBSON(value?: unknown): BSONNode {
 
 function wrapObject(value: object): BSONNode {
   if (isPlainObject(value)) {
-    return { kind: NodeKind.OBJECT, value }
+    const keys = Object.keys(value)
+
+    const obj: Record<string, BSONNode> = {}
+    for (let i = 0; i < keys.length; i++) {
+      obj[keys[i]] = wrapBSON(value[keys[i]])
+    }
+
+    return {
+      kind: NodeKind.OBJECT,
+      keys,
+      value: obj,
+    }
   }
 
   if (isArray(value)) {
-    return { kind: NodeKind.ARRAY, value }
+    return { kind: NodeKind.ARRAY, value: value.map(wrapBSON) }
   }
   if (isBinary(value)) {
     return { kind: NodeKind.BINARY, value }
@@ -185,8 +218,8 @@ function wrapObject(value: object): BSONNode {
         }
       case 'Int32':
         return {
-          kind: NodeKind.DOUBLE,
-          value: (value as Int32).value,
+          kind: NodeKind.INT,
+          value: value as Int32,
         }
       case 'Double':
         return {
@@ -198,6 +231,18 @@ function wrapObject(value: object): BSONNode {
           kind: NodeKind.LONG,
           value: value as Long,
         }
+      case 'BSONRegExp': {
+        const { pattern, options } = value as BSONRegExp
+        return {
+          kind: NodeKind.REGEX,
+          value: new RegExp(pattern, options), // TODO: escape?
+        }
+      }
+      case 'Decimal128':
+        return {
+          kind: NodeKind.DECIMAL,
+          value: value as Decimal128,
+        }
       default:
         throw new TypeError(`Unsupported BSON type: ${bsonType}`)
     }
@@ -207,14 +252,90 @@ function wrapObject(value: object): BSONNode {
 }
 
 /**
+ *
+ */
+export function unwrapBSON(node: BSONNode): unknown {
+  switch (node.kind) {
+    case NodeKind.ARRAY:
+      return node.value.map(unwrapBSON)
+    case NodeKind.OBJECT: {
+      const result: Record<string, unknown> = { ...node.value }
+      for (let i = 0; i < node.keys.length; i++) {
+        result[node.keys[i]] = unwrapBSON(expected(node.value[node.keys[i]]))
+      }
+      return result
+    }
+    default:
+      return node.value
+  }
+}
+
+/**
  * Prepare operator's arguments array.
  */
-export function normalizeArguments(arg: unknown): BSONNode[] {
-  if (isNullish(arg)) {
-    return []
+export function normalizeArguments(arg: BSONNode): BSONNode[] {
+  switch (arg.kind) {
+    case NodeKind.ARRAY:
+      return arg.value
+    case NodeKind.NULLISH:
+      return []
+    default:
+      return [arg]
   }
-  if (isArray(arg)) {
-    return arg.map(wrapBSON)
+}
+
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.ARRAY,
+): ArrayNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.BINARY,
+): BinaryNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.BOOLEAN,
+): BooleanNode
+export function assertBSON(node: BSONNode, kind: typeof NodeKind.DATE): DateNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.DECIMAL,
+): DecimalNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.DOUBLE,
+): DoubleNode
+export function assertBSON(node: BSONNode, kind: typeof NodeKind.INT): IntNode
+export function assertBSON(node: BSONNode, kind: typeof NodeKind.LONG): LongNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.NULLISH,
+): NullishNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.OBJECT_ID,
+): ObjectIdNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.OBJECT,
+): ObjectNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.REGEX,
+): RegExpNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.STRING,
+): StringNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.TIMESTAMP,
+): TimestampNode
+export function assertBSON(node: BSONNode, kind: BSONNode['kind']): BSONNode {
+  if (node.kind !== kind) {
+    throw new TypeError(
+      `Unexpected BSON type: ${node.kind} (expecting ${kind})`,
+    )
   }
-  return [wrapBSON(arg)]
+  return node
 }

@@ -1,33 +1,43 @@
-import { BSONType, Long, type ObjectId, type Timestamp } from 'bson'
+import {
+  type Decimal128,
+  Int32,
+  Long,
+  type ObjectId,
+  type Timestamp,
+} from 'bson'
 
 import type { Path } from './path.js'
 
 export const NodeKind = Object.freeze({
-  ARRAY: BSONType.array,
-  BINARY: BSONType.binData,
-  BOOLEAN: BSONType.bool,
-  DATE: BSONType.date,
+  ARRAY: 'ARRAY',
+  BINARY: 'BINARY',
+  BOOLEAN: 'BOOLEAN',
+  DATE: 'DATE',
   /**
    * JavaScript numbers.
    */
-  DOUBLE: BSONType.double,
+  DOUBLE: 'DOUBLE',
   /**
    * 32-bit integer.
    */
-  INT: BSONType.int,
+  INT: 'INT',
   /**
    * 64-bit integer.
    */
-  LONG: BSONType.long,
+  LONG: 'LONG',
+  /**
+   * Decimal128
+   */
+  DECIMAL: 'DECIMAL',
   /**
    * Represents both `null` and `undefined`.
    */
-  NULLISH: BSONType.null,
-  OBJECT_ID: BSONType.objectId,
-  OBJECT: BSONType.object,
-  REGEX: BSONType.regex,
-  STRING: BSONType.string,
-  TIMESTAMP: BSONType.timestamp,
+  NULLISH: 'NULLISH',
+  OBJECT_ID: 'OBJECT_ID',
+  OBJECT: 'OBJECT',
+  REGEX: 'REGEX',
+  STRING: 'STRING',
+  TIMESTAMP: 'TIMESTAMP',
   /**
    * Operator declaration.
    */
@@ -43,6 +53,7 @@ export const NodeKind = Object.freeze({
   NODE_ARRAY: 'NODE_ARRAY',
   PROJECT: 'PROJECT',
   PATH: 'PATH',
+  MATCH_PATH: 'MATCH_PATH',
 })
 
 export interface BooleanNode {
@@ -51,7 +62,7 @@ export interface BooleanNode {
 }
 
 export function nBoolean(value: boolean): BooleanNode {
-  return { kind: BSONType.bool, value }
+  return { kind: NodeKind.BOOLEAN, value }
 }
 
 export interface NullishNode {
@@ -60,7 +71,21 @@ export interface NullishNode {
 }
 
 export function nNullish(): NullishNode {
-  return { kind: BSONType.null, value: null }
+  return { kind: NodeKind.NULLISH, value: null }
+}
+
+export interface IntNode {
+  kind: typeof NodeKind.INT
+  value: Int32
+}
+
+export function nInt(value: number): IntNode {
+  return { kind: NodeKind.INT, value: new Int32(value) }
+}
+
+export interface DecimalNode {
+  kind: typeof NodeKind.DECIMAL
+  value: Decimal128
 }
 
 export interface DoubleNode {
@@ -69,7 +94,7 @@ export interface DoubleNode {
 }
 
 export function nDouble(value: number): DoubleNode {
-  return { kind: BSONType.double, value }
+  return { kind: NodeKind.DOUBLE, value }
 }
 
 export interface LongNode {
@@ -77,10 +102,14 @@ export interface LongNode {
   value: Long
 }
 
-export function nLongNode(value: bigint): LongNode | DoubleNode {
-  return value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
-    ? nDouble(Number(value))
-    : { kind: BSONType.long, value: Long.fromBigInt(value) }
+export function nLong(value: bigint | number | Long): LongNode {
+  if (typeof value === 'bigint') {
+    return { kind: NodeKind.LONG, value: Long.fromBigInt(value) }
+  }
+  if (typeof value === 'number') {
+    return { kind: NodeKind.LONG, value: Long.fromNumber(value) }
+  }
+  return { kind: NodeKind.LONG, value }
 }
 
 export interface StringNode {
@@ -89,7 +118,7 @@ export interface StringNode {
 }
 
 export function nString(value: string): StringNode {
-  return { kind: BSONType.string, value }
+  return { kind: NodeKind.STRING, value }
 }
 
 export interface TimestampNode {
@@ -102,9 +131,8 @@ export interface DateNode {
   value: Date
 }
 
-export interface ArrayNode<T = unknown> {
-  kind: typeof NodeKind.ARRAY
-  value: T[]
+export function nDate(value: Date): DateNode {
+  return { kind: NodeKind.DATE, value }
 }
 
 export interface BinaryNode {
@@ -122,13 +150,15 @@ export interface RegExpNode {
   value: RegExp
 }
 
-export interface ObjectNode {
-  kind: typeof NodeKind.OBJECT
-  value: Record<string, unknown>
+export interface ArrayNode {
+  kind: typeof NodeKind.ARRAY
+  value: BSONNode[]
 }
 
-export function nObject(value: Record<string, unknown>): ObjectNode {
-  return { kind: BSONType.object, value }
+export interface ObjectNode {
+  kind: typeof NodeKind.OBJECT
+  keys: string[]
+  value: Record<string, BSONNode | undefined>
 }
 
 /**
@@ -139,7 +169,9 @@ export type BSONNode =
   | BinaryNode
   | BooleanNode
   | DateNode
+  | DecimalNode
   | DoubleNode
+  | IntNode
   | LongNode
   | NullishNode
   | ObjectIdNode
@@ -154,10 +186,10 @@ export type BSONNode =
  */
 export interface ExpressionNode {
   kind: typeof NodeKind.EXPRESSION
-  expression: unknown
+  expression: Node
 }
 
-export function nExpression(expression: unknown): ExpressionNode {
+export function nExpression(expression: Node = nNullish()): ExpressionNode {
   return { kind: NodeKind.EXPRESSION, expression }
 }
 
@@ -188,12 +220,20 @@ export interface PathNode {
   value: Node
 }
 
+export interface MatchPathNode {
+  kind: typeof NodeKind.MATCH_PATH
+  path: Path
+  operator: string
+  right: BSONNode
+}
+
 /**
  * All types of node.
  */
 export type Node =
   | BSONNode
   | ExpressionNode
+  | MatchPathNode
   | NodeArrayNode
   | OperatorNode
   | PathNode

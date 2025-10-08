@@ -439,11 +439,11 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [x] [`$convert`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/)
 - [x] [`$isNumber`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isNumber/)
 - [x] [`$toBool`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/)
-- [ ] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
+- [x] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
 - [ ] [`$toDecimal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDecimal/)
 - [x] [`$toDouble`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/)
 - [ ] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
-- [ ] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
+- [x] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
 - [x] [`$toObjectId`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/)
 - [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
 - [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/) Adds `"unknown"` type.
