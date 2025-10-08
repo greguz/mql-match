@@ -28,6 +28,7 @@ import {
   $ne,
 } from './expression/comparison.js'
 import { $cond, $ifNull, $switch } from './expression/conditional.js'
+import { $regexMatch } from './expression/string.js'
 import {
   $convert,
   $isNumber,
@@ -105,6 +106,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $not,
   $or,
   $pow,
+  $regexMatch,
   $round,
   $size,
   $sqrt,
@@ -164,14 +166,14 @@ export function resolveExpression(node: Node, root: BSONNode): BSONNode {
 
     // Resolve expression objects
     case NodeKind.PROJECT: {
-      if (node.exclusion) {
-        throw new Error('TODO: exclusion')
-      }
-
       const obj: ObjectNode = {
         kind: NodeKind.OBJECT,
         keys: [],
         value: {},
+      }
+
+      if (node.exclusion) {
+        throw new Error('TODO: exclusion')
       }
       for (const n of node.nodes) {
         setPathValue(n.path, obj, resolveExpression(n.value, root))

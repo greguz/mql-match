@@ -111,7 +111,7 @@ export function parseBSONType(node: BSONNode): BSONNode['kind'] {
 }
 
 /**
- * https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/#std-label-bson-types-comparison-order
+ * https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/
  */
 export function getBSONTypeWeight(value: BSONNode['kind']): number {
   switch (value) {
@@ -287,54 +287,81 @@ export function normalizeArguments(arg: BSONNode): BSONNode[] {
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.ARRAY,
+  message?: string,
 ): ArrayNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.BINARY,
+  message?: string,
 ): BinaryNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.BOOLEAN,
+  message?: string,
 ): BooleanNode
-export function assertBSON(node: BSONNode, kind: typeof NodeKind.DATE): DateNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.DATE,
+  message?: string,
+): DateNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.DECIMAL,
+  message?: string,
 ): DecimalNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.DOUBLE,
+  message?: string,
 ): DoubleNode
-export function assertBSON(node: BSONNode, kind: typeof NodeKind.INT): IntNode
-export function assertBSON(node: BSONNode, kind: typeof NodeKind.LONG): LongNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.INT,
+  message?: string,
+): IntNode
+export function assertBSON(
+  node: BSONNode,
+  kind: typeof NodeKind.LONG,
+  message?: string,
+): LongNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.NULLISH,
+  message?: string,
 ): NullishNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.OBJECT_ID,
+  message?: string,
 ): ObjectIdNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.OBJECT,
+  message?: string,
 ): ObjectNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.REGEX,
+  message?: string,
 ): RegExpNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.STRING,
+  message?: string,
 ): StringNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.TIMESTAMP,
+  message?: string,
 ): TimestampNode
-export function assertBSON(node: BSONNode, kind: BSONNode['kind']): BSONNode {
+export function assertBSON(
+  node: BSONNode,
+  kind: BSONNode['kind'],
+  message?: string,
+): BSONNode {
   if (node.kind !== kind) {
     throw new TypeError(
-      `Unexpected BSON type: ${node.kind} (expecting ${kind})`,
+      message || `Unexpected BSON type: ${node.kind} (expecting ${kind})`,
     )
   }
   return node

@@ -226,7 +226,7 @@ export interface MatchPathNode {
   kind: typeof NodeKind.MATCH_PATH
   path: Path
   operator: string
-  right: BSONNode
+  right: OperatorNode
 }
 
 /**

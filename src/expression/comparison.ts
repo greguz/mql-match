@@ -22,7 +22,7 @@ export function $cmp(left: BSONNode, right: BSONNode): DoubleNode {
   const lw = getBSONTypeWeight(left.kind)
   const rw = getBSONTypeWeight(right.kind)
   if (lw !== rw) {
-    return nDouble(left < right ? -1 : 1)
+    return nDouble(lw < rw ? -1 : 1)
   }
 
   switch (left.kind) {
@@ -173,20 +173,20 @@ export function $lt(left: BSONNode, right: BSONNode): BooleanNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/gte/
  */
-export function $gte(left: BSONNode, right: BSONNode): BSONNode {
+export function $gte(left: BSONNode, right: BSONNode): BooleanNode {
   return nBoolean($cmp(left, right).value >= 0)
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/lte/
  */
-export function $lte(left: BSONNode, right: BSONNode): BSONNode {
+export function $lte(left: BSONNode, right: BSONNode): BooleanNode {
   return nBoolean($cmp(left, right).value <= 0)
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ne/
  */
-export function $ne(left: BSONNode, right: BSONNode): BSONNode {
+export function $ne(left: BSONNode, right: BSONNode): BooleanNode {
   return nBoolean($cmp(left, right).value !== 0)
 }

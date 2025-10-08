@@ -18,7 +18,7 @@ export interface Operator {
   maxArgs?: number
   /**
    * Maps from X input arguments to Y input arguments.
-   * Changes the `minArgs` default value.
+   * When present, It disables any expression expansion (you need to use `EXPRESSION` node).
    */
   parseArguments?: (...args: BSONNode[]) => Node[]
   /**

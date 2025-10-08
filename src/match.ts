@@ -1,4 +1,3 @@
-import { $size } from './expression/array.js'
 import { $and } from './expression/boolean.js'
 import { $eq } from './expression/comparison.js'
 import { $toBool } from './expression/type.js'
@@ -11,17 +10,32 @@ import {
   nBoolean,
   nOperator,
 } from './lib/node.js'
-import type { Operator } from './lib/operator.js'
+import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
+import { $size } from './match/array.js'
+import { $regex } from './match/miscellaneous.js'
 
 /**
- * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/#std-label-query-projection-operators-top
+ * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/
  */
 const OPERATORS: Record<string, Operator | undefined> = {
   $and,
-  $eq,
+  $eq: fromExpression($eq),
+  $regex,
   $size,
+}
+
+function fromExpression(fn: Operator): Operator {
+  const copy: Operator = fn.bind(null)
+
+  const minArgs = fn.minArgs ?? fn.length
+  const maxArgs = fn.maxArgs ?? minArgs
+
+  copy.minArgs = minArgs - 1
+  copy.maxArgs = maxArgs - 1
+
+  return copy
 }
 
 export function compileMatch(query: unknown = {}, options?: unknown) {
@@ -50,11 +64,28 @@ function compilePredicateKey(key: string, value: unknown): Node {
 
   if (isPlainObject(value)) {
     const keys = Object.keys(value)
+
     if (keys.some(k => k[0] === '$')) {
-      return nOperator(
-        '$and',
-        keys.map(k => compileOperator(path, k, value[k])),
-      )
+      // Special validation here
+      if (value.$options && !value.$regex) {
+        throw new TypeError('$options needs a $regex')
+      }
+
+      const args: Node[] = []
+
+      for (const k of keys) {
+        if (k !== '$options') {
+          args.push(
+            compileOperator(
+              path,
+              k,
+              k === '$regex' ? value : value[k], // Funny :)
+            ),
+          )
+        }
+
+        return args.length === 1 ? args[0] : nOperator('$and', args)
+      }
     }
   }
 
@@ -71,7 +102,7 @@ function compileOperator(path: Path, key: string, value: unknown): Node {
     kind: NodeKind.MATCH_PATH,
     path,
     operator: key,
-    right: wrapBSON(value),
+    right: nOperator(key, parseOperatorArguments(fn, [wrapBSON(value)])),
   }
 }
 
@@ -103,7 +134,7 @@ export function resolveMatch(node: Node, root: BSONNode): BSONNode {
       const fn = expected(OPERATORS[node.operator])
 
       for (const left of getPathValues(node.path, root)) {
-        const result = $toBool(fn(left, node.right))
+        const result = $toBool(fn(left, ...(node.right.args as BSONNode[]))) // Little hack here :)
         if (result.value) {
           return result
         }

@@ -391,7 +391,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$ltrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ltrim/)
 - [ ] [`$regexFind`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFind/)
 - [ ] [`$regexFindAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFindAll/)
-- [ ] [`$regexMatch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/)
+- [x] [`$regexMatch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/)
 - [ ] [`$replaceOne`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceOne/)
 - [ ] [`$replaceAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceAll/)
 - [ ] [`$rtrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rtrim/)
@@ -403,7 +403,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$substrBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrBytes/)
 - [ ] [`$substrCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrCP/)
 - [ ] [`$toLower`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/)
-- [ ] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
+- [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
 - [ ] [`$trim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trim/)
 - [ ] [`$toUpper`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toUpper/)
 

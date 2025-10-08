@@ -284,4 +284,28 @@ test('$expr', t => {
       },
     ),
   )
+
+  const documents = [
+    { _id: 1, category: 'food', budget: 400, spent: 450 },
+    { _id: 2, category: 'drinks', budget: 100, spent: 150 },
+    { _id: 3, category: 'clothes', budget: 100, spent: 50 },
+    { _id: 4, category: 'misc', budget: 500, spent: 300 },
+    { _id: 5, category: 'travel', budget: 200, spent: 650 },
+  ]
+
+  const predicate = compileMatch({ $expr: { $gt: ['$spent', '$budget'] } })
+
+  t.deepEqual(documents.filter(predicate), [
+    { _id: 1, category: 'food', budget: 400, spent: 450 },
+    { _id: 2, category: 'drinks', budget: 100, spent: 150 },
+    { _id: 5, category: 'travel', budget: 200, spent: 650 },
+  ])
+})
+
+test('$regex', t => {
+  t.true(match({ label: { $regex: /world/ } }, { label: 'hello world' }))
+  t.false(match({ label: { $regex: /world/ } }, { label: 'za warudo' }))
+  t.true(match({ label: { $regex: /dio/, $options: 'i' } }, { label: 'DIO' }))
+  t.false(match({ label: { $regex: /dio/ } }, { label: 'DIO' }))
+  t.throws(() => match({ label: { $options: 'i' } }))
 })
