@@ -1,10 +1,11 @@
 import { Decimal } from 'decimal.js'
 
-import { unwrapDecimal, unwrapNumber } from '../lib/bson.js'
+import { unwrapDecimal, unwrapNumber, wrapBSON } from '../lib/bson.js'
 import {
   type BSONNode,
   type DoubleNode,
   NodeKind,
+  nDate,
   nDouble,
   nExpression,
   nInt,
@@ -58,14 +59,40 @@ withArguments($add, 0, Number.POSITIVE_INFINITY)
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ceil/
  */
 export function $ceil(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
+  if (arg.kind === NodeKind.NULLISH) {
+    return arg
+  }
+
+  const n = unwrapDecimal(
+    arg,
+    `$ceil only supports numeric types (got ${arg.kind})`,
+  )
+
+  return nDouble(n.toDecimalPlaces(0, Decimal.ROUND_CEIL).toNumber())
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/divide/
  */
-export function $divide(dividend: BSONNode, divisor: BSONNode): BSONNode {
-  throw new Error('TODO')
+export function $divide(
+  dividendNode: BSONNode,
+  divisorNode: BSONNode,
+): BSONNode {
+  if (
+    dividendNode.kind === NodeKind.NULLISH ||
+    divisorNode.kind === NodeKind.NULLISH
+  ) {
+    return nNullish()
+  }
+
+  const message = `$divide only supports numeric types (got ${dividendNode.kind} and ${divisorNode.kind})`
+  const dividend = unwrapDecimal(dividendNode, message)
+  const divisor = unwrapDecimal(divisorNode, message)
+  if (divisor.isZero()) {
+    throw new TypeError("can't $divide by zero")
+  }
+
+  return nDouble(dividend.div(divisor))
 }
 
 /**
@@ -84,14 +111,61 @@ export function $exp(arg: BSONNode): BSONNode {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/floor/
  */
 export function $floor(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
+  const n = unwrapDecimal(
+    arg,
+    `$floor only supports numeric types (got ${arg.kind})`,
+  )
+
+  return nDouble(n.toDecimalPlaces(0, Decimal.ROUND_FLOOR))
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/
  */
 export function $log(numberNode: BSONNode, baseNode: BSONNode): BSONNode {
-  throw new Error('TODO')
+  const n = unwrapDecimal(
+    numberNode,
+    `$log's argument must be numeric (got ${numberNode.kind})`,
+  )
+  if (n.lessThan(0)) {
+    throw new TypeError(`$log's argument must be a positive number (got ${n})`)
+  }
+
+  const base = unwrapDecimal(
+    baseNode,
+    `$log's base must be numeric (got ${baseNode.kind})`,
+  )
+  if (!base.greaterThan(1)) {
+    throw new TypeError(
+      `$log's base must be a positive number not equal to 1 (got ${base})`,
+    )
+  }
+
+  // TODO: more precision?
+  switch (base.toNumber()) {
+    case 2:
+      return nDouble(Decimal.log2(n))
+    case 10:
+      return nDouble(Decimal.log10(n))
+    case Math.E:
+      return nDouble(Decimal.ln(n))
+    default:
+      return nDouble(Decimal.log(n, base))
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/log10/
+ */
+export function $log10(arg: BSONNode): BSONNode {
+  return $log(arg, wrapBSON(10))
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ln/
+ */
+export function $ln(arg: BSONNode): BSONNode {
+  return $log(arg, wrapBSON(Math.E))
 }
 
 /**
@@ -134,7 +208,19 @@ withArguments($multiply, 0, Number.POSITIVE_INFINITY)
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/pow/
  */
 export function $pow(numberNode: BSONNode, exponentNode: BSONNode): BSONNode {
-  throw new Error('TODO')
+  const n = unwrapDecimal(
+    numberNode,
+    `$pow's base must be numeric (got ${numberNode.kind})`,
+  )
+  const e = unwrapDecimal(
+    exponentNode,
+    `$pow's exponent must be numeric (${exponentNode.kind})`,
+  )
+  if (n.isZero() && e.isNegative()) {
+    throw new TypeError('$pow cannot take a base of 0 and a negative exponent')
+  }
+
+  return nDouble(n.pow(e))
 }
 
 /**
@@ -150,7 +236,7 @@ export function $round(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
     `$round only supports numeric types (got ${numberNode.kind})`,
   )
 
-  const place = unwrapPlace(placeNode)
+  const place = unwrapPlace(placeNode, '$round')
 
   if (place.lessThan(0)) {
     return nDouble(
@@ -163,35 +249,37 @@ export function $round(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
   )
 }
 
-/**
- * An integer between -20 and 100, exclusive.
- * Defaults to zero.
- */
-function unwrapPlace(node: BSONNode): Decimal {
-  if (node.kind === NodeKind.NULLISH) {
-    return Decimal(0)
-  }
-  const place = unwrapDecimal(
-    node,
-    `$round precision must be a numeric value (got ${node.kind})`,
-  )
-  if (!place.isInteger()) {
-    throw new TypeError('precision argument to $round must be a integral value')
-  }
-  if (place.lessThan(-20) || place.greaterThan(100)) {
-    throw new TypeError(
-      'cannot apply $round with precision value -500 value must be in [-20, 100]',
-    )
-  }
-  return place
-}
-
 withArguments($round, 1, 2)
 
 withParsing($round, (numberNode, placeNode) => [
   nExpression(numberNode),
   nExpression(placeNode),
 ])
+
+/**
+ * An integer between -20 and 100, exclusive.
+ * Defaults to zero.
+ */
+function unwrapPlace(node: BSONNode, operator: string): Decimal {
+  if (node.kind === NodeKind.NULLISH) {
+    return Decimal(0)
+  }
+  const place = unwrapDecimal(
+    node,
+    `${operator} precision must be a numeric value (got ${node.kind})`,
+  )
+  if (!place.isInteger()) {
+    throw new TypeError(
+      `precision argument to ${operator} must be a integral value`,
+    )
+  }
+  if (place.lessThan(-20) || place.greaterThan(100)) {
+    throw new TypeError(
+      `cannot apply ${operator} with precision value -500 value must be in [-20, 100]`,
+    )
+  }
+  return place
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/
@@ -211,26 +299,52 @@ export function $sqrt(arg: BSONNode): BSONNode {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/subtract/
  */
 export function $subtract(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $subtract operator')
+  if (left.kind === NodeKind.NULLISH || right.kind === NodeKind.NULLISH) {
+    return nNullish()
+  }
+
+  const message = `can't $subtract ${right.kind} from ${left.kind}`
+  const l = unwrapDecimal(left, message)
+  const r = unwrapDecimal(right, message)
+  if (right.kind === NodeKind.DATE && left.kind !== NodeKind.DATE) {
+    throw new TypeError(message)
+  }
+
+  const result = l.minus(r)
+
+  // TODO: round "right" when "left" is date
+  return left.kind === NodeKind.DATE
+    ? nDate(new Date(result.toNumber()))
+    : nDouble(result)
 }
 
 /**
- *
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/trunc/
  */
-export function $trunc(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
+export function $trunc(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
+  if (numberNode.kind === NodeKind.NULLISH) {
+    return nNullish()
+  }
+
+  const n = unwrapDecimal(
+    numberNode,
+    `$trunc only supports numeric types (got ${numberNode.kind})`,
+  )
+
+  const p = unwrapPlace(placeNode, '$trunc')
+
+  if (p.isNegative()) {
+    return nDouble(
+      n.toSignificantDigits(p.abs().toNumber(), Decimal.ROUND_DOWN),
+    )
+  }
+
+  return nDouble(n.toDecimalPlaces(p.toNumber(), Decimal.ROUND_DOWN))
 }
 
-/**
- *
- */
-export function $log10(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
-}
+withArguments($trunc, 1, 2)
 
-/**
- *
- */
-export function $ln(arg: BSONNode): BSONNode {
-  throw new Error('TODO')
-}
+withParsing($trunc, (numberNode, placeNode) => [
+  nExpression(numberNode),
+  nExpression(placeNode),
+])
