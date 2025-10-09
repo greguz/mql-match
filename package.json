@@ -56,6 +56,9 @@
       "**/*.spec.ts"
     ],
     "typescript": {
+      "extensions": [
+        "ts"
+      ],
       "rewritePaths": {
         "src/": "build/"
       },

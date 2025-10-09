@@ -361,7 +361,7 @@ export function assertBSON(
 ): BSONNode {
   if (node.kind !== kind) {
     throw new TypeError(
-      message || `Unexpected BSON type: ${node.kind} (expecting ${kind})`,
+      message || `Unexpected BSON type ${node.kind} (expecting ${kind})`,
     )
   }
   return node

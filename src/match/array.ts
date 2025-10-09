@@ -8,6 +8,9 @@ import {
 } from '../lib/node.js'
 import { withParsing } from '../lib/operator.js'
 
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/size/
+ */
 export function $size(left: BSONNode, right: BSONNode): BooleanNode {
   const size = assertBSON(right, NodeKind.DOUBLE).value
   return nBoolean(

@@ -8,6 +8,7 @@ import {
   type Node,
   NodeKind,
   nBoolean,
+  nNullish,
   nOperator,
 } from './lib/node.js'
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
@@ -15,6 +16,7 @@ import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
 import { $size } from './match/array.js'
 import { $regex } from './match/miscellaneous.js'
+import { $exists, $type } from './match/type.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/
@@ -22,8 +24,10 @@ import { $regex } from './match/miscellaneous.js'
 const OPERATORS: Record<string, Operator | undefined> = {
   $and,
   $eq: fromExpression($eq),
+  $exists,
   $regex,
   $size,
+  $type,
 }
 
 function fromExpression(fn: Operator): Operator {
@@ -49,7 +53,15 @@ export function compilePredicate(predicate: Record<string, unknown>): Node {
   const nodes = Object.keys(predicate).map(key =>
     compilePredicateKey(key, predicate[key]),
   )
-  return nodes.length === 1 ? nodes[0] : nOperator('$and', nodes)
+
+  switch (nodes.length) {
+    case 0:
+      return nBoolean(true)
+    case 1:
+      return nodes[0]
+    default:
+      return nOperator('$and', nodes)
+  }
 }
 
 function compilePredicateKey(key: string, value: unknown): Node {
@@ -133,8 +145,13 @@ export function resolveMatch(node: Node, root: BSONNode): BSONNode {
     case NodeKind.MATCH_PATH: {
       const fn = expected(OPERATORS[node.operator])
 
-      for (const left of getPathValues(node.path, root)) {
-        const result = $toBool(fn(left, ...(node.right.args as BSONNode[]))) // Little hack here :)
+      const values = getPathValues(node.path, root)
+      if (!values.length) {
+        values.push(nNullish())
+      }
+
+      for (const left of values) {
+        const result = $toBool(fn(left, ...(node.right.args as BSONNode[]))) // TODO: Little hack here :)
         if (result.value) {
           return result
         }
@@ -148,25 +165,23 @@ export function resolveMatch(node: Node, root: BSONNode): BSONNode {
   }
 }
 
-export function* getPathValues(
+export function getPathValues(
   path: Path,
   node: BSONNode,
-): Generator<BSONNode> {
+  results: BSONNode[] = [],
+): BSONNode[] {
   if (!path.length) {
-    yield node
-    return
-  }
-
-  if (node.kind === NodeKind.ARRAY) {
+    results.push(node)
+  } else if (node.kind === NodeKind.ARRAY) {
     for (let i = 0; i < node.value.length; i++) {
-      yield* getPathValues(path, node.value[i])
+      getPathValues(path, node.value[i], results)
     }
-  }
-
-  if (node.kind === NodeKind.OBJECT) {
+  } else if (node.kind === NodeKind.OBJECT) {
     const child = node.value[path[0]]
     if (child) {
-      yield* getPathValues(path.slice(1), child)
+      getPathValues(path.slice(1), child, results)
     }
   }
+
+  return results
 }
