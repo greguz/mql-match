@@ -51,10 +51,11 @@ export const NodeKind = Object.freeze({
   /**
    * An array containing other nodes.
    */
-  NODE_ARRAY: 'NODE_ARRAY',
+  EXPRESSION_ARRAY: 'EXPRESSION_ARRAY',
   PROJECT: 'PROJECT',
   PATH: 'PATH',
   MATCH_PATH: 'MATCH_PATH',
+  MATCH: 'MATCH',
 })
 
 export interface BooleanNode {
@@ -209,8 +210,8 @@ export function nOperator(operator: string, args: Node[]): OperatorNode {
   return { kind: NodeKind.OPERATOR, operator, args }
 }
 
-export interface NodeArrayNode {
-  kind: typeof NodeKind.NODE_ARRAY
+export interface ExpressionArrayNode {
+  kind: typeof NodeKind.EXPRESSION_ARRAY
   nodes: Node[]
 }
 
@@ -229,8 +230,23 @@ export interface PathNode {
 export interface MatchPathNode {
   kind: typeof NodeKind.MATCH_PATH
   path: Path
+  /**
+   * Operators name.
+   */
   operator: string
-  right: OperatorNode
+  args: Node[]
+  /**
+   * Negates the operator result (always a boolean for match operators).
+   *
+   * If "false" (NOT negated)
+   * returns true if **ANY** element inside an array matches with the spec function.
+   * (first true returns true)
+   *
+   * If "true" (negated)
+   * returns true if **ALL** elements inside an array matches with the spec function.
+   * (first false returns false)
+   */
+  negate: boolean
 }
 
 /**
@@ -238,9 +254,9 @@ export interface MatchPathNode {
  */
 export type Node =
   | BSONNode
+  | ExpressionArrayNode
   | ExpressionNode
   | MatchPathNode
-  | NodeArrayNode
   | OperatorNode
   | PathNode
   | ProjectNode

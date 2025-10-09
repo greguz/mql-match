@@ -154,7 +154,7 @@ export function resolveExpression(node: Node, root: BSONNode): BSONNode {
     }
 
     // Resolve array items
-    case NodeKind.NODE_ARRAY:
+    case NodeKind.EXPRESSION_ARRAY:
       return {
         kind: NodeKind.ARRAY,
         value: node.nodes.map(n => resolveExpression(n, root)),
@@ -202,7 +202,7 @@ function expandNode(node: Node): Node {
   switch (node.kind) {
     case NodeKind.ARRAY:
       return {
-        kind: NodeKind.NODE_ARRAY,
+        kind: NodeKind.EXPRESSION_ARRAY,
         nodes: node.value.map(expandNode),
       }
     case NodeKind.OBJECT:

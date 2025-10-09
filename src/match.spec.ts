@@ -28,6 +28,7 @@ test('$elemMatch', t => {
     ),
     [{ _id: 1, results: [82, 85, 88] }],
   )
+
   const items = [
     {
       _id: 1,
@@ -138,59 +139,6 @@ test('$elemMatch', t => {
   )
 })
 
-test('$eq old', t => {
-  const items = [
-    {
-      _id: 1,
-      item: { name: 'ab', code: '123' },
-      qty: 15,
-      tags: ['A', 'B', 'C'],
-    },
-    { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
-    { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
-    { _id: 4, item: { name: 'xy', code: '456' }, qty: 30, tags: ['B', 'A'] },
-    {
-      _id: 5,
-      item: { name: 'mn', code: '000' },
-      qty: 20,
-      tags: [['A', 'B'], 'C'],
-    },
-  ]
-  t.deepEqual(matchMany(items, { 'item.name': { $eq: 'ab' } }), [
-    {
-      _id: 1,
-      item: { name: 'ab', code: '123' },
-      qty: 15,
-      tags: ['A', 'B', 'C'],
-    },
-  ])
-  t.deepEqual(matchMany(items, { qty: { $eq: 20 } }), [
-    { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
-    {
-      _id: 5,
-      item: { name: 'mn', code: '000' },
-      qty: 20,
-      tags: [['A', 'B'], 'C'],
-    },
-  ])
-  t.deepEqual(
-    matchMany(items, {
-      tags: {
-        $eq: ['A', 'B'],
-      },
-    }),
-    [
-      { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
-      {
-        _id: 5,
-        item: { name: 'mn', code: '000' },
-        qty: 20,
-        tags: [['A', 'B'], 'C'],
-      },
-    ],
-  )
-})
-
 test('$size', t => {
   t.throws(() => matchMany([], { field: { $size: -1 } }))
   const items = [
@@ -256,6 +204,57 @@ test('$eq', t => {
         },
       },
     ),
+  )
+
+  const items = [
+    {
+      _id: 1,
+      item: { name: 'ab', code: '123' },
+      qty: 15,
+      tags: ['A', 'B', 'C'],
+    },
+    { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
+    { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
+    { _id: 4, item: { name: 'xy', code: '456' }, qty: 30, tags: ['B', 'A'] },
+    {
+      _id: 5,
+      item: { name: 'mn', code: '000' },
+      qty: 20,
+      tags: [['A', 'B'], 'C'],
+    },
+  ]
+  t.deepEqual(matchMany(items, { 'item.name': { $eq: 'ab' } }), [
+    {
+      _id: 1,
+      item: { name: 'ab', code: '123' },
+      qty: 15,
+      tags: ['A', 'B', 'C'],
+    },
+  ])
+  t.deepEqual(matchMany(items, { qty: { $eq: 20 } }), [
+    { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
+    {
+      _id: 5,
+      item: { name: 'mn', code: '000' },
+      qty: 20,
+      tags: [['A', 'B'], 'C'],
+    },
+  ])
+  t.deepEqual(
+    matchMany(items, {
+      tags: {
+        $eq: ['A', 'B'],
+      },
+    }),
+    [
+      { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
+      {
+        _id: 5,
+        item: { name: 'mn', code: '000' },
+        qty: 20,
+        tags: [['A', 'B'], 'C'],
+      },
+    ],
   )
 })
 

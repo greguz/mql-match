@@ -1,4 +1,4 @@
-import { assertBSON } from '../lib/bson.js'
+import { assertBSON, unwrapDecimal } from '../lib/bson.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -19,33 +19,17 @@ export function $size(left: BSONNode, right: BSONNode): BooleanNode {
 }
 
 withParsing($size, arg => {
-  let size: number
-  switch (arg.kind) {
-    case NodeKind.DOUBLE:
-      size = arg.value
-      break
-    case NodeKind.INT:
-      size = arg.value.value
-      break
-    case NodeKind.LONG:
-      size = arg.value.toNumber()
-      break
-    default:
-      throw new TypeError(
-        `Failed to parse $size: expected a number (got ${arg.kind})`,
-      )
+  const n = unwrapDecimal(
+    arg,
+    `Failed to parse $size: expected a number (got ${arg.kind})`,
+  )
+  if (!n.isInteger()) {
+    throw new TypeError(`Failed to parse $size: expected an integer (got ${n})`)
   }
-
-  if (!Number.isInteger(size)) {
+  if (n.isNegative()) {
     throw new TypeError(
-      `Failed to parse $size: expected an integer (got ${size})`,
+      `Failed to parse $size: expected a non-negative number (got ${n})`,
     )
   }
-  if (size < 0) {
-    throw new TypeError(
-      `Failed to parse $size: expected a non-negative number (got ${size})`,
-    )
-  }
-
-  return [nDouble(size)]
+  return [nDouble(n)]
 })
