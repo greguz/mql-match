@@ -321,3 +321,8 @@ test('$exists', t => {
   t.true(matchOne({ value: { $exists: true } }, { value: 'hello world' }))
   t.true(matchOne({ value: { $exists: false } }, { hello: 'world' }))
 })
+
+test('$mod', t => {
+  t.true(matchOne({ value: { $mod: [2, 0] } }, { value: 42 }))
+  t.false(matchOne({ value: { $mod: [2, 0] } }, {}))
+})

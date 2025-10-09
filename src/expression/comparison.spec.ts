@@ -6,10 +6,10 @@ import type { BSONNode } from '../lib/node.js'
 import { $cmp, $eq, $gt, $gte, $lt, $lte } from './comparison.js'
 
 function bind<T extends BSONNode>(
-  fn: (left: BSONNode, right: BSONNode) => T,
-  right: unknown,
+  fn: (left: BSONNode, ...right: BSONNode[]) => T,
+  ...right: unknown[]
 ): (left: unknown) => T['value'] {
-  return (left: unknown) => fn(wrapBSON(left), wrapBSON(right)).value
+  return (left: unknown) => fn(wrapBSON(left), ...right.map(wrapBSON)).value
 }
 
 test('$cmp', t => {

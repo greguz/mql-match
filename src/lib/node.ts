@@ -5,6 +5,7 @@ import {
   type ObjectId,
   type Timestamp,
 } from 'bson'
+import type { Decimal } from 'decimal.js'
 
 import type { Path } from './path.js'
 
@@ -93,8 +94,11 @@ export interface DoubleNode {
   value: number
 }
 
-export function nDouble(value: number): DoubleNode {
-  return { kind: NodeKind.DOUBLE, value }
+export function nDouble(value: number | Decimal): DoubleNode {
+  return {
+    kind: NodeKind.DOUBLE,
+    value: typeof value === 'number' ? value : value.toNumber(),
+  }
 }
 
 export interface LongNode {

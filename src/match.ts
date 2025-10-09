@@ -15,7 +15,7 @@ import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
 import { $size } from './match/array.js'
-import { $regex } from './match/miscellaneous.js'
+import { $mod, $regex } from './match/miscellaneous.js'
 import { $exists, $type } from './match/type.js'
 
 /**
@@ -25,6 +25,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $and,
   $eq: fromExpression($eq),
   $exists,
+  $mod,
   $regex,
   $size,
   $type,

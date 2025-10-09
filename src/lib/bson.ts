@@ -9,6 +9,7 @@ import {
   type ObjectId,
   type Timestamp,
 } from 'bson'
+import { Decimal } from 'decimal.js'
 
 import {
   type ArrayNode,
@@ -365,4 +366,64 @@ export function assertBSON(
     )
   }
   return node
+}
+
+export function isBSONNumber(
+  node: BSONNode,
+): node is DateNode | DoubleNode | IntNode | LongNode {
+  return (
+    node.kind === NodeKind.DATE ||
+    node.kind === NodeKind.DOUBLE ||
+    node.kind === NodeKind.INT ||
+    node.kind === NodeKind.LONG
+  )
+}
+
+export function unwrapNumber(node: BSONNode, message?: string): number {
+  switch (node.kind) {
+    case NodeKind.DATE:
+      return node.value.getTime()
+    case NodeKind.DOUBLE:
+      return node.value
+    case NodeKind.INT:
+      return node.value.value
+    case NodeKind.LONG:
+      return node.value.toNumber()
+    case NodeKind.DECIMAL:
+      throw new TypeError(
+        'JavaScript cannot operate math operations against MongoDB Decimal types',
+      )
+    default:
+      throw new TypeError(
+        message || `Expected numeric value (got ${node.kind})`,
+      )
+  }
+}
+
+/**
+ * This is NOT the MongoDB's decimal type! (sorry)
+ */
+export function unwrapDecimal(node: BSONNode, message?: string): Decimal {
+  return Decimal(unwrapNumber(node, message))
+}
+
+export function assertNumber(
+  node: BSONNode,
+  message?: string,
+): DateNode | DoubleNode | IntNode | LongNode {
+  switch (node.kind) {
+    case NodeKind.DATE:
+    case NodeKind.DOUBLE:
+    case NodeKind.INT:
+    case NodeKind.LONG:
+      return node
+    case NodeKind.DECIMAL:
+      throw new TypeError(
+        'JavaScript cannot operate math operations against MongoDB Decimal types',
+      )
+    default:
+      throw new TypeError(
+        message || `Expected numeric value (got ${node.kind})`,
+      )
+  }
 }
