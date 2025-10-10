@@ -12,7 +12,7 @@ import {
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
-import { $size } from './match/array.js'
+import { $all, $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
 import { $mod, $regex } from './match/miscellaneous.js'
 import { $exists, $type } from './match/type.js'
@@ -21,6 +21,7 @@ import { $exists, $type } from './match/type.js'
  * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/
  */
 const OPERATORS: Record<string, Operator | undefined> = {
+  $all,
   $and,
   $eq,
   $exists,
@@ -36,7 +37,9 @@ const OPERATORS: Record<string, Operator | undefined> = {
 }
 
 export function compileMatch(query: unknown = {}) {
-  const nodes = parseMatch(isPlainObject(query) ? query : { $eq: query })
+  const nodes = Array.from(
+    parseMatch(isPlainObject(query) ? query : { $eq: query }, true),
+  )
   return (value?: unknown): boolean => {
     return resolveMatch(nodes, wrapBSON(value)).value
   }
@@ -45,43 +48,52 @@ export function compileMatch(query: unknown = {}) {
 /**
  * Parse a top-level query.
  */
-export function parseMatch(query: Record<string, unknown>): MatchPathNode[] {
-  const nodes: MatchPathNode[] = []
-
+export function* parseMatch(
+  query: Record<string, unknown>,
+  top: boolean,
+): Generator<MatchPathNode> {
   const keys = Object.keys(query)
   if (
     keys.some(
       k =>
         k[0] === '$' &&
         k !== '$and' &&
-        k !== '$expr' &&
+        k !== '$expr' && // TODO: top?
         k !== '$nor' &&
         k !== '$or',
     )
   ) {
-    nodes.push(...compilePathPredicate(keys, query, []))
+    yield* compilePathPredicate(keys, query, [])
   } else {
     for (const key of keys) {
-      nodes.push(...compilePredicateKey(key, query[key]))
+      yield* compilePredicateKey(key, query[key], top)
     }
   }
-
-  return nodes
 }
 
 function* compilePredicateKey(
   key: string,
   value: unknown,
+  top: boolean,
 ): Generator<MatchPathNode> {
   // TODO: $and, $or, $nor (top-level or directly inside $elemMatch)
-  if (key === '$expr') {
-    // TODO: $expr is only top-level
+  if (key === '$expr' && top) {
     yield {
       kind: NodeKind.MATCH_PATH,
       path: [],
       operator: key,
       args: [parseExpression({ $toBool: value })],
       negate: false,
+    }
+    return
+  }
+
+  if (key === '$and') {
+    if (!Array.isArray(value)) {
+      throw new TypeError('$and must be an array')
+    }
+    for (const v of value) {
+      yield* parseMatch(v, top)
     }
     return
   }
@@ -130,7 +142,7 @@ function* compileOperator(
       kind: NodeKind.MATCH_PATH,
       path,
       operator: key,
-      args: parseMatch(value),
+      args: Array.from(parseMatch(value, false)),
       negate: false,
     }
     return

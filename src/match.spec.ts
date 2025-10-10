@@ -256,6 +256,8 @@ test('$eq', t => {
       },
     ],
   )
+
+  t.true(matchOne({ tags: { $eq: /w/ } }, { tags: ['hello', 'world'] }))
 })
 
 test('$expr', t => {
@@ -324,4 +326,20 @@ test('$exists', t => {
 test('$mod', t => {
   t.true(matchOne({ value: { $mod: [2, 0] } }, { value: 42 }))
   t.false(matchOne({ value: { $mod: [2, 0] } }, {}))
+})
+
+test('$all', t => {
+  const simple = { _id: 1, tags: ['ssl', 'pdor', 'security'] }
+  t.true(matchOne({ tags: { $all: ['ssl', 'security'] } }, simple))
+  t.true(matchOne({ $and: [{ tags: 'ssl' }, { tags: 'security' }] }, simple))
+
+  const nested = { tags: [['ssl', 'security'], 'pdor'] }
+  t.true(matchOne({ tags: { $all: [['ssl', 'security']] } }, nested))
+  t.true(matchOne({ $and: [{ tags: ['ssl', 'security'] }] }, nested))
+  t.true(matchOne({ tags: ['ssl', 'security'] }, nested))
+
+  const literal = { tags: ['ssl', 'security'] }
+  t.true(matchOne({ tags: { $all: [['ssl', 'security']] } }, literal))
+  t.true(matchOne({ $and: [{ tags: ['ssl', 'security'] }] }, literal))
+  t.true(matchOne({ tags: ['ssl', 'security'] }, literal))
 })

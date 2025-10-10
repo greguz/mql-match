@@ -7,6 +7,7 @@ import {
   nDouble,
 } from '../lib/node.js'
 import { withParsing } from '../lib/operator.js'
+import { $eq } from './comparison.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/size/
@@ -33,3 +34,23 @@ withParsing($size, arg => {
   }
   return [nDouble(n)]
 })
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/all/
+ */
+export function $all(left: BSONNode, right: BSONNode): BooleanNode {
+  const values = assertBSON(right, NodeKind.ARRAY).value
+
+  for (let i = 0; i < values.length; i++) {
+    const result = $eq(left, values[i])
+    if (!result.value) {
+      return result
+    }
+  }
+
+  return nBoolean(values.length > 0)
+}
+
+withParsing($all, arg => [
+  assertBSON(arg, NodeKind.ARRAY, '$all needs an array'),
+])

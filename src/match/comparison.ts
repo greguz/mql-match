@@ -1,12 +1,10 @@
 import * as comparison from '../expression/comparison.js'
-import { $regexMatch } from '../expression/string.js'
 import { assertBSON } from '../lib/bson.js'
 import {
   type BooleanNode,
   type BSONNode,
   NodeKind,
   nBoolean,
-  nNullish,
 } from '../lib/node.js'
 import { type Operator, withArguments, withParsing } from '../lib/operator.js'
 
@@ -14,24 +12,30 @@ import { type Operator, withArguments, withParsing } from '../lib/operator.js'
  * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
  */
 export function $eq(left: BSONNode, right: BSONNode): BooleanNode {
-  if (right.kind === NodeKind.REGEX) {
-    return $regexMatch(left, right, nNullish())
-  }
+  let result = eqValue(left, right)
 
-  let result = comparison.$eq(left, right)
-
-  // Special case when arrays are compared
-  if (
-    !result.value &&
-    left.kind === NodeKind.ARRAY &&
-    right.kind === NodeKind.ARRAY
-  ) {
+  if (!result.value && left.kind === NodeKind.ARRAY) {
     for (let i = 0; i < left.value.length && !result.value; i++) {
-      result = comparison.$eq(left.value[i], right)
+      result = eqValue(left.value[i], right)
     }
   }
 
   return result
+}
+
+function eqValue(left: BSONNode, right: BSONNode): BooleanNode {
+  if (right.kind === NodeKind.REGEX) {
+    switch (left.kind) {
+      case NodeKind.REGEX:
+        return nBoolean(left.value.toString() === right.value.toString())
+      case NodeKind.STRING:
+        return nBoolean(right.value.test(left.value))
+      default:
+        return nBoolean(false)
+    }
+  }
+
+  return comparison.$eq(left, right)
 }
 
 withArguments($eq, 1)

@@ -48,6 +48,8 @@ export function $cmp(left: BSONNode, right: BSONNode): DoubleNode {
       return compareArrays(left, assertBSON(right, NodeKind.ARRAY))
     case NodeKind.OBJECT:
       return compareObjects(left, assertBSON(right, NodeKind.OBJECT))
+    case NodeKind.REGEX:
+      return compareRaw(mapRegExp(left), mapRegExp(right))
     default:
       throw new TypeError(`Unsupported BSON type comparison: ${left.kind}`)
   }
@@ -109,6 +111,10 @@ function mapString(node: BSONNode): string {
 
 function mapTimestamp(node: BSONNode): Timestamp {
   return assertBSON(node, NodeKind.TIMESTAMP).value
+}
+
+function mapRegExp(node: BSONNode): string {
+  return assertBSON(node, NodeKind.REGEX).value.toString()
 }
 
 function compareRaw<T extends number | string>(left: T, right: T) {
