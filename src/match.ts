@@ -4,6 +4,8 @@ import { wrapBSON } from './lib/bson.js'
 import {
   type BooleanNode,
   type BSONNode,
+  type MatchArrayNode,
+  type MatchExpressionNode,
   type MatchPathNode,
   NodeKind,
   nBoolean,
@@ -36,9 +38,15 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $type,
 }
 
+/**
+ * All possible parsed nodes from a match query.
+ */
+export type MatchNode = MatchArrayNode | MatchExpressionNode | MatchPathNode
+
 export function compileMatch(query: unknown = {}) {
   const nodes = Array.from(
-    parseMatch(isPlainObject(query) ? query : { $eq: query }, true),
+    // Not standard, but that's ok :)
+    parseMatch(isPlainObject(query) ? query : { $eq: query }),
   )
   return (value?: unknown): boolean => {
     return resolveMatch(nodes, wrapBSON(value)).value
@@ -50,8 +58,7 @@ export function compileMatch(query: unknown = {}) {
  */
 export function* parseMatch(
   query: Record<string, unknown>,
-  top: boolean,
-): Generator<MatchPathNode> {
+): Generator<MatchNode> {
   const keys = Object.keys(query)
   if (
     keys.some(
@@ -66,7 +73,7 @@ export function* parseMatch(
     yield* compilePathPredicate(keys, query, [])
   } else {
     for (const key of keys) {
-      yield* compilePredicateKey(key, query[key], top)
+      yield* compilePredicateKey(key, query[key])
     }
   }
 }
@@ -74,16 +81,12 @@ export function* parseMatch(
 function* compilePredicateKey(
   key: string,
   value: unknown,
-  top: boolean,
-): Generator<MatchPathNode> {
-  // TODO: $and, $or, $nor (top-level or directly inside $elemMatch)
-  if (key === '$expr' && top) {
+): Generator<MatchNode> {
+  // TODO: $or, $nor (top-level or directly inside $elemMatch)
+  if (key === '$expr') {
     yield {
-      kind: NodeKind.MATCH_PATH,
-      path: [],
-      operator: key,
-      args: [parseExpression({ $toBool: value })],
-      negate: false,
+      kind: NodeKind.MATCH_EXPRESSION,
+      expression: parseExpression({ $toBool: value }),
     }
     return
   }
@@ -93,7 +96,7 @@ function* compilePredicateKey(
       throw new TypeError('$and must be an array')
     }
     for (const v of value) {
-      yield* parseMatch(v, top)
+      yield* parseMatch(v)
     }
     return
   }
@@ -115,7 +118,7 @@ function* compilePathPredicate(
   keys: string[],
   query: Record<string, unknown>,
   path: Path,
-): Generator<MatchPathNode> {
+): Generator<MatchNode> {
   // $regex and $options are special babys...
   if (query.$options && !query.$regex) {
     throw new TypeError('$options needs a $regex')
@@ -133,16 +136,26 @@ function* compileOperator(
   path: Path,
   key: string,
   value: unknown,
-): Generator<MatchPathNode> {
+): Generator<MatchNode> {
   if (key === '$elemMatch') {
     if (!isPlainObject(value)) {
       throw new TypeError('$elemMatch needs an Object')
     }
+
+    const args: Array<MatchArrayNode | MatchPathNode> = []
+    for (const node of parseMatch(value)) {
+      if (node.kind === NodeKind.MATCH_EXPRESSION) {
+        throw new TypeError(
+          '$expr can only be applied to the top-level document',
+        )
+      }
+      args.push(node)
+    }
+
     yield {
-      kind: NodeKind.MATCH_PATH,
+      kind: NodeKind.MATCH_ARRAY,
       path,
-      operator: key,
-      args: Array.from(parseMatch(value, false)),
+      args,
       negate: false,
     }
     return
@@ -153,6 +166,11 @@ function* compileOperator(
       throw new TypeError('$not needs an Object')
     }
     for (const node of compilePathPredicate(Object.keys(value), value, path)) {
+      if (node.kind === NodeKind.MATCH_EXPRESSION) {
+        throw new TypeError(
+          '$expr can only be applied to the top-level document',
+        )
+      }
       node.negate = !node.negate
       yield node
     }
@@ -189,10 +207,18 @@ function* compileOperator(
  * Resolve parsed node into raw value.
  */
 export function resolveMatch(
-  query: MatchPathNode[],
+  query: MatchNode[],
   document: BSONNode,
 ): BooleanNode {
   for (const node of query) {
+    if (node.kind === NodeKind.MATCH_EXPRESSION) {
+      // $toBool was added during parsing
+      if (!resolveExpression(node.expression, document).value) {
+        return nBoolean(false)
+      }
+      continue
+    }
+
     const values = getPathValues(node.path, document)
     if (!values.length) {
       values.push(nNullish())
@@ -205,28 +231,19 @@ export function resolveMatch(
     for (let li = 0; li < values.length && !result; li++) {
       const left = values[li]
 
-      switch (node.operator) {
-        case '$elemMatch': {
+      switch (node.kind) {
+        case NodeKind.MATCH_ARRAY: {
           if (left.kind === NodeKind.ARRAY) {
             for (let ai = 0; ai < left.value.length && !result; ai++) {
-              result = resolveMatch(
-                node.args as MatchPathNode[], // TODO: hack
-                left.value[ai],
-              ).value
+              result = resolveMatch(node.args, left.value[ai]).value
             }
           }
           break
         }
 
-        case '$expr': {
-          // $toBool was added during parsing
-          result = !!resolveExpression(node.args[0], document).value
-          break
-        }
-
-        default: {
+        case NodeKind.MATCH_PATH: {
           const fn = expected(OPERATORS[node.operator])
-          result = !!fn(left, ...(node.args as BSONNode[])).value // TODO: hack
+          result = !!fn(left, ...node.args).value
           break
         }
       }

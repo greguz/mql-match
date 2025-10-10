@@ -44,18 +44,14 @@ export const NodeKind = Object.freeze({
    */
   OPERATOR: 'OPERATOR',
   /**
-   * Implementation specific node.
-   * Returned by operators.
-   */
-  EXPRESSION: 'EXPRESSION',
-  /**
    * An array containing other nodes.
    */
   EXPRESSION_ARRAY: 'EXPRESSION_ARRAY',
   PROJECT: 'PROJECT',
   PATH: 'PATH',
   MATCH_PATH: 'MATCH_PATH',
-  MATCH: 'MATCH',
+  MATCH_ARRAY: 'MATCH_ARRAY',
+  MATCH_EXPRESSION: 'MATCH_EXPRESSION',
 })
 
 export interface BooleanNode {
@@ -219,7 +215,7 @@ export interface MatchPathNode {
    * Operators name.
    */
   operator: string
-  args: Node[]
+  args: BSONNode[]
   /**
    * Negates the operator result (always a boolean for match operators).
    *
@@ -235,12 +231,37 @@ export interface MatchPathNode {
 }
 
 /**
- * All types of node.
+ * Represents the `$elemMatch` operator.
+ */
+export interface MatchArrayNode {
+  kind: typeof NodeKind.MATCH_ARRAY
+  path: Path
+  /**
+   * Not having the `MatchExpressionNode` because it must be top-level.
+   */
+  args: Array<MatchArrayNode | MatchPathNode>
+  /**
+   * Can be negated inside a `$not`.
+   */
+  negate: boolean
+}
+
+/**
+ * Represents the `$expr` operator.
+ * Must be top level (can be inside a `$and` or `$nor` or `$or`).
+ */
+export interface MatchExpressionNode {
+  kind: typeof NodeKind.MATCH_EXPRESSION
+  expression: Node
+}
+
+/**
+ * Used by expression.
+ * TODO: hmmmmm....
  */
 export type Node =
   | BSONNode
   | ExpressionArrayNode
-  | MatchPathNode
   | OperatorNode
   | PathNode
   | ProjectNode

@@ -1,4 +1,4 @@
-import { type BSONNode, type Node, nNullish } from './node.js'
+import { type BSONNode, nNullish } from './node.js'
 
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
@@ -76,7 +76,7 @@ export function useRoot(fn: Operator) {
 export function parseOperatorArguments(
   operator: Operator,
   args: BSONNode[],
-): Node[] {
+): BSONNode[] {
   const minArgs = operator.minArgs ?? operator.length
   const maxArgs = operator.maxArgs ?? minArgs
 

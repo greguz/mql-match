@@ -126,9 +126,6 @@ export function compileExpression(value: unknown) {
  */
 export function resolveExpression(node: Node, root: BSONNode): BSONNode {
   switch (node.kind) {
-    case NodeKind.MATCH_PATH:
-      throw new Error(`Unexpected node kind: ${node.kind}`)
-
     // Apply operators
     case NodeKind.OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
