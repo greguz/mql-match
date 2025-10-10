@@ -77,8 +77,11 @@ export interface IntNode {
   value: Int32
 }
 
-export function nInt(value: number): IntNode {
-  return { kind: NodeKind.INT, value: new Int32(value) }
+export function nInt(value: number | Int32): IntNode {
+  return {
+    kind: NodeKind.INT,
+    value: typeof value === 'number' ? new Int32(value) : value,
+  }
 }
 
 export interface DecimalNode {

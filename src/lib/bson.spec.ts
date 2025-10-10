@@ -13,29 +13,6 @@ import {
 import { wrapBSON } from './bson.js'
 import { NodeKind } from './node.js'
 
-// test('isMaxKey', t => {
-//   const key = new MaxKey()
-//   t.true(isMaxKey(key))
-//   t.is(getBSONType(key), BSON.MaxKey)
-// })
-
-// test('isMinKey', t => {
-//   const key = new MinKey()
-//   t.true(isMinKey(key))
-//   t.is(getBSONType(key), BSON.MinKey)
-// })
-
-// test('isJavaScript', t => {
-//   t.false(isJavaScript(undefined))
-//   t.false(isJavaScript(null))
-//   t.true(isJavaScript(() => {}))
-//   t.true(isJavaScript(new Code(() => {})))
-//   t.is(
-//     getBSONType(() => {}),
-//     BSON.JavaScript,
-//   )
-// })
-
 test('isBinary', t => {
   const isBinary = (value: unknown) => wrapBSON(value).kind === NodeKind.BINARY
 
@@ -100,20 +77,6 @@ test('isTimestamp', t => {
   t.true(isTimestamp(Timestamp.fromNumber(0)))
 })
 
-// test('isReference', t => {
-//   t.false(isReference(undefined))
-//   t.false(isReference(null))
-//   t.true(isReference(new DBRef('myCollection', new ObjectId())))
-//   t.is(getBSONType(new DBRef('myCollection', new ObjectId())), BSON.Reference)
-// })
-
-// test('isSymbol', t => {
-//   t.false(isSymbol(undefined))
-//   t.false(isSymbol(null))
-//   t.true(isSymbol(new BSONSymbol('mySymbol')))
-//   t.is(getBSONType(new BSONSymbol('mySymbol')), BSON.Symbol)
-// })
-
 test('isDouble', t => {
   const isDouble = (value: unknown) => wrapBSON(value).kind === NodeKind.DOUBLE
 
@@ -125,20 +88,3 @@ test('isDouble', t => {
   t.true(isDouble(-4.2))
   t.true(isDouble(new Double(42)))
 })
-
-// test('isFalsy', t => {
-//   t.false(isFalsy(NaN))
-//   t.true(isFalsy(0))
-//   t.true(isFalsy(new Double(0)))
-//   t.true(isFalsy(false))
-//   t.false(isFalsy(true))
-//   t.true(isFalsy(new Int32(0)))
-//   t.true(isFalsy(Long.fromInt(0)))
-// })
-
-// test('isTruthy', t => {
-//   t.true(isTruthy(NaN))
-//   t.false(isTruthy(0))
-//   t.false(isTruthy(false))
-//   t.true(isTruthy(true))
-// })

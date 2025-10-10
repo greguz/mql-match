@@ -1,4 +1,3 @@
-import { $and } from './expression/boolean.js'
 import { parseExpression, resolveExpression } from './expression.js'
 import { wrapBSON } from './lib/bson.js'
 import {
@@ -24,7 +23,6 @@ import { $exists, $type } from './match/type.js'
  */
 const OPERATORS: Record<string, Operator | undefined> = {
   $all,
-  $and,
   $eq,
   $exists,
   $gt,
@@ -65,6 +63,7 @@ export function* parseMatch(
       k =>
         k[0] === '$' &&
         k !== '$and' &&
+        k !== '$comment' &&
         k !== '$expr' && // TODO: top?
         k !== '$nor' &&
         k !== '$or',
@@ -137,6 +136,11 @@ function* compileOperator(
   key: string,
   value: unknown,
 ): Generator<MatchNode> {
+  if (key === '$comment') {
+    // Stub
+    return
+  }
+
   if (key === '$elemMatch') {
     if (!isPlainObject(value)) {
       throw new TypeError('$elemMatch needs an Object')

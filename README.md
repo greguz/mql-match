@@ -442,7 +442,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [x] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
 - [ ] [`$toDecimal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDecimal/)
 - [x] [`$toDouble`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/)
-- [ ] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
+- [x] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
 - [x] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
 - [x] [`$toObjectId`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/)
 - [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)

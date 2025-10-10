@@ -1,16 +1,18 @@
-import { Double, Long, ObjectId } from 'bson'
+import { Double, Int32, Long, ObjectId } from 'bson'
 
 import { parseBSONType } from '../lib/bson.js'
 import {
   type BooleanNode,
   type BSONNode,
   type DateNode,
+  type IntNode,
   type LongNode,
   NodeKind,
   type NullishNode,
   nBoolean,
   nDate,
   nDouble,
+  nInt,
   nLong,
   nNullish,
   nString,
@@ -92,6 +94,8 @@ export function $convert(
         return $toLong(input)
       case NodeKind.DATE:
         return $toDate(input)
+      case NodeKind.INT:
+        return $toInt(input)
       default:
         throw new TypeError(`Unsupported $convert type: ${nodeKind}`)
     }
@@ -315,5 +319,25 @@ export function $toDate(arg: BSONNode): DateNode | NullishNode {
       return nDate(new Date(arg.value.value))
     default:
       throw new TypeError(`Unsupported date casting from ${arg.kind} type`)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/
+ */
+export function $toInt(arg: BSONNode): IntNode | NullishNode {
+  switch (arg.kind) {
+    case NodeKind.INT:
+    case NodeKind.NULLISH:
+      return arg
+    case NodeKind.BOOLEAN:
+      return nInt(arg.value ? 1 : 0)
+    case NodeKind.DOUBLE:
+    case NodeKind.STRING:
+      return nInt(new Int32(arg.value)) // TODO: ?
+    case NodeKind.LONG:
+      return nInt(arg.value.toInt())
+    default:
+      throw new TypeError(`Unsupported int casting from ${arg.kind} type`)
   }
 }
