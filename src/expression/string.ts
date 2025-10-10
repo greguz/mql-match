@@ -4,7 +4,7 @@ import {
   type BSONNode,
   NodeKind,
   nBoolean,
-  nExpression,
+  nNullish,
 } from '../lib/node.js'
 import { withParsing } from '../lib/operator.js'
 
@@ -74,9 +74,5 @@ withParsing($regexMatch, arg => {
     throw new TypeError("$regexMatch requires 'regex' parameter")
   }
 
-  return [
-    nExpression(inputNode),
-    nExpression(regexNode),
-    nExpression(arg.value.options),
-  ]
+  return [inputNode, regexNode, arg.value.options || nNullish()]
 })

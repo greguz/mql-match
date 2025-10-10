@@ -53,11 +53,7 @@ import {
   type ProjectNode,
   type StringNode,
 } from './lib/node.js'
-import {
-  type Operator,
-  parseOperatorArguments,
-  withParsing,
-} from './lib/operator.js'
+import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
@@ -88,13 +84,6 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $in,
   $isArray,
   $isNumber,
-  /**
-   * Hack (skip expression parsing)
-   */
-  $literal: withParsing(
-    arg => arg,
-    arg => [arg],
-  ),
   $ln,
   $log,
   $log10,
@@ -137,7 +126,6 @@ export function compileExpression(value: unknown) {
  */
 export function resolveExpression(node: Node, root: BSONNode): BSONNode {
   switch (node.kind) {
-    case NodeKind.EXPRESSION:
     case NodeKind.MATCH_PATH:
       throw new Error(`Unexpected node kind: ${node.kind}`)
 
@@ -240,6 +228,9 @@ function parseStringNode({ value }: StringNode): Node {
 function parseObjectNode(node: ObjectNode): Node {
   if (node.keys.length === 1 && node.keys[0][0] === '$') {
     const key = node.keys[0]
+    if (key === '$literal') {
+      return expected(node.value[key])
+    }
 
     const operator = OPERATORS[key]
     if (!operator) {
@@ -250,15 +241,8 @@ function parseObjectNode(node: ObjectNode): Node {
       operator,
       normalizeArguments(expected(node.value[key])),
     )
-
     for (let i = 0; i < args.length; i++) {
-      const node = args[i]
-
-      if (!operator.parseArguments) {
-        args[i] = expandNode(node)
-      } else if (node.kind === NodeKind.EXPRESSION) {
-        args[i] = expandNode(node.expression)
-      }
+      args[i] = expandNode(args[i])
     }
 
     return nOperator(key, args)

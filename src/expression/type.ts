@@ -11,7 +11,6 @@ import {
   nBoolean,
   nDate,
   nDouble,
-  nExpression,
   nLong,
   nNullish,
   nString,
@@ -108,6 +107,9 @@ withParsing($convert, arg => {
   if (arg.kind !== NodeKind.OBJECT) {
     throw new TypeError('$convert operator expects an object as argument')
   }
+  if (!arg.value.input) {
+    throw new TypeError("Missing 'input' parameter to $convert")
+  }
 
   let toType: BSONNode = arg.value.to || nNullish()
   let toSubtype: BSONNode | undefined
@@ -119,13 +121,13 @@ withParsing($convert, arg => {
 
   // input, to.type, to.subtype, byteOrder, format, onError, onNull
   return [
-    nExpression(arg.value.input),
-    nExpression(toType),
+    arg.value.input,
+    toType,
     parseConvertSubtype(toSubtype),
     parseConvertByteOrder(arg.value.byteOrder),
     parseConvertFormat(arg.value.format),
-    nExpression(arg.value.onError),
-    nExpression(arg.value.onNull),
+    arg.value.onError || nNullish(),
+    arg.value.onNull || nNullish(),
   ]
 })
 

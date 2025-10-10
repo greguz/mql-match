@@ -1,4 +1,4 @@
-import type { BSONNode, Node } from './node.js'
+import { type BSONNode, type Node, nNullish } from './node.js'
 
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
@@ -18,9 +18,8 @@ export interface Operator {
   maxArgs?: number
   /**
    * Maps from X input arguments to Y input arguments.
-   * When present, It disables any expression expansion (you need to use `EXPRESSION` node).
    */
-  parseArguments?: (...args: BSONNode[]) => Node[]
+  parseArguments?: (...args: BSONNode[]) => BSONNode[]
   /**
    * Push root value into Operator's arguments.
    */
@@ -97,5 +96,17 @@ export function parseOperatorArguments(
     )
   }
 
-  return operator.parseArguments ? operator.parseArguments(...args) : args
+  // The Operators knows what to do
+  if (operator.parseArguments) {
+    return operator.parseArguments(...args)
+  }
+
+  // Ensure correct number of arguments (if auto)
+  if (Number.isFinite(maxArgs)) {
+    while (args.length < maxArgs) {
+      args.push(nNullish())
+    }
+  }
+
+  return args
 }

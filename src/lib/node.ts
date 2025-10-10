@@ -185,21 +185,6 @@ export type BSONNode =
   | StringNode
   | TimestampNode
 
-/**
- * Implementation specific node.
- * Returned by operators.
- */
-export interface ExpressionNode {
-  kind: typeof NodeKind.EXPRESSION
-  expression: Node
-}
-
-export function nExpression(
-  expression: Node | undefined,
-): ExpressionNode | NullishNode {
-  return expression ? { kind: NodeKind.EXPRESSION, expression } : nNullish()
-}
-
 export interface OperatorNode {
   kind: typeof NodeKind.OPERATOR
   args: Node[]
@@ -255,7 +240,6 @@ export interface MatchPathNode {
 export type Node =
   | BSONNode
   | ExpressionArrayNode
-  | ExpressionNode
   | MatchPathNode
   | OperatorNode
   | PathNode

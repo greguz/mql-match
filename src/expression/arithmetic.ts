@@ -7,12 +7,11 @@ import {
   NodeKind,
   nDate,
   nDouble,
-  nExpression,
   nInt,
   nLong,
   nNullish,
 } from '../lib/node.js'
-import { withArguments, withParsing } from '../lib/operator.js'
+import { withArguments } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/
@@ -251,11 +250,6 @@ export function $round(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
 
 withArguments($round, 1, 2)
 
-withParsing($round, (numberNode, placeNode) => [
-  nExpression(numberNode),
-  nExpression(placeNode),
-])
-
 /**
  * An integer between -20 and 100, exclusive.
  * Defaults to zero.
@@ -343,8 +337,3 @@ export function $trunc(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
 }
 
 withArguments($trunc, 1, 2)
-
-withParsing($trunc, (numberNode, placeNode) => [
-  nExpression(numberNode),
-  nExpression(placeNode),
-])

@@ -1,10 +1,4 @@
-import {
-  type BSONNode,
-  type Node,
-  NodeKind,
-  nExpression,
-  nNullish,
-} from '../lib/node.js'
+import { type BSONNode, NodeKind, nNullish } from '../lib/node.js'
 import { withArguments, withParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
 import { $toBool } from './type.js'
@@ -86,7 +80,7 @@ withParsing($switch, arg => {
     throw new TypeError('$switch requires at least one branch')
   }
 
-  const results: Node[] = []
+  const results: BSONNode[] = []
   for (let i = 0; i < branchesNode.value.length; i++) {
     const branchNode = branchesNode.value[i]
     if (branchNode.kind !== NodeKind.OBJECT) {
@@ -109,12 +103,12 @@ withParsing($switch, arg => {
       )
     }
 
-    results.push(nExpression(caseNode), nExpression(thenNode))
+    results.push(caseNode, thenNode)
   }
 
   const defaultNode = arg.value.default
   if (defaultNode) {
-    results.push(nExpression(defaultNode))
+    results.push(defaultNode)
   }
 
   return results
@@ -133,5 +127,3 @@ export function $ifNull(...args: BSONNode[]): BSONNode {
 }
 
 withArguments($ifNull, 1, Number.POSITIVE_INFINITY)
-
-withParsing($ifNull, (...args) => args.map(nExpression))
