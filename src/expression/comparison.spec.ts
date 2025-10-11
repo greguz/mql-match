@@ -1,15 +1,16 @@
 import test from 'ava'
 import { ObjectId } from 'bson'
 
-import { wrapBSON } from '../lib/bson.js'
+import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import type { BSONNode } from '../lib/node.js'
 import { $cmp, $eq, $gt, $gte, $lt, $lte } from './comparison.js'
 
 function bind<T extends BSONNode>(
-  fn: (left: BSONNode, ...right: BSONNode[]) => T,
+  fn: (...args: BSONNode[]) => T,
   ...right: unknown[]
-): (left: unknown) => T['value'] {
-  return (left: unknown) => fn(wrapBSON(left), ...right.map(wrapBSON)).value
+): (...left: unknown[]) => unknown {
+  return (...left: unknown[]) =>
+    unwrapBSON(fn(...left.map(wrapBSON), ...right.map(wrapBSON)))
 }
 
 test('$cmp', t => {

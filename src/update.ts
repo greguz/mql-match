@@ -1,4 +1,10 @@
-import { wrapBSON, wrapNodes } from './lib/bson.js'
+import {
+  setIndex,
+  setKey,
+  wrapBSON,
+  wrapNodes,
+  wrapObjectRaw,
+} from './lib/bson.js'
 import {
   type BSONNode,
   NodeKind,
@@ -6,12 +12,36 @@ import {
   type UpdatePathNode,
 } from './lib/node.js'
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
-import { type Path, parsePath, setPathValue } from './lib/path.js'
+import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
-import { $inc } from './update/fields.js'
+import { $addToSet, $pop, $pull, $pullAll, $push } from './update/array.js'
+import {
+  $currentDate,
+  $inc,
+  $max,
+  $min,
+  $mul,
+  $rename,
+  $set,
+  $setOnInsert,
+  $unset,
+} from './update/fields.js'
 
 const OPERATORS: Record<string, Operator | undefined> = {
+  $addToSet,
+  $currentDate,
   $inc,
+  $max,
+  $min,
+  $mul,
+  $pop,
+  $pull,
+  $pullAll,
+  $push,
+  $rename,
+  $set,
+  $setOnInsert,
+  $unset,
 }
 
 export function compileUpdate(obj: unknown) {
@@ -70,7 +100,7 @@ export function resolveUpdate(
     const fn = expected(OPERATORS[node.operator])
     const oldValue = readValue(node.path, subject)
     const newValue = fn(oldValue, ...node.args)
-    setPathValue(node.path, subject, newValue)
+    writeValue(node.path, subject, newValue)
   }
 }
 
@@ -98,4 +128,27 @@ function readValue(path: Path, node: BSONNode): BSONNode {
   }
 
   return nNullish()
+}
+
+function writeValue(path: Path, obj: BSONNode, value: BSONNode): void {
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i]
+    const next = i === path.length - 1 ? value : wrapObjectRaw()
+
+    if (typeof key === 'number' && obj.kind === NodeKind.ARRAY) {
+      if (next === value || obj.value.length <= key) {
+        obj = setIndex(obj, key, next)
+      } else {
+        obj = obj.value[key]
+      }
+    } else if (obj.kind === NodeKind.OBJECT) {
+      if (next === value || !obj.value[key]) {
+        obj = setKey(obj, `${key}`, next)
+      } else {
+        obj = expected(obj.value[key])
+      }
+    } else {
+      throw new TypeError(`Unable to write value at ${path.join('.')}`)
+    }
+  }
 }

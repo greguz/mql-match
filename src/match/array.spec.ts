@@ -1,14 +1,15 @@
 import test from 'ava'
 
-import { wrapBSON } from '../lib/bson.js'
+import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import type { BSONNode } from '../lib/node.js'
 import { $size } from './array.js'
 
 function bind<T extends BSONNode>(
-  fn: (left: BSONNode, ...right: BSONNode[]) => T,
+  fn: (...args: BSONNode[]) => T,
   ...right: unknown[]
-): (left: unknown) => T['value'] {
-  return (left: unknown) => fn(wrapBSON(left), ...right.map(wrapBSON)).value
+): (...left: unknown[]) => unknown {
+  return (...left: unknown[]) =>
+    unwrapBSON(fn(...left.map(wrapBSON), ...right.map(wrapBSON)))
 }
 
 test('$size', t => {

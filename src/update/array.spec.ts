@@ -2,7 +2,7 @@ import test from 'ava'
 
 import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import type { BSONNode } from '../lib/node.js'
-import { $mod } from './miscellaneous.js'
+import { $pop } from './array.js'
 
 function bind<T extends BSONNode>(
   fn: (...args: BSONNode[]) => T,
@@ -12,14 +12,9 @@ function bind<T extends BSONNode>(
     unwrapBSON(fn(...left.map(wrapBSON), ...right.map(wrapBSON)))
 }
 
-test('$mod', t => {
-  const mod = bind($mod, 2, 0)
+test('$pop', t => {
+  const pop = bind($pop)
 
-  t.false(mod(undefined))
-  t.false(mod(null))
-  t.false(mod(''))
-  t.false(mod({}))
-  t.true(mod(0))
-  t.false(mod(1))
-  t.true(mod(2))
+  t.deepEqual(pop(['f', null, 'l'], -1), [null, 'l'])
+  t.deepEqual(pop(['f', null, 'l'], 1), ['f', null])
 })

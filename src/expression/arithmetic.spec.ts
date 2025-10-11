@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { wrapBSON } from '../lib/bson.js'
+import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import type { BSONNode } from '../lib/node.js'
 import {
   $abs,
@@ -18,11 +18,11 @@ import {
 } from './arithmetic.js'
 
 function bind<T extends BSONNode>(
-  fn: (...right: BSONNode[]) => T,
+  fn: (...args: BSONNode[]) => T,
   ...right: unknown[]
-): (...left: unknown[]) => T['value'] {
+): (...left: unknown[]) => unknown {
   return (...left: unknown[]) =>
-    fn(...left.map(wrapBSON), ...right.map(wrapBSON)).value
+    unwrapBSON(fn(...left.map(wrapBSON), ...right.map(wrapBSON)))
 }
 
 test('$multiply', t => {

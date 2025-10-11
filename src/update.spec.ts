@@ -289,3 +289,79 @@ test('$delete', t => {
     { item: 'hammer', sku: 'unknown' },
   )
 })
+
+test('$max:dates', t => {
+  const doc = {
+    _id: 1,
+    desc: 'decorative arts',
+    dateEntered: new Date('2013-10-01T05:00:00Z'),
+    dateExpired: new Date('2013-10-01T16:38:16Z'),
+  }
+  compileUpdate({ $max: { dateExpired: new Date('2013-09-30') } })(doc)
+  t.deepEqual(doc, {
+    _id: 1,
+    desc: 'decorative arts',
+    dateEntered: new Date('2013-10-01T05:00:00Z'),
+    dateExpired: new Date('2013-10-01T16:38:16Z'),
+  })
+})
+
+test('$max:numbers', t => {
+  const doc = { _id: 1, highScore: 800, lowScore: 200 }
+  compileUpdate({ $max: { highScore: 950 } })(doc)
+  t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
+  compileUpdate({ $max: { highScore: 870 } })(doc)
+  t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
+})
+
+test('$min:dates', t => {
+  const doc = {
+    _id: 1,
+    desc: 'crafts',
+    dateEntered: new Date('2013-10-01T05:00:00Z'),
+    dateExpired: new Date('2013-10-01T16:38:16Z'),
+  }
+  compileUpdate({ $min: { dateEntered: new Date('2013-09-25') } })(doc)
+  t.deepEqual(doc, {
+    _id: 1,
+    desc: 'crafts',
+    dateEntered: new Date('2013-09-25T00:00:00Z'),
+    dateExpired: new Date('2013-10-01T16:38:16Z'),
+  })
+})
+
+test('$min:numbers', t => {
+  const doc = { _id: 1, highScore: 800, lowScore: 200 }
+  compileUpdate({ $min: { lowScore: 150 } })(doc)
+  t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
+  compileUpdate({ $min: { lowScore: 250 } })(doc)
+  t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
+})
+
+test('$currentDate', t => {
+  const doc = {
+    _id: 1,
+    status: 'a',
+    lastModified: new Date('2013-10-02T01:11:18.965Z'),
+  }
+  const update = compileUpdate({
+    $currentDate: {
+      lastModified: true,
+      'cancellation.date': { $type: 'timestamp' },
+    },
+    $set: {
+      'cancellation.reason': 'user request',
+      status: 'D',
+    },
+  })
+  update(doc)
+  t.like(doc, {
+    _id: 1,
+    status: 'D',
+    cancellation: {
+      reason: 'user request',
+    },
+  })
+  t.true(doc.lastModified instanceof Date)
+  // t.true(isTimestamp(doc.cancellation.date))
+})

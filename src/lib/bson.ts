@@ -34,14 +34,7 @@ import {
   type StringNode,
   type TimestampNode,
 } from './node.js'
-import {
-  expected,
-  isArray,
-  isBinary,
-  isDate,
-  isPlainObject,
-  isRegExp,
-} from './util.js'
+import { isArray, isBinary, isDate, isPlainObject, isRegExp } from './util.js'
 
 /**
  * Cast from string alias to `BSONType` enum.
@@ -172,10 +165,10 @@ export function wrapBSON(value?: unknown): BSONNode {
 
 function parseObject(value: object): BSONNode {
   if (isPlainObject(value)) {
-    return wrapObject(value)
+    return wrapObjectRaw(value)
   }
   if (isArray(value)) {
-    return wrapArray(value)
+    return wrapArrayRaw(value)
   }
   if (isBinary(value)) {
     return { kind: NodeKind.BINARY, value }
@@ -240,7 +233,7 @@ function parseObject(value: object): BSONNode {
   throw new TypeError(`Unsupported expression: ${value}`)
 }
 
-export function wrapObject(raw: Record<string, unknown> = {}): ObjectNode {
+export function wrapObjectRaw(raw: Record<string, unknown> = {}): ObjectNode {
   const keys = Object.keys(raw)
 
   const value: Record<string, BSONNode> = {}
@@ -261,15 +254,21 @@ export function setKey<T extends BSONNode>(
   key: string,
   value: T,
 ): T {
+  if (!obj.raw) {
+    throw new Error('Expected object pointer')
+  }
+
   if (!obj.keys.includes(key)) {
     obj.keys.push(key)
   }
+
+  obj.raw[key] = unwrapBSON(value) // needed to keep array/object references
   obj.value[key] = value
-  obj.raw[key] = value.value
+
   return value
 }
 
-export function wrapArray(raw: unknown[] = []): ArrayNode {
+export function wrapArrayRaw(raw: unknown[] = []): ArrayNode {
   return {
     kind: NodeKind.ARRAY,
     raw,
@@ -282,19 +281,25 @@ export function setIndex<T extends BSONNode>(
   index: number,
   value: T,
 ): T {
-  while (arr.value.length <= index) {
-    arr.value.push(nNullish())
-    arr.raw.push(null)
+  if (!arr.raw) {
+    throw new Error('Expected array pointer')
   }
+
+  while (arr.value.length <= index) {
+    arr.raw.push(null)
+    arr.value.push(nNullish())
+  }
+
+  arr.raw[index] = unwrapBSON(value) // needed to keep array/object references
   arr.value[index] = value
-  arr.raw[index] = value.value
+
   return value
 }
 
 export function wrapNodes(value: BSONNode[]): ArrayNode {
   return {
     kind: NodeKind.ARRAY,
-    raw: value,
+    raw: undefined,
     value,
   }
 }
@@ -302,14 +307,24 @@ export function wrapNodes(value: BSONNode[]): ArrayNode {
 export function unwrapBSON(node: BSONNode): unknown {
   switch (node.kind) {
     case NodeKind.ARRAY:
-      return node.value.map(unwrapBSON)
+      return node.raw || node.value.map(unwrapBSON)
+
     case NodeKind.OBJECT: {
-      const result: Record<string, unknown> = { ...node.value }
-      for (let i = 0; i < node.keys.length; i++) {
-        result[node.keys[i]] = unwrapBSON(expected(node.value[node.keys[i]]))
+      if (!node.raw) {
+        throw new Error('Expected object reference')
       }
-      return result
+
+      // fix_me
+      // const result: Record<string, unknown> = { ...node.value }
+      // for (let i = 0; i < node.keys.length; i++) {
+      //   result[node.keys[i]] = unwrapBSON(expected(node.value[node.keys[i]]))
+      // }
+      // return result
+
+      // TODO: test this
+      return node.raw
     }
+
     default:
       return node.value
   }

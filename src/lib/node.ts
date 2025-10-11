@@ -1,10 +1,4 @@
-import {
-  type Decimal128,
-  Int32,
-  Long,
-  type ObjectId,
-  type Timestamp,
-} from 'bson'
+import { type Decimal128, Int32, Long, type ObjectId, Timestamp } from 'bson'
 import type { Decimal } from 'decimal.js'
 
 import type { Path } from './path.js'
@@ -53,6 +47,7 @@ export const NodeKind = Object.freeze({
   MATCH_ARRAY: 'MATCH_ARRAY',
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
   UPDATE_PATH: 'UPDATE_PATH',
+  EXPRESSION_GETTER: 'EXPRESSION_GETTER',
 })
 
 export interface BooleanNode {
@@ -131,13 +126,23 @@ export interface TimestampNode {
   value: Timestamp
 }
 
+export function nTimestamp(): TimestampNode {
+  return {
+    kind: NodeKind.TIMESTAMP,
+    value: Timestamp.fromNumber(Math.floor(Date.now() / 1000)),
+  }
+}
+
 export interface DateNode {
   kind: typeof NodeKind.DATE
   value: Date
 }
 
-export function nDate(value: Date): DateNode {
-  return { kind: NodeKind.DATE, value }
+export function nDate(value?: Date): DateNode {
+  return {
+    kind: NodeKind.DATE,
+    value: value || new Date(),
+  }
 }
 
 export interface BinaryNode {
@@ -158,14 +163,14 @@ export interface RegExpNode {
 export interface ArrayNode {
   kind: typeof NodeKind.ARRAY
   value: BSONNode[]
-  raw: unknown[]
+  raw: unknown[] | undefined
 }
 
 export interface ObjectNode {
   kind: typeof NodeKind.OBJECT
   keys: string[]
   value: Record<string, BSONNode | undefined>
-  raw: Record<string, unknown>
+  raw: Record<string, unknown> | undefined
 }
 
 /**
@@ -189,17 +194,20 @@ export type BSONNode =
 
 export interface OperatorNode {
   kind: typeof NodeKind.OPERATOR
-  args: Node[]
+  args: ExpressionNode[]
   operator: string
 }
 
-export function nOperator(operator: string, args: Node[]): OperatorNode {
+export function nOperator(
+  operator: string,
+  args: ExpressionNode[],
+): OperatorNode {
   return { kind: NodeKind.OPERATOR, operator, args }
 }
 
 export interface ExpressionArrayNode {
   kind: typeof NodeKind.EXPRESSION_ARRAY
-  nodes: Node[]
+  nodes: ExpressionNode[]
 }
 
 export interface ProjectNode {
@@ -211,7 +219,7 @@ export interface ProjectNode {
 export interface PathNode {
   kind: typeof NodeKind.PATH
   path: Path
-  value: Node
+  value: ExpressionNode
 }
 
 export interface MatchPathNode {
@@ -265,16 +273,20 @@ export interface UpdatePathNode {
  */
 export interface MatchExpressionNode {
   kind: typeof NodeKind.MATCH_EXPRESSION
-  expression: Node
+  expression: ExpressionNode
+}
+
+export interface ExpressionGetterNode {
+  kind: typeof NodeKind.EXPRESSION_GETTER
+  path: Path
 }
 
 /**
- * Used by expression.
- * TODO: hmmmmm....
+ * Represents an expression.
  */
-export type Node =
+export type ExpressionNode =
   | BSONNode
   | ExpressionArrayNode
+  | ExpressionGetterNode
   | OperatorNode
-  | PathNode
   | ProjectNode
