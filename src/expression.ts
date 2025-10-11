@@ -42,7 +42,13 @@ import {
   $type,
 } from './expression/type.js'
 import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
-import { normalizeArguments, unwrapBSON, wrapBSON } from './lib/bson.js'
+import {
+  normalizeArguments,
+  unwrapBSON,
+  wrapBSON,
+  wrapNodes,
+  wrapObject,
+} from './lib/bson.js'
 import {
   type BSONNode,
   type Node,
@@ -55,7 +61,7 @@ import {
   type StringNode,
 } from './lib/node.js'
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
-import { type Path, parsePath } from './lib/path.js'
+import { type Path, parsePath, setPathValue } from './lib/path.js'
 import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
 
@@ -142,10 +148,7 @@ export function resolveExpression(node: Node, root: BSONNode): BSONNode {
 
     // Resolve array items
     case NodeKind.EXPRESSION_ARRAY:
-      return {
-        kind: NodeKind.ARRAY,
-        value: node.nodes.map(n => resolveExpression(n, root)),
-      }
+      return wrapNodes(node.nodes.map(n => resolveExpression(n, root)))
 
     // Resolve paths
     case NodeKind.PATH:
@@ -153,11 +156,7 @@ export function resolveExpression(node: Node, root: BSONNode): BSONNode {
 
     // Resolve expression objects
     case NodeKind.PROJECT: {
-      const obj: ObjectNode = {
-        kind: NodeKind.OBJECT,
-        keys: [],
-        value: {},
-      }
+      const obj = wrapObject()
 
       if (node.exclusion) {
         throw new Error('TODO: exclusion')
@@ -299,37 +298,9 @@ export function getPathValue(path: Path, node: BSONNode): BSONNode {
     }
 
     if (items.length) {
-      return { kind: NodeKind.ARRAY, value: items }
+      return wrapNodes(items)
     }
   }
 
   return nNullish()
-}
-
-export function setPathValue(
-  path: Path,
-  obj: ObjectNode,
-  node: BSONNode,
-): void {
-  for (let i = 0; i < path.length; i++) {
-    const key = `${path[i]}`
-    if (obj.value[key]) {
-      throw new TypeError(`Unable to write value at ${path.join('.')}`)
-    }
-
-    obj.keys.push(key)
-
-    if (i === path.length - 1) {
-      obj.value[key] = node
-    } else {
-      const child: BSONNode = {
-        kind: NodeKind.OBJECT,
-        keys: [],
-        value: {},
-      }
-
-      obj.value[key] = child
-      obj = child
-    }
-  }
 }

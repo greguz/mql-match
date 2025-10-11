@@ -52,6 +52,7 @@ export const NodeKind = Object.freeze({
   MATCH_PATH: 'MATCH_PATH',
   MATCH_ARRAY: 'MATCH_ARRAY',
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
+  UPDATE_PATH: 'UPDATE_PATH',
 })
 
 export interface BooleanNode {
@@ -157,12 +158,14 @@ export interface RegExpNode {
 export interface ArrayNode {
   kind: typeof NodeKind.ARRAY
   value: BSONNode[]
+  raw: unknown[]
 }
 
 export interface ObjectNode {
   kind: typeof NodeKind.OBJECT
   keys: string[]
   value: Record<string, BSONNode | undefined>
+  raw: Record<string, unknown>
 }
 
 /**
@@ -247,6 +250,13 @@ export interface MatchArrayNode {
    * Can be negated inside a `$not`.
    */
   negate: boolean
+}
+
+export interface UpdatePathNode {
+  kind: typeof NodeKind.UPDATE_PATH
+  path: Path
+  operator: string
+  args: BSONNode[]
 }
 
 /**

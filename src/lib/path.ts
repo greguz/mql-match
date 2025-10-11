@@ -1,4 +1,5 @@
-import { type BSONNode, NodeKind, nNullish } from './node.js'
+import { setIndex, setKey, wrapObject } from './bson.js'
+import { type BSONNode, NodeKind } from './node.js'
 
 const REG_IDENTIFIER = /^[A-Za-z0-9_]*$/
 
@@ -30,35 +31,17 @@ export function parsePath(path: unknown): Path {
   return result
 }
 
-/**
- * Applies a projection path.
- * Keeps all array items only if at least one item is not nullish.
- */
-export function applyProjection(path: Path, node: BSONNode): BSONNode {
-  if (!path.length) {
-    return node
-  }
+export function setPathValue(path: Path, obj: BSONNode, value: BSONNode): void {
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i]
+    const next = i === path.length - 1 ? value : wrapObject()
 
-  if (node.kind === NodeKind.OBJECT) {
-    return applyProjection(path.slice(1), node.value[path[0]] || nNullish())
-  }
-
-  if (node.kind === NodeKind.ARRAY) {
-    const items: BSONNode[] = []
-
-    let empty = true
-    for (let i = 0; i < node.value.length; i++) {
-      const n = applyProjection(path, node.value[i])
-      items.push(n)
-      if (n.kind !== NodeKind.NULLISH) {
-        empty = false
-      }
-    }
-
-    if (!empty) {
-      return { kind: NodeKind.ARRAY, value: items }
+    if (typeof key === 'number' && obj.kind === NodeKind.ARRAY) {
+      obj = setIndex(obj, key, next)
+    } else if (obj.kind === NodeKind.OBJECT) {
+      obj = setKey(obj, `${key}`, next)
+    } else {
+      throw new TypeError(`Unable to write value at ${path.join('.')}`)
     }
   }
-
-  return nNullish()
 }

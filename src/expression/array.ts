@@ -1,3 +1,4 @@
+import { wrapNodes } from '../lib/bson.js'
 import {
   type ArrayNode,
   type BooleanNode,
@@ -31,10 +32,7 @@ export function $concatArrays(...args: BSONNode[]): ArrayNode | NullishNode {
     result.push(...node.value)
   }
 
-  return {
-    kind: NodeKind.ARRAY,
-    value: result,
-  }
+  return wrapNodes(result)
 }
 
 withArguments($concatArrays, 2, Number.POSITIVE_INFINITY)

@@ -160,7 +160,7 @@ export function wrapBSON(value?: unknown): BSONNode {
     case 'number':
       return nDouble(value)
     case 'object':
-      return value === null ? nNullish() : wrapObject(value)
+      return value === null ? nNullish() : parseObject(value)
     case 'string':
       return nString(value)
     case 'symbol':
@@ -170,24 +170,12 @@ export function wrapBSON(value?: unknown): BSONNode {
   }
 }
 
-function wrapObject(value: object): BSONNode {
+function parseObject(value: object): BSONNode {
   if (isPlainObject(value)) {
-    const keys = Object.keys(value)
-
-    const obj: Record<string, BSONNode> = {}
-    for (let i = 0; i < keys.length; i++) {
-      obj[keys[i]] = wrapBSON(value[keys[i]])
-    }
-
-    return {
-      kind: NodeKind.OBJECT,
-      keys,
-      value: obj,
-    }
+    return wrapObject(value)
   }
-
   if (isArray(value)) {
-    return { kind: NodeKind.ARRAY, value: value.map(wrapBSON) }
+    return wrapArray(value)
   }
   if (isBinary(value)) {
     return { kind: NodeKind.BINARY, value }
@@ -252,9 +240,65 @@ function wrapObject(value: object): BSONNode {
   throw new TypeError(`Unsupported expression: ${value}`)
 }
 
-/**
- *
- */
+export function wrapObject(raw: Record<string, unknown> = {}): ObjectNode {
+  const keys = Object.keys(raw)
+
+  const value: Record<string, BSONNode> = {}
+  for (let i = 0; i < keys.length; i++) {
+    value[keys[i]] = wrapBSON(raw[keys[i]])
+  }
+
+  return {
+    kind: NodeKind.OBJECT,
+    keys,
+    raw,
+    value,
+  }
+}
+
+export function setKey<T extends BSONNode>(
+  obj: ObjectNode,
+  key: string,
+  value: T,
+): T {
+  if (!obj.keys.includes(key)) {
+    obj.keys.push(key)
+  }
+  obj.value[key] = value
+  obj.raw[key] = value.value
+  return value
+}
+
+export function wrapArray(raw: unknown[] = []): ArrayNode {
+  return {
+    kind: NodeKind.ARRAY,
+    raw,
+    value: raw.map(wrapBSON),
+  }
+}
+
+export function setIndex<T extends BSONNode>(
+  arr: ArrayNode,
+  index: number,
+  value: T,
+): T {
+  while (arr.value.length <= index) {
+    arr.value.push(nNullish())
+    arr.raw.push(null)
+  }
+  arr.value[index] = value
+  arr.raw[index] = value.value
+  return value
+}
+
+export function wrapNodes(value: BSONNode[]): ArrayNode {
+  return {
+    kind: NodeKind.ARRAY,
+    raw: value,
+    value,
+  }
+}
+
 export function unwrapBSON(node: BSONNode): unknown {
   switch (node.kind) {
     case NodeKind.ARRAY:
