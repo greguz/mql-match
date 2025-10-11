@@ -24,22 +24,22 @@ export interface Operator {
    * Push root value into Operator's arguments.
    */
   useRoot?: boolean
+  /**
+   * Update operators.
+   * When `true` replaces the field's value with its parent and key nodes.
+   */
+  useParent?: boolean
 }
 
 /**
  * Explicit number of arguments declaration.
  */
-export function withArguments(
-  fn: Operator,
-  minArgs: number,
-  maxArgs?: number,
-): Operator {
+export function withArguments(fn: Operator, minArgs: number, maxArgs?: number) {
   if (fn.minArgs !== undefined || fn.maxArgs !== undefined) {
     throw new Error(`Operator ${fn.name} has already arguments specified`)
   }
   fn.minArgs = minArgs
   fn.maxArgs = maxArgs
-  return fn
 }
 
 /**
@@ -48,7 +48,7 @@ export function withArguments(
 export function withParsing(
   fn: Operator,
   parseArguments: NonNullable<Operator['parseArguments']>,
-): Operator {
+) {
   if (fn.parseArguments) {
     throw new Error(
       `Operator ${fn.name} cannot specify a custom arguments parser`,
@@ -59,18 +59,28 @@ export function withParsing(
     fn.maxArgs = parseArguments.length
   }
   fn.parseArguments = parseArguments
-  return fn
 }
 
 export function useRoot(fn: Operator) {
   if (fn.useRoot !== undefined) {
-    throw new Error()
+    throw new Error() // TODO
   }
   if (fn.minArgs === undefined && fn.maxArgs === undefined) {
     fn.minArgs = fn.length - 1
     fn.maxArgs = fn.length - 1
   }
   fn.useRoot = true
+}
+
+export function useParent(fn: Operator) {
+  if (fn.useParent !== undefined) {
+    throw new Error() // TODO
+  }
+  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
+    fn.minArgs = fn.length - 2
+    fn.maxArgs = fn.length - 2
+  }
+  fn.useParent = true
 }
 
 export function parseOperatorArguments(

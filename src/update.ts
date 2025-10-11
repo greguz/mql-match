@@ -9,6 +9,7 @@ import {
   type BSONNode,
   NodeKind,
   nNullish,
+  nString,
   type UpdatePathNode,
 } from './lib/node.js'
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
@@ -98,9 +99,18 @@ export function resolveUpdate(
 ): void {
   for (const node of nodes) {
     const fn = expected(OPERATORS[node.operator])
-    const oldValue = readValue(node.path, subject)
-    const newValue = fn(oldValue, ...node.args)
-    writeValue(node.path, subject, newValue)
+
+    if (fn.useParent) {
+      // Operators that updates the parent object (relative to requested path)
+      const key = nString(`${expected(node.path.pop())}`)
+      const parent = readValue(node.path, subject)
+      fn(parent, key, ...node.args)
+    } else {
+      // Operators that updates the actual path's value
+      const oldValue = readValue(node.path, subject)
+      const newValue = fn(oldValue, ...node.args)
+      writeValue(node.path, subject, newValue)
+    }
   }
 }
 

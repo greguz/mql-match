@@ -268,6 +268,21 @@ export function setKey<T extends BSONNode>(
   return value
 }
 
+export function unsetKey(obj: ObjectNode, key: string): boolean {
+  if (!obj.raw) {
+    throw new Error('Expected object pointer')
+  }
+
+  const i = obj.keys.indexOf(key)
+  if (i >= 0) {
+    obj.keys.splice(i, 1)
+    delete obj.raw[key]
+    delete obj.value[key]
+  }
+
+  return i >= 0
+}
+
 export function wrapArrayRaw(raw: unknown[] = []): ArrayNode {
   return {
     kind: NodeKind.ARRAY,

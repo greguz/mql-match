@@ -1,5 +1,12 @@
 import { $gt, $lt } from '../expression/comparison.js'
-import { assertNumber, unwrapDecimal, unwrapNumber } from '../lib/bson.js'
+import {
+  assertBSON,
+  assertNumber,
+  setKey,
+  unsetKey,
+  unwrapDecimal,
+  unwrapNumber,
+} from '../lib/bson.js'
 import {
   type BSONNode,
   NodeKind,
@@ -9,7 +16,7 @@ import {
   nString,
   nTimestamp,
 } from '../lib/node.js'
-import { withArguments, withParsing } from '../lib/operator.js'
+import { useParent, withArguments, withParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/
@@ -104,9 +111,29 @@ withParsing($mul, arg => [
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/rename/
  */
-export function $rename(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $rename')
+export function $rename(
+  parentNode: BSONNode,
+  oldKeyNode: BSONNode,
+  newKeyNode: BSONNode,
+): BSONNode {
+  const obj = assertBSON(parentNode, NodeKind.OBJECT)
+  const oldKey = assertBSON(oldKeyNode, NodeKind.STRING).value
+  const newKey = assertBSON(newKeyNode, NodeKind.STRING).value
+  const value = obj.value[oldKey] || nNullish()
+
+  unsetKey(obj, oldKey)
+  if (value.kind !== NodeKind.NULLISH) {
+    setKey(obj, newKey, value)
+  }
+
+  return parentNode // ignored value
 }
+
+withParsing($rename, arg => [
+  assertBSON(arg, NodeKind.STRING, '$rename expects a string'),
+])
+
+useParent($rename)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/set/
@@ -127,6 +154,20 @@ export function $setOnInsert(left: BSONNode, right: BSONNode): BSONNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/unset/
  */
-export function $unset(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $unset')
+export function $unset(parent: BSONNode, key: BSONNode): BSONNode {
+  unsetKey(
+    assertBSON(parent, NodeKind.OBJECT),
+    assertBSON(key, NodeKind.STRING).value,
+  )
+
+  return parent // ignored value
 }
+
+withParsing($unset, arg => {
+  if (arg.value !== '') {
+    throw new TypeError('$unset expectes empty strings')
+  }
+  return []
+})
+
+useParent($unset)
