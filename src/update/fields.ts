@@ -145,13 +145,6 @@ export function $set(_left: BSONNode, right: BSONNode): BSONNode {
 withArguments($set, 1)
 
 /**
- * https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/
- */
-export function $setOnInsert(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $setOnInsert')
-}
-
-/**
  * https://www.mongodb.com/docs/manual/reference/operator/update/unset/
  */
 export function $unset(parent: BSONNode, key: BSONNode): BSONNode {

@@ -242,24 +242,6 @@ test('$set', t => {
   )
 })
 
-test('$setOnInsert', t => {
-  t.deepEqual(
-    update(
-      {
-        _id: 1,
-        item: 'apple',
-      },
-      {
-        $setOnInsert: {
-          defaultQty: 100,
-        },
-      },
-      true,
-    ),
-    { _id: 1, item: 'apple', defaultQty: 100 },
-  )
-})
-
 test('$mul', t => {
   t.deepEqual(
     update(

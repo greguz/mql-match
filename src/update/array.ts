@@ -4,13 +4,6 @@ import { withParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
 
 /**
- * https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/
- */
-export function $addToSet(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $addToSet')
-}
-
-/**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pop/
  */
 export function $pop(left: BSONNode, right: BSONNode): BSONNode {
@@ -38,24 +31,3 @@ withParsing($pop, arg => {
   }
   return [nDouble(n)]
 })
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/update/pull/
- */
-export function $pull(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $pull')
-}
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/update/push/
- */
-export function $push(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $push')
-}
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/
- */
-export function $pullAll(left: BSONNode, right: BSONNode): BSONNode {
-  throw new Error('TODO: $pullAll')
-}

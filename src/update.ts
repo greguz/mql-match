@@ -15,7 +15,7 @@ import {
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
-import { $addToSet, $pop, $pull, $pullAll, $push } from './update/array.js'
+import { $pop } from './update/array.js'
 import {
   $currentDate,
   $inc,
@@ -24,24 +24,18 @@ import {
   $mul,
   $rename,
   $set,
-  $setOnInsert,
   $unset,
 } from './update/fields.js'
 
 const OPERATORS: Record<string, Operator | undefined> = {
-  $addToSet,
   $currentDate,
   $inc,
   $max,
   $min,
   $mul,
   $pop,
-  $pull,
-  $pullAll,
-  $push,
   $rename,
   $set,
-  $setOnInsert,
   $unset,
 }
 

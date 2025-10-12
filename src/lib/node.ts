@@ -48,6 +48,7 @@ export const NodeKind = Object.freeze({
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
   UPDATE_PATH: 'UPDATE_PATH',
   EXPRESSION_GETTER: 'EXPRESSION_GETTER',
+  MATCH_SEQUENCE: 'MATCH_SEQUENCE',
 })
 
 export interface BooleanNode {
@@ -253,7 +254,7 @@ export interface MatchArrayNode {
   /**
    * Not having the `MatchExpressionNode` because it must be top-level.
    */
-  args: Array<MatchArrayNode | MatchPathNode>
+  node: MatchNode | MatchSequenceNode
   /**
    * Can be negated inside a `$not`.
    */
@@ -290,3 +291,24 @@ export type ExpressionNode =
   | ExpressionGetterNode
   | OperatorNode
   | ProjectNode
+
+/**
+ * All possible parsed nodes from a match query.
+ */
+export type MatchNode =
+  | MatchArrayNode
+  | MatchExpressionNode
+  | MatchPathNode
+  | MatchSequenceNode
+
+export interface MatchSequenceNode {
+  kind: typeof NodeKind.MATCH_SEQUENCE
+  /**
+   * $and, $or, $nor
+   */
+  operator: '$and' | '$or' | '$nor'
+  /**
+   *
+   */
+  nodes: MatchNode[]
+}

@@ -4,15 +4,16 @@ import {
   type BooleanNode,
   type BSONNode,
   type MatchArrayNode,
-  type MatchExpressionNode,
+  type MatchNode,
   type MatchPathNode,
+  type MatchSequenceNode,
   NodeKind,
   nBoolean,
   nNullish,
 } from './lib/node.js'
 import { type Operator, parseOperatorArguments } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
-import { expected, isPlainObject } from './lib/util.js'
+import { expected, isArray, isPlainObject } from './lib/util.js'
 import { $all, $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
 import { $mod, $regex } from './match/miscellaneous.js'
@@ -36,76 +37,109 @@ const OPERATORS: Record<string, Operator | undefined> = {
   $type,
 }
 
-/**
- * All possible parsed nodes from a match query.
- */
-export type MatchNode = MatchArrayNode | MatchExpressionNode | MatchPathNode
-
 export function compileMatch(query: unknown = {}) {
-  const nodes = Array.from(
-    // Not standard, but that's ok :)
-    parseMatch(isPlainObject(query) ? query : { $eq: query }),
-  )
+  const node = parseMatch(isPlainObject(query) ? query : { $eq: query })
   return (value?: unknown): boolean => {
-    return resolveMatch(nodes, wrapBSON(value)).value
+    return resolveMatch(node, wrapBSON(value)).value
   }
 }
 
 /**
  * Parse a top-level query.
  */
-export function* parseMatch(
+export function parseMatch(
   query: Record<string, unknown>,
-): Generator<MatchNode> {
+): MatchNode | MatchSequenceNode {
   const keys = Object.keys(query)
-  if (
-    keys.some(
-      k =>
-        k[0] === '$' &&
-        k !== '$and' &&
-        k !== '$comment' &&
-        k !== '$expr' && // TODO: top?
-        k !== '$nor' &&
-        k !== '$or',
-    )
-  ) {
-    yield* compilePathPredicate(keys, query, [])
-  } else {
-    for (const key of keys) {
-      yield* compilePredicateKey(key, query[key])
+
+  const $and: MatchSequenceNode = {
+    kind: NodeKind.MATCH_SEQUENCE,
+    operator: '$and',
+    nodes: [],
+  }
+
+  for (const key of keys) {
+    const value = query[key]
+
+    // Handle direct path values
+    if (key[0] !== '$') {
+      $and.nodes.push(...compilePredicateKey(key, value))
+      continue
+    }
+
+    // Handle operators
+    switch (key) {
+      case '$expr':
+        $and.nodes.push({
+          kind: NodeKind.MATCH_EXPRESSION,
+          expression: parseExpression({ $toBool: value }),
+        })
+        break
+
+      case '$and': {
+        if (!isArray(value) || !value.length) {
+          throw new TypeError(`Operator ${key} expects a non-empty array`)
+        }
+        for (const obj of value) {
+          if (!isPlainObject(obj)) {
+            throw new TypeError(
+              `Operator ${key} expects a non-empty array of objects`,
+            )
+          }
+
+          const out = parseMatch(obj)
+          if (out.kind === NodeKind.MATCH_SEQUENCE && out.operator === '$and') {
+            $and.nodes.push(...out.nodes)
+          } else {
+            $and.nodes.push(out)
+          }
+        }
+        break
+      }
+
+      case '$nor':
+      case '$or': {
+        if (!isArray(value) || !value.length) {
+          throw new TypeError(`Operator ${key} expects a non-empty array`)
+        }
+
+        const group: MatchSequenceNode = {
+          kind: NodeKind.MATCH_SEQUENCE,
+          operator: key,
+          nodes: [],
+        }
+
+        for (const obj of value) {
+          if (!isPlainObject(obj)) {
+            throw new TypeError(
+              `Operator ${key} expects a non-empty array of objects`,
+            )
+          }
+          group.nodes.push(parseMatch(obj))
+        }
+        $and.nodes.push(group)
+        break
+      }
+
+      default:
+        $and.nodes.push(...compileOperator([], key, value))
+        break
     }
   }
+
+  return $and.nodes.length === 1 ? $and.nodes[0] : $and
 }
 
 function* compilePredicateKey(
   key: string,
   value: unknown,
 ): Generator<MatchNode> {
-  // TODO: $or, $nor (top-level or directly inside $elemMatch)
-  if (key === '$expr') {
-    yield {
-      kind: NodeKind.MATCH_EXPRESSION,
-      expression: parseExpression({ $toBool: value }),
-    }
-    return
-  }
-
-  if (key === '$and') {
-    if (!Array.isArray(value)) {
-      throw new TypeError('$and must be an array')
-    }
-    for (const v of value) {
-      yield* parseMatch(v)
-    }
-    return
-  }
-
   const path = parsePath(key)
 
   if (isPlainObject(value)) {
     const keys = Object.keys(value)
     if (keys.some(k => k[0] === '$')) {
-      yield* compilePathPredicate(keys, value, path)
+      yield* compilePredicateObject(keys, value, path)
       return
     }
   }
@@ -113,11 +147,11 @@ function* compilePredicateKey(
   yield* compileOperator(path, '$eq', value)
 }
 
-function* compilePathPredicate(
+function* compilePredicateObject(
   keys: string[],
   query: Record<string, unknown>,
   path: Path,
-): Generator<MatchNode> {
+): Generator<MatchArrayNode | MatchPathNode> {
   // $regex and $options are special babys...
   if (query.$options && !query.$regex) {
     throw new TypeError('$options needs a $regex')
@@ -135,7 +169,7 @@ function* compileOperator(
   path: Path,
   key: string,
   value: unknown,
-): Generator<MatchNode> {
+): Generator<MatchArrayNode | MatchPathNode> {
   if (key === '$comment') {
     // Stub
     return
@@ -145,21 +179,10 @@ function* compileOperator(
     if (!isPlainObject(value)) {
       throw new TypeError('$elemMatch needs an Object')
     }
-
-    const args: Array<MatchArrayNode | MatchPathNode> = []
-    for (const node of parseMatch(value)) {
-      if (node.kind === NodeKind.MATCH_EXPRESSION) {
-        throw new TypeError(
-          '$expr can only be applied to the top-level document',
-        )
-      }
-      args.push(node)
-    }
-
     yield {
       kind: NodeKind.MATCH_ARRAY,
       path,
-      args,
+      node: parseMatch(value),
       negate: false,
     }
     return
@@ -169,12 +192,11 @@ function* compileOperator(
     if (!isPlainObject(value)) {
       throw new TypeError('$not needs an Object')
     }
-    for (const node of compilePathPredicate(Object.keys(value), value, path)) {
-      if (node.kind === NodeKind.MATCH_EXPRESSION) {
-        throw new TypeError(
-          '$expr can only be applied to the top-level document',
-        )
-      }
+    for (const node of compilePredicateObject(
+      Object.keys(value),
+      value,
+      path,
+    )) {
       node.negate = !node.negate
       yield node
     }
@@ -207,66 +229,72 @@ function* compileOperator(
   }
 }
 
-/**
- * Resolve parsed node into raw value.
- */
-export function resolveMatch(
-  query: MatchNode[],
-  document: BSONNode,
-): BooleanNode {
-  for (const node of query) {
-    if (node.kind === NodeKind.MATCH_EXPRESSION) {
-      // $toBool was added during parsing
-      if (!resolveExpression(node.expression, document).value) {
-        return nBoolean(false)
-      }
-      continue
-    }
+export function resolveMatch(node: MatchNode, doc: BSONNode): BooleanNode {
+  if (node.kind === NodeKind.MATCH_EXPRESSION) {
+    // $toBool was added during parsing
+    return nBoolean(resolveExpression(node.expression, doc).value === true)
+  }
 
-    const values = getPathValues(node.path, document)
-    if (!values.length) {
-      values.push(nNullish())
-    }
+  if (node.kind !== NodeKind.MATCH_SEQUENCE) {
+    return resolveMatchNode(node, doc)
+  }
 
-    // node result
-    let result = false
+  for (const n of node.nodes) {
+    const result = resolveMatch(n, doc)
 
-    // if NOT negated: first matching value skips to next rule
-    for (let li = 0; li < values.length && !result; li++) {
-      const left = values[li]
-
-      switch (node.kind) {
-        case NodeKind.MATCH_ARRAY: {
-          if (left.kind === NodeKind.ARRAY) {
-            for (let ai = 0; ai < left.value.length && !result; ai++) {
-              result = resolveMatch(node.args, left.value[ai]).value
-            }
-          }
-          break
-        }
-
-        case NodeKind.MATCH_PATH: {
-          const fn = expected(OPERATORS[node.operator])
-          result = !!fn(left, ...node.args).value
-          break
-        }
-      }
-
-      // if negated: first non-matching value returns false instantly
-      if (node.negate && result) {
-        return nBoolean(false)
-      }
-    }
-
-    if (node.negate) {
-      result = !result
-    }
-    if (!result) {
+    if (node.operator === '$and' && !result.value) {
       return nBoolean(false)
+    }
+    if (node.operator === '$nor' && result.value) {
+      return nBoolean(false)
+    }
+    if (node.operator === '$or' && result.value) {
+      return nBoolean(true)
     }
   }
 
-  return nBoolean(true)
+  return nBoolean(node.operator !== '$or')
+}
+
+/**
+ * Resolve parsed node into raw value.
+ */
+function resolveMatchNode(
+  node: MatchArrayNode | MatchPathNode,
+  doc: BSONNode,
+): BooleanNode {
+  const values = getPathValues(node.path, doc)
+  if (!values.length) {
+    values.push(nNullish())
+  }
+
+  // node result
+  let result = false
+
+  // if NOT negated: first matching value skips to next rule
+  for (let li = 0; li < values.length && !result; li++) {
+    const left = values[li]
+
+    switch (node.kind) {
+      case NodeKind.MATCH_ARRAY: {
+        if (left.kind === NodeKind.ARRAY) {
+          for (let i = 0; i < left.value.length && !result; i++) {
+            result = resolveMatch(node.node, left.value[i]).value
+          }
+        }
+        break
+      }
+
+      case NodeKind.MATCH_PATH: {
+        const fn = expected(OPERATORS[node.operator])
+        result = !!fn(left, ...node.args).value
+        break
+      }
+    }
+  }
+
+  // First match XOR negated node
+  return nBoolean(result !== node.negate)
 }
 
 export function getPathValues(

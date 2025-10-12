@@ -347,3 +347,73 @@ test('$all', t => {
 test('$comment', t => {
   t.true(matchOne({ $comment: 'oh no' }, { hello: 'world' }))
 })
+
+test('$and', t => {
+  t.throws(() => matchOne({ $and: [] }))
+  t.true(
+    matchOne(
+      {
+        $expr: true,
+        $and: [
+          {
+            $expr: true,
+            $and: [
+              {
+                $expr: true,
+                $and: [{ hello: 'world' }],
+              },
+            ],
+          },
+        ],
+      },
+      { hello: 'world' },
+    ),
+  )
+  t.false(
+    matchOne(
+      {
+        $expr: true,
+        $and: [
+          {
+            $expr: true,
+            $and: [
+              {
+                $expr: true,
+                $and: [{ hello: 'nope' }],
+              },
+            ],
+          },
+        ],
+      },
+      { hello: 'world' },
+    ),
+  )
+})
+
+test('$or', t => {
+  t.throws(() => matchOne({ $or: [] }))
+  t.true(
+    matchOne({
+      $or: [{ $expr: false }, { $expr: true }, { $expr: false }],
+    }),
+  )
+  t.false(
+    matchOne({
+      $or: [{ $expr: false }, { $expr: false }, { $expr: false }],
+    }),
+  )
+})
+
+test('$nor', t => {
+  t.throws(() => matchOne({ $nor: [] }))
+  t.false(
+    matchOne({
+      $nor: [{ $expr: false }, { $expr: true }, { $expr: false }],
+    }),
+  )
+  t.true(
+    matchOne({
+      $nor: [{ $expr: false }, { $expr: false }, { $expr: false }],
+    }),
+  )
+})
