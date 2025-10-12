@@ -347,3 +347,10 @@ test('$currentDate', t => {
   t.true(doc.lastModified instanceof Date)
   // t.true(isTimestamp(doc.cancellation.date))
 })
+
+test('$pullAll', t => {
+  const doc = { _id: 1, scores: [0, 2, 5, 5, 1, 0] }
+  const update = compileUpdate({ $pullAll: { scores: [0, 5] } })
+  update(doc)
+  t.deepEqual(doc, { _id: 1, scores: [2, 1] })
+})

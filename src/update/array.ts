@@ -1,5 +1,7 @@
-import { unwrapNumber } from '../lib/bson.js'
+import { $eq } from '../expression/comparison.js'
+import { assertBSON, unwrapNumber } from '../lib/bson.js'
 import {
+  type ArrayNode,
   type BSONNode,
   type MatchNode,
   NodeKind,
@@ -57,3 +59,27 @@ export function $pull(node: BSONNode, query: MatchNode): BSONNode {
 }
 
 withQueryParsing($pull, arg => [parseMatch(arg)] as const)
+
+export function $pullAll(node: BSONNode, blacklist: ArrayNode): BSONNode {
+  if (node.kind !== NodeKind.ARRAY) {
+    return node // TODO: correct?
+  }
+
+  for (const value of blacklist.value) {
+    let i = 0
+    while (i < node.value.length) {
+      if ($eq(node.value[i], value).value) {
+        expected(node.raw).splice(i, 1)
+        node.value.splice(i, 1)
+      } else {
+        i++
+      }
+    }
+  }
+
+  return node
+}
+
+withQueryParsing<[ArrayNode]>($pullAll, arg => [
+  assertBSON(arg, NodeKind.ARRAY, '$pullAll expectes an array'),
+])

@@ -15,7 +15,7 @@ import {
 import { parseQueryArgs, type QueryOperator } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, isPlainObject } from './lib/util.js'
-import { $pop, $pull } from './update/array.js'
+import { $pop, $pull, $pullAll } from './update/array.js'
 import {
   $currentDate,
   $inc,
@@ -35,6 +35,7 @@ const OPERATORS: Record<string, QueryOperator<any[]> | undefined> = {
   $mul,
   $pop,
   $pull,
+  $pullAll,
   $rename,
   $set,
   $unset,
