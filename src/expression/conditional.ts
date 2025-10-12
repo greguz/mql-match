@@ -18,7 +18,7 @@ withArguments($cond, 1, 3)
 
 withParsing($cond, (...args) => {
   if (args.length === 3) {
-    return args
+    return args as [BSONNode, BSONNode, BSONNode]
   }
   if (args.length !== 1 || args[0].kind !== NodeKind.OBJECT) {
     throw new TypeError('Expression $cond takes exactly 3 arguments')
@@ -39,7 +39,7 @@ withParsing($cond, (...args) => {
     throw new TypeError("Missing 'else' parameter to $cond")
   }
 
-  return [ifNode, thenNode, elseNode]
+  return [ifNode, thenNode, elseNode] as const
 })
 
 /**

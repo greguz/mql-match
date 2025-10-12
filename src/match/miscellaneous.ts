@@ -14,7 +14,7 @@ import {
   nBoolean,
   nNullish,
 } from '../lib/node.js'
-import { withParsing } from '../lib/operator.js'
+import { withQueryParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
 
 /**
@@ -40,7 +40,7 @@ export function $mod(
   )
 }
 
-withParsing($mod, arg => {
+withQueryParsing($mod, arg => {
   if (arg.kind !== NodeKind.ARRAY) {
     throw new TypeError('malformed mod, needs to be an array')
   }
@@ -62,7 +62,7 @@ withParsing($mod, arg => {
     throw new TypeError('Unable to coerce NaN/Inf to integral type')
   }
 
-  return [arg.value[0], arg.value[1]]
+  return [arg.value[0], arg.value[1]] as const
 })
 
 /**
@@ -73,10 +73,13 @@ export function $regex(
   regex: BSONNode,
   options: BSONNode,
 ): BooleanNode {
-  return $regexMatch(input, regex, options)
+  // TODO: strange modes?
+  return input.kind === NodeKind.STRING
+    ? $regexMatch(input, regex, options)
+    : nBoolean(false)
 }
 
-withParsing($regex, arg => {
+withQueryParsing($regex, arg => {
   // Hacked "parent" object (see `match.ts`)
   const obj = assertBSON(arg, NodeKind.OBJECT).value
 
@@ -108,5 +111,5 @@ withParsing($regex, arg => {
     regex = new RegExp(regex, flags)
   }
 
-  return [{ kind: NodeKind.REGEX, value: regex }, nNullish()]
+  return [{ kind: NodeKind.REGEX, value: regex }, nNullish()] as const
 })

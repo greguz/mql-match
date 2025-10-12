@@ -42,9 +42,6 @@ const match = compileFilterQuery({
 console.log(documents.find(match))
 
 const update = compileUpdateQuery({
-  $setOnInsert: {
-    hello: 'World'
-  },
   $set: {
     my: 'Pleasure'
   }
@@ -54,12 +51,6 @@ const oldObject = { _id: "my_doc" }
 update(oldObject)
 // logs { _id: 'my_doc', my: 'Pleasure' }
 console.log(oldObject)
-
-const newObject = {}
-// the `true` say that this document was inserted
-update(newObject, true)
-// logs { _id: new ObjectId("xxxxxxxxxxxxxxxxxxxxxxxx"), hello: 'World', my: 'Pleasure' }
-console.log(newObject)
 
 const map = compileAggregationExpression({
   _id: 0,
@@ -174,7 +165,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$mul`](https://www.mongodb.com/docs/manual/reference/operator/update/mul/)
 - [x] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
-- [x] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
+- [ ] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/update/unset/)
 
 #### Array

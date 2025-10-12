@@ -6,7 +6,7 @@ import {
   NodeKind,
   nBoolean,
 } from '../lib/node.js'
-import { type Operator, withArguments, withParsing } from '../lib/operator.js'
+import { type ExpressionOperator, withQueryParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
@@ -38,8 +38,6 @@ function eqValue(left: BSONNode, right: BSONNode): BooleanNode {
   return comparison.$eq(left, right)
 }
 
-withArguments($eq, 1)
-
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/in/
  */
@@ -56,10 +54,12 @@ export function $in(valueNode: BSONNode, arrayNode: BSONNode): BooleanNode {
   return nBoolean(false)
 }
 
-withParsing($in, arg => [assertBSON(arg, NodeKind.ARRAY, '$in needs an array')])
+withQueryParsing<[BSONNode]>($in, arg => [
+  assertBSON(arg, NodeKind.ARRAY, '$in needs an array'),
+])
 
-function castOperator(fn: Operator): Operator {
-  const copy: Operator = fn.bind(null)
+function castOperator(fn: ExpressionOperator): ExpressionOperator {
+  const copy: ExpressionOperator = fn.bind(null)
 
   const minArgs = fn.minArgs ?? fn.length
   const maxArgs = fn.maxArgs ?? minArgs

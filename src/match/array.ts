@@ -6,7 +6,7 @@ import {
   nBoolean,
   nDouble,
 } from '../lib/node.js'
-import { withParsing } from '../lib/operator.js'
+import { withQueryParsing } from '../lib/operator.js'
 import { $eq } from './comparison.js'
 
 /**
@@ -19,7 +19,7 @@ export function $size(left: BSONNode, right: BSONNode): BooleanNode {
   )
 }
 
-withParsing($size, arg => {
+withQueryParsing($size, arg => {
   const n = unwrapDecimal(
     arg,
     `Failed to parse $size: expected a number (got ${arg.kind})`,
@@ -32,7 +32,7 @@ withParsing($size, arg => {
       `Failed to parse $size: expected a non-negative number (got ${n})`,
     )
   }
-  return [nDouble(n)]
+  return [nDouble(n)] as const
 })
 
 /**
@@ -51,6 +51,6 @@ export function $all(left: BSONNode, right: BSONNode): BooleanNode {
   return nBoolean(values.length > 0)
 }
 
-withParsing($all, arg => [
+withQueryParsing<[BSONNode]>($all, arg => [
   assertBSON(arg, NodeKind.ARRAY, '$all needs an array'),
 ])

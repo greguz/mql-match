@@ -265,7 +265,10 @@ export interface UpdatePathNode {
   kind: typeof NodeKind.UPDATE_PATH
   path: Path
   operator: string
-  args: BSONNode[]
+  /**
+   * Operator's arguments.
+   */
+  args: unknown[]
 }
 
 /**

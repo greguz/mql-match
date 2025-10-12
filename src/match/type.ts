@@ -7,7 +7,7 @@ import {
   nBoolean,
   nString,
 } from '../lib/node.js'
-import { withParsing } from '../lib/operator.js'
+import { withQueryParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/type/
@@ -20,7 +20,7 @@ export function $exists(value: BSONNode, presence: BSONNode): BooleanNode {
   )
 }
 
-withParsing($exists, arg => [$toBool(arg)])
+withQueryParsing<[BSONNode]>($exists, arg => [$toBool(arg)])
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/type/
@@ -36,7 +36,7 @@ export function $type(
   return nBoolean(result)
 }
 
-withParsing($type, arg => {
+withQueryParsing($type, arg => {
   return arg.kind === NodeKind.ARRAY
     ? arg.value.map(a => nString(parseBSONType(a)))
     : [nString(parseBSONType(arg))]

@@ -16,7 +16,7 @@ import {
   nString,
   nTimestamp,
 } from '../lib/node.js'
-import { useParent, withArguments, withParsing } from '../lib/operator.js'
+import { useParent, withQueryParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/
@@ -25,9 +25,9 @@ export function $currentDate(_left: BSONNode, right: BSONNode): BSONNode {
   return right.value === 'timestamp' ? nTimestamp() : nDate()
 }
 
-withParsing($currentDate, arg => {
+withQueryParsing($currentDate, arg => {
   if (arg.kind === NodeKind.BOOLEAN && arg.value === true) {
-    return [nString('date')]
+    return [nString('date')] as const
   }
   if (arg.kind !== NodeKind.OBJECT) {
     throw new TypeError(
@@ -42,7 +42,7 @@ withParsing($currentDate, arg => {
     )
   }
 
-  return [dateType]
+  return [dateType] as const
 })
 
 /**
@@ -61,7 +61,7 @@ export function $inc(left: BSONNode, right: BSONNode): BSONNode {
   )
 }
 
-withParsing($inc, right => [
+withQueryParsing<[BSONNode]>($inc, right => [
   nDouble(unwrapNumber(right, 'Cannot increment with non-numeric argument')),
 ])
 
@@ -75,8 +75,6 @@ export function $min(left: BSONNode, right: BSONNode): BSONNode {
   return $lt(right, left).value ? right : left
 }
 
-withArguments($min, 1)
-
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/max/
  */
@@ -86,8 +84,6 @@ export function $max(left: BSONNode, right: BSONNode): BSONNode {
   }
   return $gt(right, left).value ? right : left
 }
-
-withArguments($max, 1)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/mul/
@@ -104,7 +100,7 @@ export function $mul(left: BSONNode, right: BSONNode): BSONNode {
   )
 }
 
-withParsing($mul, arg => [
+withQueryParsing<[BSONNode]>($mul, arg => [
   assertNumber(arg, 'Cannot multiply with non-numeric argument'),
 ])
 
@@ -129,11 +125,9 @@ export function $rename(
   return parentNode // ignored value
 }
 
-withParsing($rename, arg => [
+useParent<[BSONNode]>($rename, arg => [
   assertBSON(arg, NodeKind.STRING, '$rename expects a string'),
 ])
-
-useParent($rename)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/set/
@@ -141,8 +135,6 @@ useParent($rename)
 export function $set(_left: BSONNode, right: BSONNode): BSONNode {
   return right
 }
-
-withArguments($set, 1)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/unset/
@@ -156,11 +148,9 @@ export function $unset(parent: BSONNode, key: BSONNode): BSONNode {
   return parent // ignored value
 }
 
-withParsing($unset, arg => {
+useParent<[]>($unset, arg => {
   if (arg.value !== '') {
     throw new TypeError('$unset expectes empty strings')
   }
   return []
 })
-
-useParent($unset)

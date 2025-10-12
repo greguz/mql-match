@@ -132,7 +132,7 @@ withParsing($convert, arg => {
     parseConvertFormat(arg.value.format),
     arg.value.onError || nNullish(),
     arg.value.onNull || nNullish(),
-  ]
+  ] as const
 })
 
 function parseConvertSubtype(node: BSONNode = nNullish()): BSONNode {

@@ -60,7 +60,7 @@ import {
   type ProjectNode,
   type StringNode,
 } from './lib/node.js'
-import { type Operator, parseOperatorArguments } from './lib/operator.js'
+import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
@@ -69,7 +69,7 @@ import { expected } from './lib/util.js'
  * https://www.mongodb.com/docs/v7.0/reference/aggregation-variables/
  * https://www.mongodb.com/docs/manual/reference/mql/expressions/
  */
-const OPERATORS: Record<string, Operator | undefined> = {
+const OPERATORS: Record<string, ExpressionOperator | undefined> = {
   $$CLUSTER_TIME,
   $$NOW,
   $$ROOT,
@@ -123,7 +123,7 @@ const OPERATORS: Record<string, Operator | undefined> = {
  * Compiles an aggregation expression into a map function.
  */
 export function compileExpression(value: unknown) {
-  const node = parseExpression(value)
+  const node = parseExpression(wrapBSON(value))
   return <T = unknown>(value?: unknown): T => {
     return unwrapBSON(resolveExpression(node, wrapBSON(value))) as T
   }
@@ -180,19 +180,12 @@ export function resolveExpression(
 /**
  * Parse both values and operators.
  */
-export function parseExpression(value: unknown): ExpressionNode {
-  return expandNode(wrapBSON(value))
-}
-
-/**
- * Objects, strings, and arrays are "expanded" by default.
- */
-function expandNode(node: ExpressionNode): ExpressionNode {
+export function parseExpression(node: ExpressionNode): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
       return {
         kind: NodeKind.EXPRESSION_ARRAY,
-        nodes: node.value.map(expandNode),
+        nodes: node.value.map(parseExpression),
       }
     case NodeKind.OBJECT:
       return parseObjectNode(node)
@@ -212,7 +205,7 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
     if (!fn) {
       throw new TypeError(`Unsupported system variable: ${value}`)
     }
-    return nOperator(value, parseOperatorArguments(fn, []))
+    return nOperator(value, parseExpressionArgs(fn, []))
   }
 
   if (value[0] === '$') {
@@ -237,12 +230,12 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
       throw new TypeError(`Unsupported expression operator: ${key}`)
     }
 
-    const args: ExpressionNode[] = parseOperatorArguments(
+    const args: ExpressionNode[] = parseExpressionArgs(
       operator,
       normalizeArguments(expected(node.value[key])),
     )
     for (let i = 0; i < args.length; i++) {
-      args[i] = expandNode(args[i])
+      args[i] = parseExpression(args[i])
     }
 
     return nOperator(key, args)
@@ -272,7 +265,7 @@ function expandInclusion(project: ProjectNode): void {
     if (node.value.kind === NodeKind.PROJECT) {
       expandInclusion(node.value)
     } else {
-      node.value = expandNode(node.value)
+      node.value = parseExpression(node.value)
     }
   }
 }

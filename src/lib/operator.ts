@@ -3,11 +3,11 @@ import { type BSONNode, nNullish } from './node.js'
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
  */
-export interface Operator {
+export interface ExpressionOperator<T extends BSONNode[] = BSONNode[]> {
   /**
    * Operator spec.
    */
-  (...args: BSONNode[]): BSONNode
+  (...args: T): BSONNode
   /**
    * @default operator.length
    */
@@ -19,72 +19,66 @@ export interface Operator {
   /**
    * Maps from X input arguments to Y input arguments.
    */
-  parseArguments?: (...args: BSONNode[]) => BSONNode[]
+  parse?: (...args: BSONNode[]) => T
   /**
    * Push root value into Operator's arguments.
    */
   useRoot?: boolean
-  /**
-   * Update operators.
-   * When `true` replaces the field's value with its parent and key nodes.
-   */
-  useParent?: boolean
 }
 
 /**
  * Explicit number of arguments declaration.
  */
-export function withArguments(fn: Operator, minArgs: number, maxArgs?: number) {
-  if (fn.minArgs !== undefined || fn.maxArgs !== undefined) {
-    throw new Error(`Operator ${fn.name} has already arguments specified`)
+export function withArguments<T extends BSONNode[]>(
+  operator: ExpressionOperator<T>,
+  minArgs: number,
+  maxArgs?: number,
+) {
+  if (operator.minArgs !== undefined || operator.maxArgs !== undefined) {
+    throw new Error(`Operator ${operator.name} has already arguments specified`)
   }
-  fn.minArgs = minArgs
-  fn.maxArgs = maxArgs
+  operator.minArgs = minArgs
+  operator.maxArgs = maxArgs
 }
 
 /**
  * Custom arguments parsing.
  */
-export function withParsing(
-  fn: Operator,
-  parseArguments: NonNullable<Operator['parseArguments']>,
+export function withParsing<T extends BSONNode[]>(
+  operator: ExpressionOperator<T>,
+  parse: (...args: BSONNode[]) => T,
 ) {
-  if (fn.parseArguments) {
+  if (operator.parse) {
     throw new Error(
-      `Operator ${fn.name} cannot specify a custom arguments parser`,
+      `Expression operator ${operator.name} cannot specify a custom arguments parser`,
     )
   }
-  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
-    fn.minArgs = parseArguments.length
-    fn.maxArgs = parseArguments.length
+  if (operator.minArgs === undefined && operator.maxArgs === undefined) {
+    operator.minArgs = parse.length
+    operator.maxArgs = parse.length
   }
-  fn.parseArguments = parseArguments
+  operator.parse = parse
 }
 
-export function useRoot(fn: Operator) {
-  if (fn.useRoot !== undefined) {
+/**
+ * TODO: hacky
+ */
+export function useRoot(operator: ExpressionOperator) {
+  if (operator.useRoot !== undefined) {
     throw new Error() // TODO
   }
-  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
-    fn.minArgs = fn.length - 1
-    fn.maxArgs = fn.length - 1
+  if (operator.minArgs === undefined && operator.maxArgs === undefined) {
+    operator.minArgs = operator.length - 1
+    operator.maxArgs = operator.length - 1
   }
-  fn.useRoot = true
+  operator.useRoot = true
 }
 
-export function useParent(fn: Operator) {
-  if (fn.useParent !== undefined) {
-    throw new Error() // TODO
-  }
-  if (fn.minArgs === undefined && fn.maxArgs === undefined) {
-    fn.minArgs = fn.length - 2
-    fn.maxArgs = fn.length - 2
-  }
-  fn.useParent = true
-}
-
-export function parseOperatorArguments(
-  operator: Operator,
+/**
+ * Parse arguments validate arguments array.
+ */
+export function parseExpressionArgs(
+  operator: ExpressionOperator,
   args: BSONNode[],
 ): BSONNode[] {
   const minArgs = operator.minArgs ?? operator.length
@@ -107,8 +101,8 @@ export function parseOperatorArguments(
   }
 
   // The Operators knows what to do
-  if (operator.parseArguments) {
-    return operator.parseArguments(...args)
+  if (operator.parse) {
+    return operator.parse(...args)
   }
 
   // Ensure correct number of arguments (if auto)
@@ -119,4 +113,61 @@ export function parseOperatorArguments(
   }
 
   return args
+}
+
+/**
+ * Both match and update query types.
+ */
+export interface QueryOperator<T extends unknown[] = unknown[]> {
+  /**
+   * Accepts the current document's value and the operator's argument.
+   * Returns the the document's value.
+   */
+  (value: BSONNode, ...args: T): BSONNode
+  /**
+   * Custom query arguments parsing function.
+   * By default take the query as-is.
+   */
+  parse?: (...args: BSONNode[]) => T
+  /**
+   * Update operators.
+   * When `true` replaces the field's value with its parent and key nodes.
+   */
+  useParent?: boolean
+}
+
+export function withQueryParsing<T extends unknown[]>(
+  operator: QueryOperator<T>,
+  parse: (...args: BSONNode[]) => T,
+): void {
+  if (operator.parse !== undefined) {
+    throw new Error(
+      `Query operator ${operator.name} cannot have multiple parsers`,
+    )
+  }
+  operator.parse = parse
+}
+
+/**
+ * This will inject a second heading arguments during query resolution.
+ * This means that the parsing function must ignore the first 2 arguments.
+ */
+export function useParent<T extends unknown[]>(
+  operator: QueryOperator<[BSONNode, ...T]>,
+  parse?: (...args: BSONNode[]) => T,
+): void {
+  if (operator.useParent !== undefined) {
+    throw new Error('Double useParent assignment')
+  }
+  operator.useParent = true
+  if (parse) {
+    withQueryParsing(operator, parse as any) // hacky
+  }
+}
+
+export function parseQueryArgs<T extends unknown[]>(
+  operator: QueryOperator<T>,
+  arg: BSONNode,
+): T {
+  return operator.parse ? operator.parse(arg) : ([arg] as T)
 }
