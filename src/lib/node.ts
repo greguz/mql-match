@@ -4,42 +4,63 @@ import type { Decimal } from 'decimal.js'
 import type { Path } from './path.js'
 
 export const NodeKind = Object.freeze({
+  /**
+   * BSON node.
+   */
   ARRAY: 'ARRAY',
+  /**
+   * BSON node: `Uint8Array` instance.
+   */
   BINARY: 'BINARY',
+  /**
+   * BSON node.
+   */
   BOOLEAN: 'BOOLEAN',
+  /**
+   * BSON node: `Date` instance.
+   */
   DATE: 'DATE',
   /**
-   * JavaScript numbers.
+   * BSON node: JavaScript numbers.
    */
   DOUBLE: 'DOUBLE',
   /**
-   * 32-bit integer.
+   * BSON node: `Int32` instance (32-bit integer).
    */
   INT: 'INT',
   /**
-   * 64-bit integer.
+   * BSON node: `Long` instance (64-bit integer).
    */
   LONG: 'LONG',
   /**
-   * Decimal128
+   * BSON node: `Decimal128` instance.
    */
   DECIMAL: 'DECIMAL',
   /**
-   * Represents both `null` and `undefined`.
+   * BSON node: represents both `null` and `undefined`.
    */
   NULLISH: 'NULLISH',
+  /**
+   * BSON node: `ObjectId` instance.
+   */
   OBJECT_ID: 'OBJECT_ID',
+  /**
+   * BSON node: plain object.
+   */
   OBJECT: 'OBJECT',
+  /**
+   * BSON node: `RegExp` instance.
+   */
   REGEX: 'REGEX',
+  /**
+   * BSON node.
+   */
   STRING: 'STRING',
+  /**
+   * BSON node: `Timestamp` instance.
+   */
   TIMESTAMP: 'TIMESTAMP',
-  /**
-   * Operator declaration.
-   */
-  OPERATOR: 'OPERATOR',
-  /**
-   * An array containing other nodes.
-   */
+  EXPRESSION_OPERATOR: 'EXPRESSION_OPERATOR',
   EXPRESSION_ARRAY: 'EXPRESSION_ARRAY',
   PROJECT: 'PROJECT',
   PATH: 'PATH',
@@ -193,17 +214,10 @@ export type BSONNode =
   | StringNode
   | TimestampNode
 
-export interface OperatorNode {
-  kind: typeof NodeKind.OPERATOR
+export interface ExpressionOperatorNode {
+  kind: typeof NodeKind.EXPRESSION_OPERATOR
   args: ExpressionNode[]
   operator: string
-}
-
-export function nOperator(
-  operator: string,
-  args: ExpressionNode[],
-): OperatorNode {
-  return { kind: NodeKind.OPERATOR, operator, args }
 }
 
 export interface ExpressionArrayNode {
@@ -292,7 +306,7 @@ export type ExpressionNode =
   | BSONNode
   | ExpressionArrayNode
   | ExpressionGetterNode
-  | OperatorNode
+  | ExpressionOperatorNode
   | ProjectNode
 
 /**
@@ -306,12 +320,6 @@ export type MatchNode =
 
 export interface MatchSequenceNode {
   kind: typeof NodeKind.MATCH_SEQUENCE
-  /**
-   * $and, $or, $nor
-   */
   operator: '$and' | '$or' | '$nor'
-  /**
-   *
-   */
   nodes: MatchNode[]
 }

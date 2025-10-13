@@ -2,12 +2,12 @@ import test from 'ava'
 
 import { compileUpdate } from './update.js'
 
-function update(data: unknown, query: unknown, insert = false) {
+function update(data: unknown, query: unknown) {
   const fn = compileUpdate(query)
   if (Array.isArray(data)) {
-    return data.map(item => fn(item, insert))
+    return data.map(item => fn(item))
   }
-  return fn(data, insert)
+  return fn(data)
 }
 
 test('$inc', t => {
@@ -119,39 +119,136 @@ test('$push', t => {
     ),
     { _id: 3, scores: [50, 60, 20, 30, 90, 80, 70, 100] },
   )
+  // t.deepEqual(
+  //   update(
+  //     {
+  //       _id: 5,
+  //       quizzes: [
+  //         { wk: 1, score: 10 },
+  //         { wk: 2, score: 8 },
+  //         { wk: 3, score: 5 },
+  //         { wk: 4, score: 6 },
+  //       ],
+  //     },
+  //     {
+  //       $push: {
+  //         quizzes: {
+  //           $each: [
+  //             { wk: 5, score: 8 },
+  //             { wk: 6, score: 7 },
+  //             { wk: 7, score: 6 },
+  //           ],
+  //           $sort: { score: -1 },
+  //           $slice: 3,
+  //         },
+  //       },
+  //     },
+  //   ),
+  //   {
+  //     _id: 5,
+  //     quizzes: [
+  //       { wk: 1, score: 10 },
+  //       { wk: 2, score: 8 },
+  //       { wk: 5, score: 8 },
+  //     ],
+  //   },
+  // )
+  t.deepEqual(update({}, { $push: { arr: 'hello world' } }), {
+    arr: ['hello world'],
+  })
+  t.deepEqual(update({}, { $push: { arr: ['hello world'] } }), {
+    arr: [['hello world']],
+  })
+  t.deepEqual(update({ items: [4] }, { $push: { items: 2 } }), {
+    items: [4, 2],
+  })
+  t.deepEqual(
+    update({ items: ['n', 'o'] }, { $push: { items: { $each: ['d', 'e'] } } }),
+    { items: ['n', 'o', 'd', 'e'] },
+  )
   t.deepEqual(
     update(
-      {
-        _id: 5,
-        quizzes: [
-          { wk: 1, score: 10 },
-          { wk: 2, score: 8 },
-          { wk: 3, score: 5 },
-          { wk: 4, score: 6 },
-        ],
-      },
+      { items: ['f', 's', 't'] },
       {
         $push: {
-          quizzes: {
-            $each: [
-              { wk: 5, score: 8 },
-              { wk: 6, score: 7 },
-              { wk: 7, score: 6 },
-            ],
-            $sort: { score: -1 },
-            $slice: 3,
+          items: {
+            $each: ['x', 'y', 'z'],
+            $position: 1,
           },
         },
       },
     ),
-    {
-      _id: 5,
-      quizzes: [
-        { wk: 1, score: 10 },
-        { wk: 2, score: 8 },
-        { wk: 5, score: 8 },
-      ],
-    },
+    { items: ['f', 'x', 'y', 'z', 's', 't'] },
+  )
+  t.deepEqual(
+    update(
+      { items: ['f', 's', 't'] },
+      {
+        $push: {
+          items: {
+            $each: ['x', 'y', 'z'],
+            $position: Number.NEGATIVE_INFINITY,
+          },
+        },
+      },
+    ),
+    { items: ['x', 'y', 'z', 'f', 's', 't'] },
+  )
+  t.deepEqual(
+    update(
+      { items: ['f', 's', 't'] },
+      {
+        $push: {
+          items: {
+            $each: ['x', 'y', 'z'],
+            $position: Number.POSITIVE_INFINITY,
+          },
+        },
+      },
+    ),
+    { items: ['f', 's', 't', 'x', 'y', 'z'] },
+  )
+  t.deepEqual(
+    update(
+      { items: ['f', 's', 't'] },
+      {
+        $push: {
+          items: {
+            $each: [],
+            $slice: 0,
+          },
+        },
+      },
+    ),
+    { items: [] },
+  )
+  t.deepEqual(
+    update(
+      { items: ['f', 's', 't'] },
+      {
+        $push: {
+          items: {
+            $each: [],
+            $slice: -2,
+          },
+        },
+      },
+    ),
+    { items: ['s', 't'] },
+  )
+  t.deepEqual(
+    update(
+      { items: ['f', 's', 't'] },
+      {
+        $push: {
+          items: {
+            $each: [],
+            $slice: 2,
+          },
+        },
+      },
+    ),
+    { items: ['f', 's'] },
   )
 })
 
@@ -353,4 +450,11 @@ test('$pullAll', t => {
   const update = compileUpdate({ $pullAll: { scores: [0, 5] } })
   update(doc)
   t.deepEqual(doc, { _id: 1, scores: [2, 1] })
+})
+
+test('$addToSet', t => {
+  const doc = { _id: 1, letters: ['a', 'b'] }
+  const fn = compileUpdate({ $addToSet: { letters: ['c', 'd'] } })
+  fn(doc)
+  t.deepEqual(doc, { _id: 1, letters: ['a', 'b', ['c', 'd']] })
 })

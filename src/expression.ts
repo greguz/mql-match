@@ -55,7 +55,6 @@ import {
   type ExpressionNode,
   NodeKind,
   nNullish,
-  nOperator,
   type ObjectNode,
   type ProjectNode,
   type StringNode,
@@ -138,7 +137,7 @@ export function resolveExpression(
 ): BSONNode {
   switch (node.kind) {
     // Apply operators
-    case NodeKind.OPERATOR: {
+    case NodeKind.EXPRESSION_OPERATOR: {
       const fn = expected(OPERATORS[node.operator])
 
       const args = node.args.map(a => resolveExpression(a, root))
@@ -205,7 +204,11 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
     if (!fn) {
       throw new TypeError(`Unsupported system variable: ${value}`)
     }
-    return nOperator(value, parseExpressionArgs(fn, []))
+    return {
+      kind: NodeKind.EXPRESSION_OPERATOR,
+      operator: value,
+      args: parseExpressionArgs(fn, []),
+    }
   }
 
   if (value[0] === '$') {
@@ -238,7 +241,11 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
       args[i] = parseExpression(args[i])
     }
 
-    return nOperator(key, args)
+    return {
+      kind: NodeKind.EXPRESSION_OPERATOR,
+      operator: key,
+      args,
+    }
   }
 
   const project = parseProjection(node)
