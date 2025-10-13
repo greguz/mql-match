@@ -253,8 +253,8 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
     expandInclusion(project)
     if (!project.nodes.some(n => n.path.length === 1 && n.path[0] === '_id')) {
       project.nodes.push({
-        kind: NodeKind.PATH, // Setter
-        path: ['_id'],
+        kind: NodeKind.PROJECT_PATH,
+        path: ['_id'], // Setter
         value: {
           kind: NodeKind.EXPRESSION_GETTER,
           path: ['_id'],

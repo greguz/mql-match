@@ -17,11 +17,11 @@ test('parseProjection', t => {
     exclusion: true,
     nodes: [
       {
-        kind: NodeKind.PATH,
+        kind: NodeKind.PROJECT_PATH,
         path: ['a'],
       },
       {
-        kind: NodeKind.PATH,
+        kind: NodeKind.PROJECT_PATH,
         path: ['b'],
       },
     ],
@@ -31,7 +31,7 @@ test('parseProjection', t => {
     exclusion: true,
     nodes: [
       {
-        kind: NodeKind.PATH,
+        kind: NodeKind.PROJECT_PATH,
         path: ['a', 'b'],
         value: {
           kind: NodeKind.PROJECT,

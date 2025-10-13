@@ -1,8 +1,8 @@
 import {
   NodeKind,
   type ObjectNode,
-  type PathNode,
   type ProjectNode,
+  type ProjectPathNode,
 } from './node.js'
 import { type Path, parsePath } from './path.js'
 import { expected } from './util.js'
@@ -50,7 +50,7 @@ function parseProjectionInternal(node: ObjectNode, root: boolean): ProjectNode {
       project.exclusion = childProject.exclusion
 
       project.nodes.push({
-        kind: NodeKind.PATH,
+        kind: NodeKind.PROJECT_PATH,
         path,
         value: childProject,
       })
@@ -72,7 +72,7 @@ function parseProjectionInternal(node: ObjectNode, root: boolean): ProjectNode {
       }
 
       project.nodes.push({
-        kind: NodeKind.PATH,
+        kind: NodeKind.PROJECT_PATH,
         path,
         value: childNode,
       })
@@ -93,10 +93,10 @@ function collides(a: Path, b: Path) {
 
 function normalizeProjection(project: ProjectNode): ProjectNode {
   // Resulting nodes
-  const nodes: PathNode[] = []
+  const nodes: ProjectPathNode[] = []
 
   // Group by first path's chunk
-  const groups: Record<string, PathNode[]> = {}
+  const groups: Record<string, ProjectPathNode[]> = {}
   for (const node of project.nodes) {
     const key = node.path[0]
     const value = groups[key] || []
@@ -125,7 +125,7 @@ function normalizeProjection(project: ProjectNode): ProjectNode {
     }
 
     nodes.push({
-      kind: NodeKind.PATH,
+      kind: NodeKind.PROJECT_PATH,
       path,
       value: normalizeProjection({
         kind: NodeKind.PROJECT,
