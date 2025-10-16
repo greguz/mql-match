@@ -43,21 +43,6 @@ const OPERATORS: Record<string, QueryOperator<any[]> | undefined> = {
   $unset,
 }
 
-export function compileUpdate(obj: unknown) {
-  const nodes = Array.from(parseUpdate(obj))
-
-  // TODO: this thing
-  // if (ctx.insert && isNullish(document._id)) {
-  //   document._id = new ObjectId()
-  // }
-
-  // TODO: "insert" flag
-  return (doc: unknown, insert?: boolean): unknown => {
-    resolveUpdate(nodes, wrapBSON(doc))
-    return doc
-  }
-}
-
 export function* parseUpdate(obj: unknown): Generator<UpdatePathNode> {
   if (!isPlainObject(obj)) {
     throw new TypeError() // TODO: error message

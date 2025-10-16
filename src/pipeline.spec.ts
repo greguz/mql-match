@@ -1,11 +1,13 @@
 import test from 'ava'
 import { ObjectId } from 'bson'
 
-import { compilePipeline } from './pipeline.js'
+import { compileAggregationPipeline } from './exports.js'
 
 async function aggregate(documents: unknown, stages: unknown) {
-  const map = compilePipeline(Array.isArray(stages) ? stages : [stages])
-  return map(Array.isArray(documents) ? documents : [documents])
+  const aggregate = compileAggregationPipeline(
+    Array.isArray(stages) ? stages : [stages],
+  )
+  return aggregate(Array.isArray(documents) ? documents : [documents])
 }
 
 test('$count', async t => {

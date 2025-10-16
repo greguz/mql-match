@@ -1,9 +1,9 @@
 import test from 'ava'
 
-import { compileUpdate } from './update.js'
+import { compileUpdateQuery } from './exports.js'
 
-function update(data: unknown, query: unknown) {
-  const fn = compileUpdate(query)
+function update(data: unknown, query: Record<string, unknown>) {
+  const fn = compileUpdateQuery(query)
   if (Array.isArray(data)) {
     return data.map(item => fn(item))
   }
@@ -376,7 +376,7 @@ test('$max:dates', t => {
     dateEntered: new Date('2013-10-01T05:00:00Z'),
     dateExpired: new Date('2013-10-01T16:38:16Z'),
   }
-  compileUpdate({ $max: { dateExpired: new Date('2013-09-30') } })(doc)
+  compileUpdateQuery({ $max: { dateExpired: new Date('2013-09-30') } })(doc)
   t.deepEqual(doc, {
     _id: 1,
     desc: 'decorative arts',
@@ -387,9 +387,9 @@ test('$max:dates', t => {
 
 test('$max:numbers', t => {
   const doc = { _id: 1, highScore: 800, lowScore: 200 }
-  compileUpdate({ $max: { highScore: 950 } })(doc)
+  compileUpdateQuery({ $max: { highScore: 950 } })(doc)
   t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
-  compileUpdate({ $max: { highScore: 870 } })(doc)
+  compileUpdateQuery({ $max: { highScore: 870 } })(doc)
   t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
 })
 
@@ -400,7 +400,7 @@ test('$min:dates', t => {
     dateEntered: new Date('2013-10-01T05:00:00Z'),
     dateExpired: new Date('2013-10-01T16:38:16Z'),
   }
-  compileUpdate({ $min: { dateEntered: new Date('2013-09-25') } })(doc)
+  compileUpdateQuery({ $min: { dateEntered: new Date('2013-09-25') } })(doc)
   t.deepEqual(doc, {
     _id: 1,
     desc: 'crafts',
@@ -411,9 +411,9 @@ test('$min:dates', t => {
 
 test('$min:numbers', t => {
   const doc = { _id: 1, highScore: 800, lowScore: 200 }
-  compileUpdate({ $min: { lowScore: 150 } })(doc)
+  compileUpdateQuery({ $min: { lowScore: 150 } })(doc)
   t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
-  compileUpdate({ $min: { lowScore: 250 } })(doc)
+  compileUpdateQuery({ $min: { lowScore: 250 } })(doc)
   t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
 })
 
@@ -423,7 +423,7 @@ test('$currentDate', t => {
     status: 'a',
     lastModified: new Date('2013-10-02T01:11:18.965Z'),
   }
-  const update = compileUpdate({
+  const update = compileUpdateQuery({
     $currentDate: {
       lastModified: true,
       'cancellation.date': { $type: 'timestamp' },
@@ -447,14 +447,14 @@ test('$currentDate', t => {
 
 test('$pullAll', t => {
   const doc = { _id: 1, scores: [0, 2, 5, 5, 1, 0] }
-  const update = compileUpdate({ $pullAll: { scores: [0, 5] } })
+  const update = compileUpdateQuery({ $pullAll: { scores: [0, 5] } })
   update(doc)
   t.deepEqual(doc, { _id: 1, scores: [2, 1] })
 })
 
 test('$addToSet', t => {
   const doc = { _id: 1, letters: ['a', 'b'] }
-  const fn = compileUpdate({ $addToSet: { letters: ['c', 'd'] } })
+  const fn = compileUpdateQuery({ $addToSet: { letters: ['c', 'd'] } })
   fn(doc)
   t.deepEqual(doc, { _id: 1, letters: ['a', 'b', ['c', 'd']] })
 })

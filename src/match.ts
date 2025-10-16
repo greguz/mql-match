@@ -1,5 +1,4 @@
 import { parseExpression, resolveExpression } from './expression.js'
-import { wrapBSON } from './lib/bson.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -36,13 +35,6 @@ const OPERATORS: Record<string, QueryOperator<any[]> | undefined> = {
   $regex,
   $size,
   $type,
-}
-
-export function compileMatch(query: unknown = {}) {
-  const node = parseMatch(wrapBSON(query))
-  return (value?: unknown): boolean => {
-    return resolveMatch(node, wrapBSON(value)).value
-  }
 }
 
 /**

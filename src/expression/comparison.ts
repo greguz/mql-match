@@ -14,6 +14,7 @@ import {
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
+import { includes } from '../lib/util.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/cmp/
@@ -135,7 +136,7 @@ function compareObjects(left: ObjectNode, right: ObjectNode): DoubleNode {
   // TODO: check this thing...
   const keys = [...left.keys]
   for (const key of right.keys) {
-    if (!keys.includes(key)) {
+    if (!includes(keys, key)) {
       keys.push(key)
     }
   }

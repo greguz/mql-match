@@ -1,4 +1,4 @@
-import { unwrapBSON, wrapBSON } from './lib/bson.js'
+import { wrapBSON } from './lib/bson.js'
 import type { BSONNode } from './lib/node.js'
 import { type PipelineOperator, parsePipelineArgs } from './lib/operator.js'
 import { isPlainObject } from './lib/util.js'
@@ -16,30 +16,9 @@ const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
   $skip,
 }
 
-type PipelineStage = (docs: Iterable<BSONNode>) => Iterable<BSONNode>
+export type PipelineStage = (docs: Iterable<BSONNode>) => Iterable<BSONNode>
 
-export function compilePipeline(stages: unknown[]) {
-  const aggregate = parsePipeline(stages)
-  return (values: Iterable<unknown>): unknown[] => {
-    return unwrapIterable(aggregate(wrapIterable(values)))
-  }
-}
-
-function* wrapIterable(values: Iterable<unknown>): Iterable<BSONNode> {
-  for (const value of values) {
-    yield wrapBSON(value)
-  }
-}
-
-function unwrapIterable(docs: Iterable<BSONNode>): unknown[] {
-  const results: unknown[] = []
-  for (const doc of docs) {
-    results.push(unwrapBSON(doc))
-  }
-  return results
-}
-
-function parsePipeline(stages: unknown[]): PipelineStage {
+export function parsePipeline(stages: unknown[]): PipelineStage {
   if (!stages.length) {
     throw new TypeError('Pipeline aggregation needs at lest one stage')
   }

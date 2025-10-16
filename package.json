@@ -6,16 +6,13 @@
   "types": "./mql-match.d.ts",
   "type": "module",
   "exports": {
-    "import": "./mql-match.mjs",
-    "require": "./mql-match.cjs",
-    "types": "./mql-match.d.ts"
+    "import": "./build/exports.js",
+    "types": "./build/exports.d.ts"
   },
   "files": [
-    "!**/*.spec.mjs",
-    "lib",
-    "mql-match.cjs",
-    "mql-match.d.ts",
-    "mql-match.mjs"
+    "!**/*.spec.js",
+    "!**/*.js.map",
+    "build"
   ],
   "repository": {
     "type": "git",
@@ -25,18 +22,22 @@
     "url": "https://github.com/greguz/mql-match/issues"
   },
   "scripts": {
-    "lint": "standard",
-    "build": "rollup -c rollup.config.js",
-    "test": "c8 ava",
-    "prepublishOnly": "npm run lint && npm run build && npm run test"
+    "lint": "biome lint ./src",
+    "build": "rimraf build && tsc -p tsconfig.build.json",
+    "test": "rimraf build && c8 ava",
+    "prepublishOnly": "npm run lint && npm test && npm run build"
   },
   "keywords": [
+    "aggregation",
+    "compile",
+    "filter",
+    "mock",
     "mongo",
     "mongodb",
     "mql",
     "query",
-    "filter",
-    "compile"
+    "test",
+    "update"
   ],
   "author": "Giacomo Gregoletto",
   "license": "MIT",
@@ -49,11 +50,12 @@
     "@biomejs/biome": "2.2.4",
     "ava": "^6.4.1",
     "c8": "^10.1.3",
+    "rimraf": "^6.0.1",
     "typescript": "^5.9.3"
   },
   "ava": {
     "files": [
-      "**/*.spec.ts"
+      "./src/**/*.spec.ts"
     ],
     "typescript": {
       "extensions": [

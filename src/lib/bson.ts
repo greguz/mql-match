@@ -34,7 +34,14 @@ import {
   type StringNode,
   type TimestampNode,
 } from './node.js'
-import { isArray, isBinary, isDate, isPlainObject, isRegExp } from './util.js'
+import {
+  includes,
+  isArray,
+  isBinary,
+  isDate,
+  isPlainObject,
+  isRegExp,
+} from './util.js'
 
 /**
  * Cast from string alias to `BSONType` enum.
@@ -258,7 +265,7 @@ export function setKey<T extends BSONNode>(
     throw new Error('Expected object pointer')
   }
 
-  if (!obj.keys.includes(key)) {
+  if (!includes(obj.keys, key)) {
     obj.keys.push(key)
   }
 

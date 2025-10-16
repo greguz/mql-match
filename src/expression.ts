@@ -45,8 +45,6 @@ import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
 import {
   normalizeArguments,
   setKey,
-  unwrapBSON,
-  wrapBSON,
   wrapNodes,
   wrapObjectRaw,
 } from './lib/bson.js'
@@ -57,15 +55,16 @@ import {
   type ExpressionProjectNode,
   NodeKind,
   nNullish,
+  nString,
   type ObjectNode,
   type StringNode,
 } from './lib/node.js'
 import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
-import { expected } from './lib/util.js'
+import { expected, includes } from './lib/util.js'
 
 /**
- * https://www.mongodb.com/docs/v7.0/reference/aggregation-variables/
+ * https://www.mongodb.com/docs/manual/reference/aggregation-variables/
  * https://www.mongodb.com/docs/manual/reference/mql/expressions/
  */
 const OPERATORS: Record<string, ExpressionOperator | undefined> = {
@@ -119,37 +118,17 @@ const OPERATORS: Record<string, ExpressionOperator | undefined> = {
 }
 
 /**
- * Compiles an aggregation expression into a map function.
- */
-export function compileExpression(exp: unknown) {
-  const expNode = parseExpression(wrapBSON(exp))
-  if (
-    expNode.kind === NodeKind.EXPRESSION_PROJECT &&
-    !expNode.exclusion &&
-    !expNode.keys.includes('_id')
-  ) {
-    expNode.keys.push('_id')
-    expNode.values._id = {
-      kind: NodeKind.EXPRESSION_GETTER,
-      path: ['_id'],
-    }
-  }
-
-  return <T = unknown>(doc?: unknown): T => {
-    const docNode = wrapBSON(doc)
-    return unwrapBSON(resolveExpression(expNode, docNode, docNode)) as T
-  }
-}
-
-/**
  * Parse both values and operators.
  */
-export function parseExpression(node: ExpressionNode): ExpressionNode {
+export function parseExpression(
+  node: ExpressionNode,
+  forceInclusion = false,
+): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
       return parseArrayNode(node)
     case NodeKind.OBJECT:
-      return parseObjectNode(node)
+      return parseObjectNode(node, forceInclusion)
     case NodeKind.STRING:
       return parseStringNode(node)
     default:
@@ -170,13 +149,7 @@ function isExclusion(node: ExpressionNode): boolean {
 function parseArrayNode({ value }: ArrayNode): ExpressionNode {
   return {
     kind: NodeKind.EXPRESSION_ARRAY,
-    nodes: value.map(item => {
-      const exp = parseExpression(item)
-      if (isExclusion(exp)) {
-        throw new TypeError('Cannot mix exclusion and inclusion expressions')
-      }
-      return exp
-    }),
+    nodes: value.map(n => parseExpression(n, true)),
   }
 }
 
@@ -203,10 +176,13 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
     }
   }
 
-  return { kind: NodeKind.STRING, value }
+  return nString(value)
 }
 
-function parseObjectNode(node: ObjectNode): ExpressionNode {
+function parseObjectNode(
+  node: ObjectNode,
+  forceInclusion: boolean,
+): ExpressionNode {
   if (node.keys.length === 1 && node.keys[0][0] === '$') {
     const key = node.keys[0]
     if (key === '$literal') {
@@ -223,7 +199,7 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
       normalizeArguments(expected(node.value[key])),
     )
     for (let i = 0; i < args.length; i++) {
-      args[i] = parseExpression(args[i])
+      args[i] = parseExpression(args[i], forceInclusion)
     }
 
     return {
@@ -248,25 +224,36 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
     if (value.value === true || value.value === 1) {
       // Inclusion node
       if (project.exclusion) {
-        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+        throw new TypeError(
+          `Cannot do inclusion on field ${key} in exclusion projection`,
+        )
       }
 
       setProjectionKey(project, path)
-    } else if (value.value === false || value.value === 0) {
+    } else if (
+      !forceInclusion &&
+      (value.value === false || value.value === 0)
+    ) {
       // Exclusion node
       if (project.keys.length > 0 && !project.exclusion) {
-        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+        throw new TypeError(
+          `Cannot do exclusion on field ${key} in inclusion projection`,
+        )
       }
 
       project.exclusion = true
       setProjectionKey(project, path)
     } else {
       // Value node or nested projection
-      const child = parseExpression(value)
-      const exclusion = isExclusion(child)
+      const child = parseExpression(value, forceInclusion)
 
+      const exclusion = isExclusion(child)
       if (project.keys.length > 0 && project.exclusion !== exclusion) {
-        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+        throw new TypeError(
+          project.exclusion
+            ? `Cannot do inclusion on field ${key} in exclusion projection`
+            : `Cannot do exclusion on field ${key} in inclusion projection`,
+        )
       }
 
       project.exclusion = exclusion
@@ -284,7 +271,7 @@ function setProjectionKey(
 ): void {
   for (let i = 0; i < path.length; i++) {
     const key = `${path[i]}`
-    if (!project.keys.includes(key)) {
+    if (!includes(project.keys, key)) {
       project.keys.push(key)
     }
 
@@ -312,8 +299,12 @@ function setProjectionKey(
 export function resolveExpression(
   expression: ExpressionNode,
   document: BSONNode,
-  projection: BSONNode,
+  projection?: BSONNode,
 ): BSONNode {
+  if (!projection) {
+    projection = document
+  }
+
   switch (expression.kind) {
     case NodeKind.EXPRESSION_OPERATOR: {
       const fn = expected(OPERATORS[expression.operator])
@@ -412,7 +403,7 @@ export function applyExclusion(
         throw new Error('Expected exclusion projection')
       }
       setKey(obj, key, applyExclusion(childProject, document, value))
-    } else if (!project.keys.includes(key)) {
+    } else if (!includes(project.keys, key)) {
       setKey(obj, key, value)
     }
   }

@@ -1,6 +1,3 @@
 {
-  "all": true,
-  "reporter": ["html", "lcov", "text"],
-  "include": ["src/**/*.ts"],
-  "exclude": ["**/*.spec.ts"]
+  "reporter": ["html", "lcov", "text"]
 }
