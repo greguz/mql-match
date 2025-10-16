@@ -51,17 +51,17 @@ import {
   wrapObjectRaw,
 } from './lib/bson.js'
 import {
+  type ArrayNode,
   type BSONNode,
   type ExpressionNode,
+  type ExpressionProjectNode,
   NodeKind,
   nNullish,
   type ObjectNode,
-  type ProjectNode,
   type StringNode,
 } from './lib/node.js'
 import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
-import { parseProjection } from './lib/project.js'
 import { expected } from './lib/util.js'
 
 /**
@@ -121,58 +121,23 @@ const OPERATORS: Record<string, ExpressionOperator | undefined> = {
 /**
  * Compiles an aggregation expression into a map function.
  */
-export function compileExpression(value: unknown) {
-  const node = parseExpression(wrapBSON(value))
-  return <T = unknown>(value?: unknown): T => {
-    return unwrapBSON(resolveExpression(node, wrapBSON(value))) as T
+export function compileExpression(exp: unknown) {
+  const expNode = parseExpression(wrapBSON(exp))
+  if (
+    expNode.kind === NodeKind.EXPRESSION_PROJECT &&
+    !expNode.exclusion &&
+    !expNode.keys.includes('_id')
+  ) {
+    expNode.keys.push('_id')
+    expNode.values._id = {
+      kind: NodeKind.EXPRESSION_GETTER,
+      path: ['_id'],
+    }
   }
-}
 
-/**
- * Recursive downgrade from `Node` to `BSONNode`.
- */
-export function resolveExpression(
-  node: ExpressionNode,
-  root: BSONNode,
-): BSONNode {
-  switch (node.kind) {
-    // Apply operators
-    case NodeKind.EXPRESSION_OPERATOR: {
-      const fn = expected(OPERATORS[node.operator])
-
-      const args = node.args.map(a => resolveExpression(a, root))
-      if (fn.useRoot) {
-        args.push(root)
-      }
-
-      return fn(...args)
-    }
-
-    // Resolve array items
-    case NodeKind.EXPRESSION_ARRAY:
-      return wrapNodes(node.nodes.map(n => resolveExpression(n, root)))
-
-    // Resolve paths
-    case NodeKind.EXPRESSION_GETTER:
-      return getPathValue(node.path, root)
-
-    // Resolve expression objects
-    case NodeKind.PROJECT: {
-      const obj = wrapObjectRaw()
-
-      if (node.exclusion) {
-        throw new Error('TODO: exclusion')
-      }
-      for (const n of node.nodes) {
-        setPathValue(n.path, obj, resolveExpression(n.value, root))
-      }
-
-      return obj
-    }
-
-    // Should be a raw value
-    default:
-      return node
+  return <T = unknown>(doc?: unknown): T => {
+    const docNode = wrapBSON(doc)
+    return unwrapBSON(resolveExpression(expNode, docNode, docNode)) as T
   }
 }
 
@@ -182,16 +147,36 @@ export function resolveExpression(
 export function parseExpression(node: ExpressionNode): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
-      return {
-        kind: NodeKind.EXPRESSION_ARRAY,
-        nodes: node.value.map(parseExpression),
-      }
+      return parseArrayNode(node)
     case NodeKind.OBJECT:
       return parseObjectNode(node)
     case NodeKind.STRING:
       return parseStringNode(node)
     default:
       return node
+  }
+}
+
+/**
+ * Returns `true` for exclusion projections.
+ */
+function isExclusion(node: ExpressionNode): boolean {
+  return node.kind === NodeKind.EXPRESSION_PROJECT ? node.exclusion : false
+}
+
+/**
+ * Maps `ARRAY` into `EXPRESSION_ARRAY` node.
+ */
+function parseArrayNode({ value }: ArrayNode): ExpressionNode {
+  return {
+    kind: NodeKind.EXPRESSION_ARRAY,
+    nodes: value.map(item => {
+      const exp = parseExpression(item)
+      if (isExclusion(exp)) {
+        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+      }
+      return exp
+    }),
   }
 }
 
@@ -248,32 +233,117 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
     }
   }
 
-  const project = parseProjection(node)
-  if (!project.exclusion) {
-    expandInclusion(project)
-    if (!project.nodes.some(n => n.path.length === 1 && n.path[0] === '_id')) {
-      project.nodes.push({
-        kind: NodeKind.PROJECT_PATH,
-        path: ['_id'], // Setter
-        value: {
-          kind: NodeKind.EXPRESSION_GETTER,
-          path: ['_id'],
-        },
-      })
+  // Must be a projection object
+  const project: ExpressionProjectNode = {
+    kind: NodeKind.EXPRESSION_PROJECT,
+    keys: [],
+    values: {},
+    exclusion: false,
+  }
+
+  for (const key of node.keys) {
+    const path = parsePath(key)
+    const value = expected(node.value[key])
+
+    if (value.value === true || value.value === 1) {
+      // Inclusion node
+      if (project.exclusion) {
+        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+      }
+
+      setProjectionKey(project, path)
+    } else if (value.value === false || value.value === 0) {
+      // Exclusion node
+      if (project.keys.length > 0 && !project.exclusion) {
+        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+      }
+
+      project.exclusion = true
+      setProjectionKey(project, path)
+    } else {
+      // Value node or nested projection
+      const child = parseExpression(value)
+      const exclusion = isExclusion(child)
+
+      if (project.keys.length > 0 && project.exclusion !== exclusion) {
+        throw new TypeError('Cannot mix exclusion and inclusion expressions')
+      }
+
+      project.exclusion = exclusion
+      setProjectionKey(project, path, child)
     }
   }
 
   return project
 }
 
-function expandInclusion(project: ProjectNode): void {
-  for (let i = 0; i < project.nodes.length; i++) {
-    const node = project.nodes[i]
-    if (node.value.kind === NodeKind.PROJECT) {
-      expandInclusion(node.value)
-    } else {
-      node.value = parseExpression(node.value)
+function setProjectionKey(
+  project: ExpressionProjectNode,
+  path: Path,
+  value?: ExpressionNode,
+): void {
+  for (let i = 0; i < path.length; i++) {
+    const key = `${path[i]}`
+    if (!project.keys.includes(key)) {
+      project.keys.push(key)
     }
+
+    if (i < path.length - 1) {
+      const child = project.values[key] || {
+        kind: NodeKind.EXPRESSION_PROJECT,
+        keys: [],
+        values: {},
+        exclusion: project.exclusion,
+      }
+      if (child.kind !== NodeKind.EXPRESSION_PROJECT) {
+        throw new TypeError(`Path collision at ${path.join('.')}`)
+      }
+      project.values[key] = child
+      project = child
+    } else if (value) {
+      project.values[key] = value
+    }
+  }
+}
+
+/**
+ * Recursive downcast from `ExpressionNode` to `BSONNode`.
+ */
+export function resolveExpression(
+  expression: ExpressionNode,
+  document: BSONNode,
+  projection: BSONNode,
+): BSONNode {
+  switch (expression.kind) {
+    case NodeKind.EXPRESSION_OPERATOR: {
+      const fn = expected(OPERATORS[expression.operator])
+
+      const args = expression.args.map(a =>
+        resolveExpression(a, document, projection),
+      )
+      if (fn.useRoot) {
+        args.push(document)
+      }
+
+      return fn(...args)
+    }
+
+    case NodeKind.EXPRESSION_ARRAY:
+      return wrapNodes(
+        expression.nodes.map(n => resolveExpression(n, document, projection)),
+      )
+
+    case NodeKind.EXPRESSION_GETTER:
+      return getPathValue(expression.path, document)
+
+    case NodeKind.EXPRESSION_PROJECT: {
+      return expression.exclusion
+        ? applyExclusion(expression, document, projection)
+        : applyInclusion(expression, document, projection)
+    }
+
+    default:
+      return expression
   }
 }
 
@@ -306,15 +376,88 @@ export function getPathValue(path: Path, node: BSONNode): BSONNode {
   return nNullish()
 }
 
-export function setPathValue(path: Path, obj: BSONNode, value: BSONNode): void {
-  for (let i = 0; i < path.length; i++) {
-    const key = `${path[i]}`
-    const next = i === path.length - 1 ? value : wrapObjectRaw()
+/**
+ * Returns the projected value.
+ */
+export function applyExclusion(
+  project: ExpressionProjectNode,
+  document: BSONNode,
+  projection: BSONNode,
+): BSONNode {
+  if (projection.kind === NodeKind.ARRAY) {
+    const nodes: BSONNode[] = []
+    for (let i = 0; i < projection.value.length; i++) {
+      if (projection.value[i].kind !== NodeKind.NULLISH) {
+        nodes.push(applyExclusion(project, document, projection.value[i]))
+      }
+    }
+    return wrapNodes(nodes)
+  }
+  if (projection.kind !== NodeKind.OBJECT) {
+    // Nothing to do
+    return projection
+  }
 
-    if (obj.kind === NodeKind.OBJECT) {
-      obj = setKey(obj, key, next)
-    } else {
-      throw new TypeError(`Unable to write value at ${path.join('.')}`)
+  const obj = wrapObjectRaw()
+
+  for (const key of projection.keys) {
+    // Key's value
+    const value = expected(projection.value[key])
+
+    // Child exclusion project (optional)
+    const childProject = project.values[key]
+
+    if (childProject) {
+      if (childProject.kind !== NodeKind.EXPRESSION_PROJECT) {
+        throw new Error('Expected exclusion projection')
+      }
+      setKey(obj, key, applyExclusion(childProject, document, value))
+    } else if (!project.keys.includes(key)) {
+      setKey(obj, key, value)
     }
   }
+
+  return obj
+}
+
+/**
+ * Returns the projected value.
+ */
+export function applyInclusion(
+  project: ExpressionProjectNode,
+  document: BSONNode,
+  projection: BSONNode,
+): BSONNode {
+  if (projection.kind === NodeKind.ARRAY) {
+    const nodes: BSONNode[] = []
+    for (let i = 0; i < projection.value.length; i++) {
+      if (projection.value[i].kind !== NodeKind.NULLISH) {
+        nodes.push(resolveExpression(project, document, projection.value[i]))
+      }
+    }
+    return wrapNodes(nodes)
+  }
+
+  // Project result
+  const obj = wrapObjectRaw()
+
+  for (const key of project.keys) {
+    const value = getKeyValue(projection, key)
+
+    const expression = project.values[key]
+
+    if (expression) {
+      setKey(obj, key, resolveExpression(expression, document, value))
+    } else {
+      setKey(obj, key, value)
+    }
+  }
+
+  return obj
+}
+
+function getKeyValue(node: BSONNode, key: string): BSONNode {
+  return node.kind === NodeKind.OBJECT
+    ? node.value[key] || nNullish()
+    : nNullish()
 }

@@ -23,9 +23,7 @@ export const NodeKind = Object.freeze({
   EXPRESSION_ARRAY: 'EXPRESSION_ARRAY',
   EXPRESSION_GETTER: 'EXPRESSION_GETTER',
   EXPRESSION_OPERATOR: 'EXPRESSION_OPERATOR',
-  // Project
-  PROJECT: 'PROJECT',
-  PROJECT_PATH: 'PATH',
+  EXPRESSION_PROJECT: 'EXPRESSION_PROJECT',
   // Match/Filter query
   MATCH_ARRAY: 'MATCH_ARRAY',
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
@@ -227,7 +225,7 @@ export type ExpressionNode =
   | ExpressionArrayNode
   | ExpressionGetterNode
   | ExpressionOperatorNode
-  | ProjectNode
+  | ExpressionProjectNode
 
 /**
  * Part of expression engine.
@@ -258,21 +256,17 @@ export interface ExpressionOperatorNode {
 }
 
 /**
- * Part of projection parsing.
+ * Represents an expression object.
  */
-export interface ProjectNode {
-  kind: typeof NodeKind.PROJECT
-  nodes: ProjectPathNode[]
+export interface ExpressionProjectNode {
+  kind: typeof NodeKind.EXPRESSION_PROJECT
+  keys: string[]
+  /**
+   * Not all keys have values.
+   * A key without value must be interpreted as inclusion/exclusion key (see `exclusion` flag).
+   */
+  values: Record<string, ExpressionNode | undefined>
   exclusion: boolean
-}
-
-/**
- * Part of projection parsing.
- */
-export interface ProjectPathNode {
-  kind: typeof NodeKind.PROJECT_PATH
-  path: Path
-  value: ExpressionNode
 }
 
 /**

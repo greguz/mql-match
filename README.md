@@ -184,7 +184,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
 - [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
 - [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
-- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/) Limited to a single field.
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
 
 #### Bitwise
 

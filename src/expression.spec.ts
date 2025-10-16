@@ -164,7 +164,6 @@ test('project', t => {
       },
       c: {
         d: [
-          null,
           {
             e: true,
           },
@@ -202,7 +201,6 @@ test('project', t => {
       },
       c: {
         d: [
-          null,
           {
             x: false,
           },
@@ -212,7 +210,7 @@ test('project', t => {
   )
 })
 
-test('expressions:array', t => {
+test('array', t => {
   t.deepEqual(
     exec(
       { a: ['$value', 2, { $multiply: [7, 3] }] },
@@ -239,6 +237,32 @@ test('smoke', t => {
         b: { value: 4 },
         c: { value: 2 },
       },
+    },
+  )
+})
+
+test('cross-path projection', t => {
+  t.deepEqual(
+    exec(
+      {
+        prof: { from: 'pokemon' },
+        'prof.id': 1,
+      },
+      {
+        prof: [
+          { id: 0, value: 'Oak' },
+          { id: 1, name: 'Elm' },
+          { id: 2, name: 'Birch' },
+        ],
+      },
+    ),
+    {
+      _id: null,
+      prof: [
+        { id: 0, from: 'pokemon' },
+        { id: 1, from: 'pokemon' },
+        { id: 2, from: 'pokemon' },
+      ],
     },
   )
 })
