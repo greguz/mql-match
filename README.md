@@ -225,7 +225,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/)
 - [ ] [`$setWindowFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/)
 - [x] [`$skip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/skip/)
-- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
 - [ ] [`$sortByCount`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortByCount/)
 - [ ] [`$unionWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unionWith/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/)
@@ -345,6 +345,18 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
 - [ ] [`$week`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/week/)
 - [ ] [`$year`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/year/)
+
+#### Expressions Associated with Accumulators
+
+- [x] [`$avg`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/avg/)
+- [ ] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/max/)
+- [ ] [`$median`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/median/)
+- [ ] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/min/)
+- [ ] [`$percentile`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/percentile/)
+- [ ] [`$setUnion`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setUnion/)
+- [ ] [`$stdDevPop`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/stdDevPop/)
+- [ ] [`$stdDevSamp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/stdDevSamp/)
+- [x] [`$sum`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sum/)
 
 #### Literal Expression Operator
 

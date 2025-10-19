@@ -10,7 +10,7 @@ export function* $project(
   expr: ExpressionNode,
 ): Iterable<BSONNode> {
   for (const doc of docs) {
-    yield resolveExpression(expr, doc, doc)
+    yield resolveExpression(expr, doc)
   }
 }
 
