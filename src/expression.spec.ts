@@ -3,8 +3,16 @@ import { ObjectId } from 'bson'
 
 import { compileAggregationExpression } from './exports.js'
 
-function exec(exp: unknown, value?: unknown) {
-  return compileAggregationExpression(exp)(value)
+function exec(expr: unknown, ...docs: unknown[]): unknown {
+  const fn = compileAggregationExpression(expr)
+  switch (docs.length) {
+    case 0:
+      return fn()
+    case 1:
+      return fn(docs[0])
+    default:
+      return docs.map(fn)
+  }
 }
 
 test('$type', t => {
@@ -263,6 +271,48 @@ test('cross-path projection', t => {
         { id: 1, from: 'pokemon' },
         { id: 2, from: 'pokemon' },
       ],
+    },
+  )
+})
+
+test('$sum', t => {
+  t.deepEqual(
+    exec(
+      {
+        quizTotal: { $sum: '$quizzes' },
+        labTotal: { $sum: '$labs' },
+        examTotal: { $sum: ['$final', '$midterm'] },
+      },
+      { _id: 1, quizzes: [10, 6, 7], labs: [5, 8], final: 80, midterm: 75 },
+      { _id: 2, quizzes: [9, 10], labs: [8, 8], final: 95, midterm: 80 },
+      { _id: 3, quizzes: [4, 5, 5], labs: [6, 5], final: 78, midterm: 70 },
+    ),
+    [
+      { _id: 1, quizTotal: 23, labTotal: 13, examTotal: 155 },
+      { _id: 2, quizTotal: 19, labTotal: 16, examTotal: 175 },
+      { _id: 3, quizTotal: 14, labTotal: 11, examTotal: 148 },
+    ],
+  )
+  t.deepEqual(
+    exec({
+      result: {
+        $sum: [1, 2, 3],
+      },
+    }),
+    {
+      _id: null,
+      result: 6,
+    },
+  )
+  t.deepEqual(
+    exec({
+      result: {
+        $sum: [[1, 2, 3], 1, 2, 3],
+      },
+    }),
+    {
+      _id: null,
+      result: 6,
     },
   )
 })

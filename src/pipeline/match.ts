@@ -2,6 +2,9 @@ import type { BSONNode, MatchNode } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
 import { parseMatch, resolveMatch } from '../match.js'
 
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/match/
+ */
 export function* $match(
   docs: Iterable<BSONNode>,
   query: MatchNode,

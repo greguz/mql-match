@@ -1,4 +1,10 @@
-import { type BSONNode, nNullish } from './node.js'
+import { wrapNodes } from './bson.js'
+import {
+  type BSONNode,
+  type ExpressionNode,
+  NodeKind,
+  nNullish,
+} from './node.js'
 
 /**
  * A mutation function that takes N BSON arguments and returns one BSON result.
@@ -79,11 +85,12 @@ export function useRoot(operator: ExpressionOperator) {
  */
 export function parseExpressionArgs(
   operator: ExpressionOperator,
-  args: BSONNode[],
-): BSONNode[] {
+  node: BSONNode,
+): ExpressionNode {
   const minArgs = operator.minArgs ?? operator.length
   const maxArgs = operator.maxArgs ?? minArgs
 
+  const args = normalizeExpressionArgs(node)
   if (minArgs === maxArgs && args.length !== minArgs) {
     throw new TypeError(
       `Operator ${operator.name} requires ${minArgs} arguments (got ${args.length})`,
@@ -102,17 +109,36 @@ export function parseExpressionArgs(
 
   // The Operators knows what to do
   if (operator.parse) {
-    return operator.parse(...args)
+    return wrapNodes(operator.parse(...args))
   }
 
-  // Ensure correct number of arguments (if auto)
+  // Leave non-array nodes as-is (can be mapped into something else later)
+  if (node.kind !== NodeKind.ARRAY) {
+    return node
+  }
+
+  // Ensure correct number of arguments
   if (Number.isFinite(maxArgs)) {
     while (args.length < maxArgs) {
       args.push(nNullish())
     }
   }
 
-  return args
+  return wrapNodes(args)
+}
+
+/**
+ * Prepare operator's arguments array.
+ */
+export function normalizeExpressionArgs(arg: BSONNode): BSONNode[] {
+  switch (arg.kind) {
+    case NodeKind.ARRAY:
+      return [...arg.value]
+    case NodeKind.NULLISH:
+      return []
+    default:
+      return [arg]
+  }
 }
 
 /**

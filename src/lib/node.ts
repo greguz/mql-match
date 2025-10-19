@@ -251,7 +251,10 @@ export interface ExpressionGetterNode {
  */
 export interface ExpressionOperatorNode {
   kind: typeof NodeKind.EXPRESSION_OPERATOR
-  args: ExpressionNode[]
+  /**
+   * Normally a ARRAY node.
+   */
+  arg: ExpressionNode
   operator: string
 }
 

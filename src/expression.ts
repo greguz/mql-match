@@ -1,3 +1,4 @@
+import { $avg, $sum } from './expression/accumulators.js'
 import {
   $abs,
   $add,
@@ -42,12 +43,7 @@ import {
   $type,
 } from './expression/type.js'
 import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
-import {
-  normalizeArguments,
-  setKey,
-  wrapNodes,
-  wrapObjectRaw,
-} from './lib/bson.js'
+import { setKey, wrapNodes, wrapObjectRaw } from './lib/bson.js'
 import {
   type ArrayNode,
   type BSONNode,
@@ -59,7 +55,11 @@ import {
   type ObjectNode,
   type StringNode,
 } from './lib/node.js'
-import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
+import {
+  type ExpressionOperator,
+  normalizeExpressionArgs,
+  parseExpressionArgs,
+} from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, includes } from './lib/util.js'
 
@@ -74,6 +74,7 @@ const OPERATORS: Record<string, ExpressionOperator | undefined> = {
   $abs,
   $add,
   $and,
+  $avg,
   $ceil,
   $cmp,
   $concatArrays,
@@ -105,6 +106,7 @@ const OPERATORS: Record<string, ExpressionOperator | undefined> = {
   $size,
   $sqrt,
   $subtract,
+  $sum,
   $switch,
   $toBool,
   $toDate,
@@ -165,7 +167,7 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
     return {
       kind: NodeKind.EXPRESSION_OPERATOR,
       operator: value,
-      args: parseExpressionArgs(fn, []),
+      arg: parseExpressionArgs(fn, nNullish()),
     }
   }
 
@@ -194,18 +196,13 @@ function parseObjectNode(
       throw new TypeError(`Unsupported expression operator: ${key}`)
     }
 
-    const args: ExpressionNode[] = parseExpressionArgs(
-      operator,
-      normalizeArguments(expected(node.value[key])),
-    )
-    for (let i = 0; i < args.length; i++) {
-      args[i] = parseExpression(args[i], forceInclusion)
-    }
-
     return {
       kind: NodeKind.EXPRESSION_OPERATOR,
       operator: key,
-      args,
+      arg: parseExpression(
+        parseExpressionArgs(operator, expected(node.value[key])),
+        forceInclusion,
+      ),
     }
   }
 
@@ -309,9 +306,13 @@ export function resolveExpression(
     case NodeKind.EXPRESSION_OPERATOR: {
       const fn = expected(OPERATORS[expression.operator])
 
-      const args = expression.args.map(a =>
-        resolveExpression(a, document, projection),
-      )
+      // Resolve argument into raw BSON value
+      const node = resolveExpression(expression.arg, document, projection)
+
+      // Normalize arguments into array
+      const args = normalizeExpressionArgs(node)
+
+      // Apply operator options
       if (fn.useRoot) {
         args.push(document)
       }

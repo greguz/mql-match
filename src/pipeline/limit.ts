@@ -2,6 +2,9 @@ import { unwrapNumber } from '../lib/bson.js'
 import { type BSONNode, type DoubleNode, nDouble } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
 
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/limit/
+ */
 export function* $limit(
   docs: Iterable<BSONNode>,
   limit: DoubleNode,

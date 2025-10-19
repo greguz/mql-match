@@ -6,13 +6,16 @@ import { $count } from './pipeline/count.js'
 import { $limit } from './pipeline/limit.js'
 import { $match } from './pipeline/match.js'
 import { $project } from './pipeline/project.js'
+import { $set } from './pipeline/set.js'
 import { $skip } from './pipeline/skip.js'
 
 const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
+  $addFields: $set,
   $count,
   $limit,
   $match,
   $project,
+  $set,
   $skip,
 }
 

@@ -352,20 +352,6 @@ export function unwrapBSON(node: BSONNode): unknown {
   }
 }
 
-/**
- * Prepare operator's arguments array.
- */
-export function normalizeArguments(arg: BSONNode): BSONNode[] {
-  switch (arg.kind) {
-    case NodeKind.ARRAY:
-      return arg.value
-    case NodeKind.NULLISH:
-      return []
-    default:
-      return [arg]
-  }
-}
-
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.ARRAY,

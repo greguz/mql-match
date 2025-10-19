@@ -2,6 +2,9 @@ import { assertBSON, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, NodeKind, type StringNode } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
 
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/count/
+ */
 export function* $count(
   docs: Iterable<BSONNode>,
   key: StringNode,
