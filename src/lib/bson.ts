@@ -35,6 +35,7 @@ import {
   type TimestampNode,
 } from './node.js'
 import {
+  expected,
   includes,
   isArray,
   isBinary,
@@ -261,29 +262,24 @@ export function setKey<T extends BSONNode>(
   key: string,
   value: T,
 ): T {
-  if (!obj.raw) {
-    throw new Error('Expected object pointer')
-  }
-
   if (!includes(obj.keys, key)) {
     obj.keys.push(key)
   }
-
-  obj.raw[key] = unwrapBSON(value) // needed to keep array/object references
+  if (obj.raw) {
+    obj.raw[key] = unwrapBSON(value) // needed to keep array/object references
+  }
   obj.value[key] = value
 
   return value
 }
 
 export function unsetKey(obj: ObjectNode, key: string): boolean {
-  if (!obj.raw) {
-    throw new Error('Expected object pointer')
-  }
-
   const i = obj.keys.indexOf(key)
   if (i >= 0) {
     obj.keys.splice(i, 1)
-    delete obj.raw[key]
+    if (obj.raw) {
+      delete obj.raw[key]
+    }
     delete obj.value[key]
   }
 
@@ -332,19 +328,17 @@ export function unwrapBSON(node: BSONNode): unknown {
       return node.raw || node.value.map(unwrapBSON)
 
     case NodeKind.OBJECT: {
-      if (!node.raw) {
-        throw new Error('Expected object reference')
+      if (node.raw) {
+        // Keeps the original user's value
+        return node.raw
       }
 
-      // fix_me
-      // const result: Record<string, unknown> = { ...node.value }
-      // for (let i = 0; i < node.keys.length; i++) {
-      //   result[node.keys[i]] = unwrapBSON(expected(node.value[node.keys[i]]))
-      // }
-      // return result
-
-      // TODO: test this
-      return node.raw
+      // Generate a new object
+      const result: Record<string, unknown> = { ...node.value }
+      for (let i = 0; i < node.keys.length; i++) {
+        result[node.keys[i]] = unwrapBSON(expected(node.value[node.keys[i]]))
+      }
+      return result
     }
 
     default:

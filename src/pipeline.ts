@@ -9,6 +9,7 @@ import { $project } from './pipeline/project.js'
 import { $set } from './pipeline/set.js'
 import { $skip } from './pipeline/skip.js'
 import { $unset } from './pipeline/unset.js'
+import { $unwind } from './pipeline/unwind.js'
 
 const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
   $addFields: $set,
@@ -19,6 +20,7 @@ const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
   $set,
   $skip,
   $unset,
+  $unwind,
 }
 
 export type PipelineStage = (docs: Iterable<BSONNode>) => Iterable<BSONNode>

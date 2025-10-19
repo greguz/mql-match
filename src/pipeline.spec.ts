@@ -379,9 +379,9 @@ test('$unwind', async t => {
       { _id: 1, item: 'ABC', price: 80, sizes: 'S' },
       { _id: 1, item: 'ABC', price: 80, sizes: 'M' },
       { _id: 1, item: 'ABC', price: 80, sizes: 'L' },
-      { _id: 2, item: 'EFG', price: 120 },
+      { _id: 2, item: 'EFG', price: 120, sizes: null },
       { _id: 3, item: 'IJK', price: 160, sizes: 'M' },
-      { _id: 4, item: 'LMN', price: 10 },
+      { _id: 4, item: 'LMN', price: 10, sizes: null },
       { _id: 5, item: 'XYZ', price: 5.75, sizes: null },
     ],
   )
