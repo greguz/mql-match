@@ -1,98 +1,96 @@
 import test from 'ava'
 
-import { compileAggregationPipeline } from '../aggregationPipeline.mjs'
-import { compileAggregationExpression } from '../aggregationExpression.mjs'
-import { toArray } from '../util.mjs'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from './exports.js'
 
-function aggregateArray (documents, stages) {
+function aggregateArray(
+  documents: unknown[],
+  stages: Array<Record<string, unknown>>,
+) {
   const fn = compileAggregationPipeline(stages)
-  return toArray(fn(documents))
+  return fn(documents)
 }
 
-function expession (expression, doc = {}) {
+function expession(expression: unknown, doc: unknown = {}) {
   return compileAggregationExpression(expression)(doc)
 }
 
-test('expression:$ifNull', async t => {
+test('$ifNull', t => {
   const documents = [
     { _id: 1, item: 'buggy', description: 'toy car', quantity: 300 },
     { _id: 2, item: 'bicycle', description: null, quantity: 200 },
-    { _id: 3, item: 'flag' }
+    { _id: 3, item: 'flag' },
   ]
   t.deepEqual(
-    await aggregateArray(
-      documents,
-      [
-        {
-          $project: {
-            item: 1,
-            description: { $ifNull: ['$description', 'Unspecified'] }
-          }
-        }
-      ]
-    ),
+    aggregateArray(documents, [
+      {
+        $project: {
+          item: 1,
+          description: { $ifNull: ['$description', 'Unspecified'] },
+        },
+      },
+    ]),
     [
       { _id: 1, item: 'buggy', description: 'toy car' },
       { _id: 2, item: 'bicycle', description: 'Unspecified' },
-      { _id: 3, item: 'flag', description: 'Unspecified' }
-    ]
+      { _id: 3, item: 'flag', description: 'Unspecified' },
+    ],
   )
   t.deepEqual(
-    await aggregateArray(
-      documents,
-      [
-        {
-          $project: {
-            item: 1,
-            value: { $ifNull: ['$description', '$quantity', 'Unspecified'] }
-          }
-        }
-      ]
-    ),
+    aggregateArray(documents, [
+      {
+        $project: {
+          item: 1,
+          value: { $ifNull: ['$description', '$quantity', 'Unspecified'] },
+        },
+      },
+    ]),
     [
       { _id: 1, item: 'buggy', value: 'toy car' },
       { _id: 2, item: 'bicycle', value: 200 },
-      { _id: 3, item: 'flag', value: 'Unspecified' }
-    ]
+      { _id: 3, item: 'flag', value: 'Unspecified' },
+    ],
   )
 })
 
-test('expression:$switch', async t => {
+test('$switch', t => {
   t.is(
     expession({
       $switch: {
         branches: [
           { case: { $eq: [0, 5] }, then: 'equals' },
           { case: { $gt: [0, 5] }, then: 'greater than' },
-          { case: { $lt: [0, 5] }, then: 'less than' }
-        ]
-      }
+          { case: { $lt: [0, 5] }, then: 'less than' },
+        ],
+      },
     }),
-    'less than'
+    'less than',
   )
   t.is(
     expession({
       $switch: {
         branches: [
           { case: { $eq: [0, 5] }, then: 'equals' },
-          { case: { $gt: [0, 5] }, then: 'greater than' }
+          { case: { $gt: [0, 5] }, then: 'greater than' },
         ],
-        default: 'Did not match'
-      }
+        default: 'Did not match',
+      },
     }),
-    'Did not match'
+    'Did not match',
   )
   t.is(
     expession({
       $switch: {
         branches: [
           { case: 'this is true', then: 'first case' },
-          { case: false, then: 'second case' }
+          { case: false, then: 'second case' },
         ],
-        default: 'Did not match'
-      }
+        default: 'Did not match',
+      },
     }),
-    'first case'
+    'first case',
   )
 
   // const documents = [
@@ -143,11 +141,11 @@ test('expression:$switch', async t => {
   // )
 })
 
-test('expression:$cond', async t => {
+test('$cond', t => {
   const documents = [
     { _id: 1, item: 'abc1', qty: 300 },
     { _id: 2, item: 'abc2', qty: 200 },
-    { _id: 3, item: 'xyz1', qty: 250 }
+    { _id: 3, item: 'xyz1', qty: 250 },
   ]
 
   const aggregate = compileAggregationPipeline([
@@ -155,18 +153,15 @@ test('expression:$cond', async t => {
       $project: {
         item: 1,
         discount: {
-          $cond: { if: { $gte: ['$qty', 250] }, then: 30, else: 20 }
-        }
-      }
-    }
+          $cond: { if: { $gte: ['$qty', 250] }, then: 30, else: 20 },
+        },
+      },
+    },
   ])
 
-  t.deepEqual(
-    await toArray(aggregate(documents)),
-    [
-      { _id: 1, item: 'abc1', discount: 30 },
-      { _id: 2, item: 'abc2', discount: 20 },
-      { _id: 3, item: 'xyz1', discount: 30 }
-    ]
-  )
+  t.deepEqual(aggregate(documents), [
+    { _id: 1, item: 'abc1', discount: 30 },
+    { _id: 2, item: 'abc2', discount: 20 },
+    { _id: 3, item: 'xyz1', discount: 30 },
+  ])
 })

@@ -122,9 +122,38 @@ const OPERATORS: Record<string, ExpressionOperator | undefined> = {
 /**
  * Parse both values and operators.
  */
-export function parseExpression(
+export function parseExpression(arg: BSONNode): ExpressionNode {
+  let withoutId = false
+  if (
+    arg.kind === NodeKind.OBJECT &&
+    arg.value._id &&
+    arg.value._id.value === 0
+  ) {
+    withoutId = true
+    arg.keys = arg.keys.filter(k => k !== '_id')
+    arg.value._id = undefined
+  }
+
+  const exp = parseExpressionInternal(arg, false)
+  if (
+    !withoutId &&
+    exp.kind === NodeKind.EXPRESSION_PROJECT &&
+    !exp.exclusion &&
+    !includes(exp.keys, '_id')
+  ) {
+    exp.keys.push('_id')
+    exp.values._id = {
+      kind: NodeKind.EXPRESSION_GETTER,
+      path: ['_id'],
+    }
+  }
+
+  return exp
+}
+
+function parseExpressionInternal(
   node: ExpressionNode,
-  forceInclusion = false,
+  forceInclusion: boolean,
 ): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
@@ -151,7 +180,7 @@ function isExclusion(node: ExpressionNode): boolean {
 function parseArrayNode({ value }: ArrayNode): ExpressionNode {
   return {
     kind: NodeKind.EXPRESSION_ARRAY,
-    nodes: value.map(n => parseExpression(n, true)),
+    nodes: value.map(n => parseExpressionInternal(n, true)),
   }
 }
 
@@ -199,7 +228,7 @@ function parseObjectNode(
     return {
       kind: NodeKind.EXPRESSION_OPERATOR,
       operator: key,
-      arg: parseExpression(
+      arg: parseExpressionInternal(
         parseExpressionArgs(operator, expected(node.value[key])),
         forceInclusion,
       ),
@@ -242,7 +271,7 @@ function parseObjectNode(
       setProjectionKey(project, path)
     } else {
       // Value node or nested projection
-      const child = parseExpression(value, forceInclusion)
+      const child = parseExpressionInternal(value, forceInclusion)
 
       const exclusion = isExclusion(child)
       if (project.keys.length > 0 && project.exclusion !== exclusion) {

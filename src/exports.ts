@@ -1,27 +1,14 @@
 import { parseExpression, resolveExpression } from './expression.js'
 import { unwrapBSON, wrapBSON } from './lib/bson.js'
-import { type BSONNode, NodeKind } from './lib/node.js'
-import { includes } from './lib/util.js'
+import type { BSONNode } from './lib/node.js'
 import { parseMatch, resolveMatch } from './match.js'
 import { parsePipeline } from './pipeline.js'
 import { parseUpdate, resolveUpdate } from './update.js'
 
 export function compileAggregationExpression(expr: unknown) {
-  const expNode = parseExpression(wrapBSON(expr))
-  if (
-    expNode.kind === NodeKind.EXPRESSION_PROJECT &&
-    !expNode.exclusion &&
-    !includes(expNode.keys, '_id')
-  ) {
-    expNode.keys.push('_id')
-    expNode.values._id = {
-      kind: NodeKind.EXPRESSION_GETTER,
-      path: ['_id'],
-    }
-  }
-
+  const node = parseExpression(wrapBSON(expr))
   return <T = any>(doc?: unknown): T => {
-    return unwrapBSON(resolveExpression(expNode, wrapBSON(doc))) as T
+    return unwrapBSON(resolveExpression(node, wrapBSON(doc))) as T
   }
 }
 
