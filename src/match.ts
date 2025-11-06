@@ -215,7 +215,7 @@ function* compileOperator(
 export function resolveMatch(node: MatchNode, doc: BSONNode): BooleanNode {
   if (node.kind === NodeKind.MATCH_EXPRESSION) {
     // $toBool was added during parsing
-    return nBoolean(resolveExpression(node.expression, doc, doc).value === true)
+    return nBoolean(resolveExpression(node.expression, doc).value === true)
   }
 
   if (node.kind !== NodeKind.MATCH_SEQUENCE) {

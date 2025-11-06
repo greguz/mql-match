@@ -197,7 +197,6 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
     return parseOperatorNode(node)
   }
 
-  // Must be a projection object
   const project: ExpressionProjectNode = {
     kind: NodeKind.EXPRESSION_PROJECT,
     keys: [],
@@ -347,23 +346,16 @@ function isOperator(node: ObjectNode): boolean {
 export function resolveExpression(
   expression: ExpressionNode,
   document: BSONNode,
-  projection?: BSONNode,
 ): BSONNode {
-  if (!projection) {
-    projection = document
-  }
-
   switch (expression.kind) {
     case NodeKind.EXPRESSION_OPERATOR: {
       const fn = expected(OPERATORS[expression.operator])
 
       let args: BSONNode[]
       if (expression.arg.kind === NodeKind.EXPRESSION_ARRAY) {
-        args = expression.arg.nodes.map(n =>
-          resolveExpression(n, document, projection),
-        )
+        args = expression.arg.nodes.map(n => resolveExpression(n, document))
       } else if (expression.arg.kind !== NodeKind.NULLISH) {
-        args = [resolveExpression(expression.arg, document, projection)]
+        args = [resolveExpression(expression.arg, document)]
       } else {
         args = []
       }
@@ -373,12 +365,12 @@ export function resolveExpression(
         args.push(document)
       }
 
-      return resolveExpression(fn(...args), document, projection)
+      return resolveExpression(fn(...args), document)
     }
 
     case NodeKind.EXPRESSION_ARRAY:
       return wrapNodes(
-        expression.nodes.map(n => resolveExpression(n, document, projection)),
+        expression.nodes.map(n => resolveExpression(n, document)),
       )
 
     case NodeKind.EXPRESSION_GETTER:
@@ -398,7 +390,6 @@ export function resolveExpression(
         obj.value[key] = resolveExpression(
           expected(expression.nodes[key]),
           document,
-          projection,
         )
       }
 
@@ -407,8 +398,8 @@ export function resolveExpression(
 
     case NodeKind.EXPRESSION_PROJECT:
       return expression.exclusion
-        ? applyExclusion(expression, document, projection)
-        : applyInclusion(expression, document, projection)
+        ? applyExclusion(expression, document, document)
+        : applyInclusion(expression, document, document)
 
     default:
       return expression
@@ -500,7 +491,7 @@ export function applyInclusion(
     const nodes: BSONNode[] = []
     for (let i = 0; i < projection.value.length; i++) {
       if (projection.value[i].kind !== NodeKind.NULLISH) {
-        nodes.push(resolveExpression(project, document, projection.value[i]))
+        nodes.push(applyInclusion(project, document, projection.value[i]))
       }
     }
     return wrapNodes(nodes)
@@ -514,10 +505,12 @@ export function applyInclusion(
 
     const expression = project.values[key]
 
-    if (expression) {
-      setKey(obj, key, resolveExpression(expression, document, value))
-    } else {
+    if (!expression) {
       setKey(obj, key, value)
+    } else if (expression.kind === NodeKind.EXPRESSION_PROJECT) {
+      setKey(obj, key, applyInclusion(expression, document, value))
+    } else {
+      setKey(obj, key, resolveExpression(expression, document))
     }
   }
 

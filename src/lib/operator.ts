@@ -28,6 +28,7 @@ export interface ExpressionOperator<T extends BSONNode[] = BSONNode[]> {
   parse?: (...args: BSONNode[]) => T
   /**
    * Push root value into Operator's arguments.
+   * TODO: hacky
    */
   useRoot?: boolean
 }
@@ -71,7 +72,7 @@ export function withParsing<T extends BSONNode[]>(
  */
 export function useRoot(operator: ExpressionOperator) {
   if (operator.useRoot !== undefined) {
-    throw new Error() // TODO
+    throw new Error('Already using root document')
   }
   if (operator.minArgs === undefined && operator.maxArgs === undefined) {
     operator.minArgs = operator.length - 1
@@ -187,7 +188,7 @@ export function useParent<T extends unknown[]>(
   }
   operator.useParent = true
   if (parse) {
-    withQueryParsing(operator, parse as any) // hacky
+    withQueryParsing(operator, parse as any) // TODO: hacky
   }
 }
 
