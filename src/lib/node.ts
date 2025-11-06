@@ -22,6 +22,7 @@ export const NodeKind = Object.freeze({
   // Expression
   EXPRESSION_ARRAY: 'EXPRESSION_ARRAY',
   EXPRESSION_GETTER: 'EXPRESSION_GETTER',
+  EXPRESSION_OBJECT: 'EXPRESSION_OBJECT',
   EXPRESSION_OPERATOR: 'EXPRESSION_OPERATOR',
   EXPRESSION_PROJECT: 'EXPRESSION_PROJECT',
   // Match/Filter query
@@ -224,6 +225,7 @@ export type ExpressionNode =
   | BSONNode
   | ExpressionArrayNode
   | ExpressionGetterNode
+  | ExpressionObjectNode
   | ExpressionOperatorNode
   | ExpressionProjectNode
 
@@ -243,6 +245,16 @@ export interface ExpressionArrayNode {
 export interface ExpressionGetterNode {
   kind: typeof NodeKind.EXPRESSION_GETTER
   path: Path
+}
+
+/**
+ * Part of expression engine.
+ * Literal object inside an EXPRESSION_ARRAY node.
+ */
+export interface ExpressionObjectNode {
+  kind: typeof NodeKind.EXPRESSION_OBJECT
+  keys: string[]
+  nodes: Record<string, ExpressionNode | undefined>
 }
 
 /**

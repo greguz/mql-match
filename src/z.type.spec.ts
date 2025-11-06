@@ -182,6 +182,6 @@ test('$type', t => {
     { _id: 2, a: 'object' },
     { _id: 3, a: 'string' },
     { _id: 4, a: 'long' },
-    { _id: 5, a: 'missing' },
+    { _id: 5, a: 'null' },
   ])
 })

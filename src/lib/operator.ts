@@ -130,7 +130,7 @@ export function parseExpressionArgs(
 /**
  * Prepare operator's arguments array.
  */
-export function normalizeExpressionArgs(arg: BSONNode): BSONNode[] {
+function normalizeExpressionArgs(arg: BSONNode): BSONNode[] {
   switch (arg.kind) {
     case NodeKind.ARRAY:
       return [...arg.value]

@@ -45,7 +45,6 @@ import {
 import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
 import { setKey, wrapNodes, wrapObjectRaw } from './lib/bson.js'
 import {
-  type ArrayNode,
   type BSONNode,
   type ExpressionNode,
   type ExpressionProjectNode,
@@ -55,11 +54,7 @@ import {
   type ObjectNode,
   type StringNode,
 } from './lib/node.js'
-import {
-  type ExpressionOperator,
-  normalizeExpressionArgs,
-  parseExpressionArgs,
-} from './lib/operator.js'
+import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, includes } from './lib/util.js'
 
@@ -134,7 +129,7 @@ export function parseExpression(arg: BSONNode): ExpressionNode {
     arg.value._id = undefined
   }
 
-  const exp = parseExpressionInternal(arg, false)
+  const exp = parseExpressionInternal(arg)
   if (
     !withoutId &&
     exp.kind === NodeKind.EXPRESSION_PROJECT &&
@@ -151,15 +146,12 @@ export function parseExpression(arg: BSONNode): ExpressionNode {
   return exp
 }
 
-function parseExpressionInternal(
-  node: ExpressionNode,
-  forceInclusion: boolean,
-): ExpressionNode {
+function parseExpressionInternal(node: ExpressionNode): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
-      return parseArrayNode(node)
+      return parseLiteralNode(node)
     case NodeKind.OBJECT:
-      return parseObjectNode(node, forceInclusion)
+      return parseObjectNode(node)
     case NodeKind.STRING:
       return parseStringNode(node)
     default:
@@ -172,16 +164,6 @@ function parseExpressionInternal(
  */
 function isExclusion(node: ExpressionNode): boolean {
   return node.kind === NodeKind.EXPRESSION_PROJECT ? node.exclusion : false
-}
-
-/**
- * Maps `ARRAY` into `EXPRESSION_ARRAY` node.
- */
-function parseArrayNode({ value }: ArrayNode): ExpressionNode {
-  return {
-    kind: NodeKind.EXPRESSION_ARRAY,
-    nodes: value.map(n => parseExpressionInternal(n, true)),
-  }
 }
 
 /**
@@ -210,29 +192,9 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
   return nString(value)
 }
 
-function parseObjectNode(
-  node: ObjectNode,
-  forceInclusion: boolean,
-): ExpressionNode {
-  if (node.keys.length === 1 && node.keys[0][0] === '$') {
-    const key = node.keys[0]
-    if (key === '$literal') {
-      return expected(node.value[key])
-    }
-
-    const operator = OPERATORS[key]
-    if (!operator) {
-      throw new TypeError(`Unsupported expression operator: ${key}`)
-    }
-
-    return {
-      kind: NodeKind.EXPRESSION_OPERATOR,
-      operator: key,
-      arg: parseExpressionInternal(
-        parseExpressionArgs(operator, expected(node.value[key])),
-        forceInclusion,
-      ),
-    }
+function parseObjectNode(node: ObjectNode): ExpressionNode {
+  if (isOperator(node)) {
+    return parseOperatorNode(node)
   }
 
   // Must be a projection object
@@ -256,10 +218,7 @@ function parseObjectNode(
       }
 
       setProjectionKey(project, path)
-    } else if (
-      !forceInclusion &&
-      (value.value === false || value.value === 0)
-    ) {
+    } else if (value.value === false || value.value === 0) {
       // Exclusion node
       if (project.keys.length > 0 && !project.exclusion) {
         throw new TypeError(
@@ -271,7 +230,7 @@ function parseObjectNode(
       setProjectionKey(project, path)
     } else {
       // Value node or nested projection
-      const child = parseExpressionInternal(value, forceInclusion)
+      const child = parseExpressionInternal(value)
 
       const exclusion = isExclusion(child)
       if (project.keys.length > 0 && project.exclusion !== exclusion) {
@@ -288,6 +247,26 @@ function parseObjectNode(
   }
 
   return project
+}
+
+function parseOperatorNode(node: ObjectNode): ExpressionNode {
+  const key = node.keys[0]
+  if (key === '$literal') {
+    return expected(node.value[key])
+  }
+
+  const operator = OPERATORS[key]
+  if (!operator) {
+    throw new TypeError(`Unsupported expression operator: ${key}`)
+  }
+
+  return {
+    kind: NodeKind.EXPRESSION_OPERATOR,
+    operator: key,
+    arg: parseExpressionInternal(
+      parseExpressionArgs(operator, expected(node.value[key])),
+    ),
+  }
 }
 
 function setProjectionKey(
@@ -320,6 +299,49 @@ function setProjectionKey(
 }
 
 /**
+ * Projection is ignored inside literals.
+ * This "first" literal you can use to enter this mode is an array.
+ */
+function parseLiteralNode(node: BSONNode): ExpressionNode {
+  switch (node.kind) {
+    case NodeKind.ARRAY:
+      return {
+        kind: NodeKind.EXPRESSION_ARRAY,
+        nodes: node.value.map(parseLiteralNode),
+      }
+
+    case NodeKind.OBJECT: {
+      if (isOperator(node)) {
+        return parseOperatorNode(node)
+      }
+
+      const obj: Record<string, ExpressionNode | undefined> = {}
+      for (const key of node.keys) {
+        obj[key] = parseLiteralNode(expected(node.value[key]))
+      }
+      return {
+        kind: NodeKind.EXPRESSION_OBJECT,
+        keys: node.keys,
+        nodes: obj,
+      }
+    }
+
+    case NodeKind.STRING:
+      return parseStringNode(node)
+
+    default:
+      return node
+  }
+}
+
+/**
+ * Single key starting with "$" char.
+ */
+function isOperator(node: ObjectNode): boolean {
+  return node.keys.length === 1 && node.keys[0][0] === '$'
+}
+
+/**
  * Recursive downcast from `ExpressionNode` to `BSONNode`.
  */
 export function resolveExpression(
@@ -335,18 +357,23 @@ export function resolveExpression(
     case NodeKind.EXPRESSION_OPERATOR: {
       const fn = expected(OPERATORS[expression.operator])
 
-      // Resolve argument into raw BSON value
-      const node = resolveExpression(expression.arg, document, projection)
-
-      // Normalize arguments into array
-      const args = normalizeExpressionArgs(node)
+      let args: BSONNode[]
+      if (expression.arg.kind === NodeKind.EXPRESSION_ARRAY) {
+        args = expression.arg.nodes.map(n =>
+          resolveExpression(n, document, projection),
+        )
+      } else if (expression.arg.kind !== NodeKind.NULLISH) {
+        args = [resolveExpression(expression.arg, document, projection)]
+      } else {
+        args = []
+      }
 
       // Apply operator options
       if (fn.useRoot) {
         args.push(document)
       }
 
-      return fn(...args)
+      return resolveExpression(fn(...args), document, projection)
     }
 
     case NodeKind.EXPRESSION_ARRAY:
@@ -357,11 +384,31 @@ export function resolveExpression(
     case NodeKind.EXPRESSION_GETTER:
       return getPathValue(expression.path, document)
 
-    case NodeKind.EXPRESSION_PROJECT: {
+    case NodeKind.EXPRESSION_OBJECT: {
+      const obj: BSONNode = {
+        kind: NodeKind.OBJECT,
+        keys: expression.keys,
+        value: {},
+        raw: undefined,
+      }
+
+      for (let i = 0; i < expression.keys.length; i++) {
+        const key = expression.keys[i]
+
+        obj.value[key] = resolveExpression(
+          expected(expression.nodes[key]),
+          document,
+          projection,
+        )
+      }
+
+      return obj
+    }
+
+    case NodeKind.EXPRESSION_PROJECT:
       return expression.exclusion
         ? applyExclusion(expression, document, projection)
         : applyInclusion(expression, document, projection)
-    }
 
     default:
       return expression

@@ -15,15 +15,14 @@ function bind<T extends BSONNode>(
 test('$avg', t => {
   const avg = bind($avg)
 
-  t.is(avg(10, 6, 7), 7.666666666666667)
-  t.is(avg(9, 10), 9.5)
-  t.is(avg(4, 5, 5), 4.666666666666667)
+  t.is(avg([10, 6, 7]), 7.666666666666667)
+  t.is(avg([9, 10]), 9.5)
+  t.is(avg([4, 5, 5]), 4.666666666666667)
 })
 
 test('$sum', t => {
   const sum = bind($sum)
 
-  t.is(sum(), 0)
-  t.is(sum(1), 1)
-  t.is(sum(40, 2), 42)
+  t.is(sum([1]), 1)
+  t.is(sum([40, 2]), 42)
 })
