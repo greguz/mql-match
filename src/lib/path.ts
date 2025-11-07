@@ -1,4 +1,4 @@
-const REG_IDENTIFIER = /^[A-Za-z0-9_]*$/
+const REG_IDENTIFIER = /^[A-Za-z0-9_ ]*$/
 
 const REG_INDEX = /^\d+$/
 
