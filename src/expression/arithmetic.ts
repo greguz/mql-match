@@ -35,18 +35,32 @@ export function $abs(arg: BSONNode): BSONNode {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/add/
  */
 export function $add(...args: BSONNode[]): BSONNode {
+  // If first argument is a date, then the result type will be a date.
+  const returnDate = args.length >= 1 && args[0].kind === NodeKind.DATE
+
   let result = Decimal(0)
 
   for (let i = 0; i < args.length && !result.isNaN(); i++) {
     if (args[i].kind === NodeKind.NULLISH) {
       return nNullish()
     }
-    result = result.add(
-      unwrapNumber(
-        args[i],
-        `$add only supports numeric or date types (got ${args[i].kind})`,
-      ),
+
+    const n = unwrapDecimal(
+      args[i],
+      `$add only supports numeric or date types (got ${args[i].kind})`,
     )
+
+    // When mixing Date and non-integer operands,
+    // $add rounds the non-integer value to the nearest integer before performing the operation.
+    if (returnDate && n.isFinite() && !n.isInteger()) {
+      result = result.add(n.round())
+    } else {
+      result = result.add(n)
+    }
+  }
+
+  if (returnDate && !result.isNaN()) {
+    return nDate(new Date(result.toNumber()))
   }
 
   return nDouble(result)
@@ -122,26 +136,30 @@ export function $floor(arg: BSONNode): BSONNode {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/log/
  */
 export function $log(numberNode: BSONNode, baseNode: BSONNode): BSONNode {
-  const n = unwrapDecimal(
+  const n = unwrapNumber(
     numberNode,
     `$log's argument must be numeric (got ${numberNode.kind})`,
   )
-  if (n.lessThan(0)) {
+  if (!Number.isFinite(n) || n < 0) {
     throw new TypeError(`$log's argument must be a positive number (got ${n})`)
   }
 
-  const base = unwrapDecimal(
+  const base = unwrapNumber(
     baseNode,
     `$log's base must be numeric (got ${baseNode.kind})`,
   )
-  if (!base.greaterThan(1)) {
+  if (!Number.isFinite(base) || base <= 1) {
     throw new TypeError(
       `$log's base must be a positive number not equal to 1 (got ${base})`,
     )
   }
 
-  // TODO: more precision?
-  switch (base.toNumber()) {
+  // Special case to support standard constants
+  if (n === Math.E && base === Math.E) {
+    return nDouble(1)
+  }
+
+  switch (base) {
     case 2:
       return nDouble(Decimal.log2(n))
     case 10:
@@ -307,7 +325,11 @@ export function $subtract(left: BSONNode, right: BSONNode): BSONNode {
   const result = l.minus(r)
 
   // TODO: round "right" when "left" is date
-  return left.kind === NodeKind.DATE
+
+  // date - date = milliseconds
+  // date - milliseconds = date
+  // otherwise "number"
+  return left.kind === NodeKind.DATE && right.kind !== NodeKind.DATE
     ? nDate(new Date(result.toNumber()))
     : nDouble(result)
 }
@@ -327,13 +349,27 @@ export function $trunc(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
 
   const p = unwrapPlace(placeNode, '$trunc')
 
-  if (p.isNegative()) {
-    return nDouble(
-      n.toSignificantDigits(p.abs().toNumber(), Decimal.ROUND_DOWN),
-    )
+  if (p.isZero()) {
+    // truncates all digits to the right of the decimal and returns the whole integer value
+    return nDouble(n.floor())
   }
 
-  return nDouble(n.toDecimalPlaces(p.toNumber(), Decimal.ROUND_DOWN))
+  if (p.isPositive()) {
+    // truncates to <place> decimal places
+    return nDouble(n.toDecimalPlaces(p.toNumber(), Decimal.ROUND_DOWN))
+  }
+
+  // if (p.isNegative()) ...
+  // replaces <place> digits left of the decimal with 0
+
+  // If the absolute value of <place> exceeds the number of digits to the left of the decimal,
+  // $trunc returns 0.
+  const integersCount = n.floor().toString().length
+  if (p.abs().gte(integersCount)) {
+    return nDouble(0)
+  }
+
+  return nDouble(n.toSignificantDigits(p.abs().toNumber(), Decimal.ROUND_DOWN))
 }
 
 withArguments($trunc, 1, 2)

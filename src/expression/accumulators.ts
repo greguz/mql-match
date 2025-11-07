@@ -69,3 +69,23 @@ withParsing($avg, (...args) => {
       return [wrapNodes(args)]
   }
 })
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/stdDevPop/
+ */
+export function $stdDevPop(...args: BSONNode[]): BSONNode {
+  // TODO
+  // function populationStandardDeviation(values: number[]) {
+  //   const N = values.length
+  //   if (N === 0) return 0
+  //   const mean = values.reduce((sum, val) => sum + val, 0) / N
+  //   const variance =
+  //     values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / N
+  //   return Math.sqrt(variance)
+  // }
+  // const data = [10, 12, 23, 23, 16, 23, 21, 16]
+  // console.log(populationStandardDeviation(data)) // 4.898979485566356
+  throw new Error('TODO: $stdDevPop')
+}
+
+withArguments($stdDevPop, 0, Number.POSITIVE_INFINITY)

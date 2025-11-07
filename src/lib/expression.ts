@@ -23,7 +23,7 @@ import { expected } from './util.js'
  * ```
  *
  * You need to evaluate `{ $size: '$items' }` ONLY IF `{ $isArray: '$items' }` is true,
- * otherwise the $isArray operator will (correctly) throw.
+ * otherwise the $size operator will (correctly) throw.
  */
 export interface ExpressionOperator {
   /**
@@ -118,24 +118,25 @@ export function parseOperatorArgs(
   fn: ExpressionOperator,
   argument: BSONNode,
 ): ExpressionNode[] {
+  const minArgs = fn.minArgs ?? fn.length - 1
+  const maxArgs = fn.maxArgs ?? minArgs
+
   // Normalize single argument into array of arguments
   let args: BSONNode[]
   if (argument.kind === NodeKind.ARRAY) {
     args = argument.value
-  } else if (argument.kind !== NodeKind.NULLISH) {
+  } else if (argument.kind !== NodeKind.NULLISH || minArgs > 0) {
     args = [argument]
   } else {
     args = []
   }
 
-  const minArgs = fn.minArgs ?? fn.length - 1
   if (args.length < minArgs) {
     throw new TypeError(
       `Operator ${fn.name} requires at least ${minArgs} arguments (got ${args.length})`,
     )
   }
 
-  const maxArgs = fn.maxArgs ?? minArgs
   if (args.length > maxArgs) {
     throw new TypeError(
       `Operator ${fn.name} requires at most ${maxArgs} arguments (got ${args.length})`,

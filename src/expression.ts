@@ -1,4 +1,4 @@
-import { $avg, $sum } from './expression/accumulators.js'
+import { $avg, $stdDevPop, $sum } from './expression/accumulators.js'
 import {
   $abs,
   $add,
@@ -96,6 +96,7 @@ ExpressionContext.operators.$regexMatch = wrapOperator($regexMatch)
 ExpressionContext.operators.$round = wrapOperator($round)
 ExpressionContext.operators.$size = wrapOperator($size)
 ExpressionContext.operators.$sqrt = wrapOperator($sqrt)
+ExpressionContext.operators.$stdDevPop = wrapOperator($stdDevPop)
 ExpressionContext.operators.$subtract = wrapOperator($subtract)
 ExpressionContext.operators.$sum = wrapOperator($sum)
 ExpressionContext.operators.$switch = $switch
