@@ -1,6 +1,7 @@
 import { Decimal } from 'decimal.js'
 
 import { unwrapDecimal, unwrapNumber, wrapBSON } from '../lib/bson.js'
+import { withArguments } from '../lib/expression.js'
 import {
   type BSONNode,
   type DoubleNode,
@@ -11,7 +12,6 @@ import {
   nLong,
   nNullish,
 } from '../lib/node.js'
-import { withArguments } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/abs/

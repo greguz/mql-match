@@ -1,4 +1,10 @@
-import * as comparison from '../expression/comparison.js'
+import {
+  $eq as $eqStrict,
+  $gt,
+  $gte,
+  $lt,
+  $lte,
+} from '../expression/comparison.js'
 import { assertBSON } from '../lib/bson.js'
 import {
   type BooleanNode,
@@ -6,24 +12,31 @@ import {
   NodeKind,
   nBoolean,
 } from '../lib/node.js'
-import { type ExpressionOperator, withQueryParsing } from '../lib/operator.js'
+import { withQueryParsing } from '../lib/operator.js'
+
+export { $gt, $gte, $lt, $lte }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
  */
 export function $eq(left: BSONNode, right: BSONNode): BooleanNode {
-  let result = eqValue(left, right)
+  let result = $eqLike(left, right)
 
   if (!result.value && left.kind === NodeKind.ARRAY) {
     for (let i = 0; i < left.value.length && !result.value; i++) {
-      result = eqValue(left.value[i], right)
+      result = $eqLike(left.value[i], right)
     }
   }
 
   return result
 }
 
-function eqValue(left: BSONNode, right: BSONNode): BooleanNode {
+/**
+ * Part of filter query's "$eq" operator.
+ *
+ * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
+ */
+function $eqLike(left: BSONNode, right: BSONNode): BooleanNode {
   if (right.kind === NodeKind.REGEX) {
     switch (left.kind) {
       case NodeKind.REGEX:
@@ -35,7 +48,7 @@ function eqValue(left: BSONNode, right: BSONNode): BooleanNode {
     }
   }
 
-  return comparison.$eq(left, right)
+  return $eqStrict(left, right)
 }
 
 /**
@@ -57,20 +70,3 @@ export function $in(valueNode: BSONNode, arrayNode: BSONNode): BooleanNode {
 withQueryParsing<[BSONNode]>($in, arg => [
   assertBSON(arg, NodeKind.ARRAY, '$in needs an array'),
 ])
-
-function castOperator(fn: ExpressionOperator): ExpressionOperator {
-  const copy: ExpressionOperator = fn.bind(null)
-
-  const minArgs = fn.minArgs ?? fn.length
-  const maxArgs = fn.maxArgs ?? minArgs
-
-  copy.minArgs = minArgs - 1
-  copy.maxArgs = maxArgs - 1
-
-  return copy
-}
-
-export const $gt = castOperator(comparison.$gt)
-export const $gte = castOperator(comparison.$gte)
-export const $lt = castOperator(comparison.$lt)
-export const $lte = castOperator(comparison.$lte)

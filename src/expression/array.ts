@@ -1,4 +1,5 @@
 import { wrapNodes } from '../lib/bson.js'
+import { withArguments } from '../lib/expression.js'
 import {
   type ArrayNode,
   type BooleanNode,
@@ -10,7 +11,6 @@ import {
   nDouble,
   nNullish,
 } from '../lib/node.js'
-import { withArguments } from '../lib/operator.js'
 import { $eq } from './comparison.js'
 
 /**

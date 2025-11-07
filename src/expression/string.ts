@@ -1,4 +1,5 @@
 import { assertBSON } from '../lib/bson.js'
+import { withParsing } from '../lib/expression.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -6,7 +7,6 @@ import {
   nBoolean,
   nNullish,
 } from '../lib/node.js'
-import { withParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/
@@ -74,5 +74,5 @@ withParsing($regexMatch, arg => {
     throw new TypeError("$regexMatch requires 'regex' parameter")
   }
 
-  return [inputNode, regexNode, arg.value.options || nNullish()] as const
+  return [inputNode, regexNode, arg.value.options || nNullish()]
 })

@@ -1,5 +1,14 @@
-import { type BSONNode, NodeKind, nNullish } from '../lib/node.js'
-import { withArguments, withParsing } from '../lib/operator.js'
+import {
+  type ExpressionContext,
+  withArguments,
+  withParsing,
+} from '../lib/expression.js'
+import {
+  type BSONNode,
+  type ExpressionNode,
+  NodeKind,
+  nNullish,
+} from '../lib/node.js'
 import { expected } from '../lib/util.js'
 import { $toBool } from './type.js'
 
@@ -7,18 +16,19 @@ import { $toBool } from './type.js'
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/cond/
  */
 export function $cond(
-  ifNode: BSONNode,
-  thenNode: BSONNode,
-  elseNode: BSONNode,
+  ctx: ExpressionContext,
+  nIf: ExpressionNode,
+  nThen: ExpressionNode,
+  nElse: ExpressionNode,
 ): BSONNode {
-  return $toBool(ifNode).value ? thenNode : elseNode
+  return $toBool(ctx.eval(nIf)).value ? ctx.eval(nThen) : ctx.eval(nElse)
 }
 
 withArguments($cond, 1, 3)
 
 withParsing($cond, (...args) => {
   if (args.length === 3) {
-    return args as [BSONNode, BSONNode, BSONNode]
+    return args
   }
   if (args.length !== 1 || args[0].kind !== NodeKind.OBJECT) {
     throw new TypeError('Expression $cond takes exactly 3 arguments')
@@ -39,16 +49,19 @@ withParsing($cond, (...args) => {
     throw new TypeError("Missing 'else' parameter to $cond")
   }
 
-  return [ifNode, thenNode, elseNode] as const
+  return [ifNode, thenNode, elseNode]
 })
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/switch/
  */
-export function $switch(...args: BSONNode[]): BSONNode {
+export function $switch(
+  ctx: ExpressionContext,
+  ...args: ExpressionNode[]
+): BSONNode {
   for (let i = 0; i < args.length - 1; i += 2) {
-    if ($toBool(args[i]).value) {
-      return args[i + 1]
+    if ($toBool(ctx.eval(args[i])).value) {
+      return ctx.eval(args[i + 1])
     }
   }
 
@@ -60,7 +73,7 @@ export function $switch(...args: BSONNode[]): BSONNode {
   }
 
   // Returns the "default" branch
-  return args[args.length - 1]
+  return ctx.eval(args[args.length - 1])
 }
 
 withParsing($switch, arg => {
@@ -117,13 +130,17 @@ withParsing($switch, arg => {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/ifNull/
  */
-export function $ifNull(...args: BSONNode[]): BSONNode {
+export function $ifNull(
+  ctx: ExpressionContext,
+  ...args: ExpressionNode[]
+): BSONNode {
   for (let i = 0; i < args.length - 1; i++) {
-    if (args[i].kind !== NodeKind.NULLISH) {
-      return args[i]
+    const value = ctx.eval(args[i])
+    if (value.kind !== NodeKind.NULLISH) {
+      return value
     }
   }
-  return expected(args[args.length - 1])
+  return ctx.eval(expected(args[args.length - 1]))
 }
 
 withArguments($ifNull, 1, Number.POSITIVE_INFINITY)

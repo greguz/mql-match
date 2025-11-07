@@ -1,8 +1,8 @@
 import { Decimal } from 'decimal.js'
 
 import { isBSONNumber, unwrapNumber, wrapNodes } from '../lib/bson.js'
+import { withArguments, withParsing } from '../lib/expression.js'
 import { type BSONNode, NodeKind, nDouble, nNullish } from '../lib/node.js'
-import { withArguments, withParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/sum/
@@ -23,12 +23,12 @@ export function $sum(arg: BSONNode): BSONNode {
 
 withArguments($sum, 0, Number.POSITIVE_INFINITY)
 
-withParsing<[BSONNode]>($sum, (...args) => {
+withParsing($sum, (...args) => {
   switch (args.length) {
     case 0:
       return [wrapNodes([])]
     case 1:
-      return args as [BSONNode]
+      return args
     default:
       return [wrapNodes(args)]
   }
@@ -59,12 +59,12 @@ export function $avg(arg: BSONNode): BSONNode {
 
 withArguments($avg, 0, Number.POSITIVE_INFINITY)
 
-withParsing<[BSONNode]>($avg, (...args) => {
+withParsing($avg, (...args) => {
   switch (args.length) {
     case 0:
       return [wrapNodes([])]
     case 1:
-      return args as [BSONNode]
+      return args
     default:
       return [wrapNodes(args)]
   }

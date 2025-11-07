@@ -42,8 +42,12 @@ import {
   $toString,
   $type,
 } from './expression/type.js'
-import { $$CLUSTER_TIME, $$NOW, $$ROOT } from './expression/variables.js'
 import { setKey, wrapNodes, wrapObjectRaw } from './lib/bson.js'
+import {
+  ExpressionContext,
+  parseOperatorArgs,
+  wrapOperator,
+} from './lib/expression.js'
 import {
   type BSONNode,
   type ExpressionNode,
@@ -54,65 +58,56 @@ import {
   type ObjectNode,
   type StringNode,
 } from './lib/node.js'
-import { type ExpressionOperator, parseExpressionArgs } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected, includes } from './lib/util.js'
 
-/**
- * https://www.mongodb.com/docs/manual/reference/aggregation-variables/
- * https://www.mongodb.com/docs/manual/reference/mql/expressions/
- */
-const OPERATORS: Record<string, ExpressionOperator | undefined> = {
-  $$CLUSTER_TIME,
-  $$NOW,
-  $$ROOT,
-  $abs,
-  $add,
-  $and,
-  $avg,
-  $ceil,
-  $cmp,
-  $concatArrays,
-  $cond,
-  $convert,
-  $divide,
-  $eq,
-  $exp,
-  $floor,
-  $gt,
-  $gte,
-  $ifNull,
-  $in,
-  $isArray,
-  $isNumber,
-  $ln,
-  $log,
-  $log10,
-  $lt,
-  $lte,
-  $mod,
-  $multiply,
-  $ne,
-  $not,
-  $or,
-  $pow,
-  $regexMatch,
-  $round,
-  $size,
-  $sqrt,
-  $subtract,
-  $sum,
-  $switch,
-  $toBool,
-  $toDate,
-  $toDouble,
-  $toInt,
-  $toLong,
-  $toObjectId,
-  $toString,
-  $trunc,
-  $type,
-}
+// Inject operators into ExpressionContext store
+ExpressionContext.operators.$abs = wrapOperator($abs)
+ExpressionContext.operators.$add = wrapOperator($add)
+ExpressionContext.operators.$and = wrapOperator($and)
+ExpressionContext.operators.$avg = wrapOperator($avg)
+ExpressionContext.operators.$ceil = wrapOperator($ceil)
+ExpressionContext.operators.$cmp = wrapOperator($cmp)
+ExpressionContext.operators.$concatArrays = wrapOperator($concatArrays)
+ExpressionContext.operators.$cond = $cond
+ExpressionContext.operators.$convert = wrapOperator($convert)
+ExpressionContext.operators.$divide = wrapOperator($divide)
+ExpressionContext.operators.$eq = wrapOperator($eq)
+ExpressionContext.operators.$exp = wrapOperator($exp)
+ExpressionContext.operators.$floor = wrapOperator($floor)
+ExpressionContext.operators.$gt = wrapOperator($gt)
+ExpressionContext.operators.$gte = wrapOperator($gte)
+ExpressionContext.operators.$ifNull = $ifNull
+ExpressionContext.operators.$in = wrapOperator($in)
+ExpressionContext.operators.$isArray = wrapOperator($isArray)
+ExpressionContext.operators.$isNumber = wrapOperator($isNumber)
+ExpressionContext.operators.$ln = wrapOperator($ln)
+ExpressionContext.operators.$log = wrapOperator($log)
+ExpressionContext.operators.$log10 = wrapOperator($log10)
+ExpressionContext.operators.$lt = wrapOperator($lt)
+ExpressionContext.operators.$lte = wrapOperator($lte)
+ExpressionContext.operators.$mod = wrapOperator($mod)
+ExpressionContext.operators.$multiply = wrapOperator($multiply)
+ExpressionContext.operators.$ne = wrapOperator($ne)
+ExpressionContext.operators.$not = wrapOperator($not)
+ExpressionContext.operators.$or = wrapOperator($or)
+ExpressionContext.operators.$pow = wrapOperator($pow)
+ExpressionContext.operators.$regexMatch = wrapOperator($regexMatch)
+ExpressionContext.operators.$round = wrapOperator($round)
+ExpressionContext.operators.$size = wrapOperator($size)
+ExpressionContext.operators.$sqrt = wrapOperator($sqrt)
+ExpressionContext.operators.$subtract = wrapOperator($subtract)
+ExpressionContext.operators.$sum = wrapOperator($sum)
+ExpressionContext.operators.$switch = $switch
+ExpressionContext.operators.$toBool = wrapOperator($toBool)
+ExpressionContext.operators.$toDate = wrapOperator($toDate)
+ExpressionContext.operators.$toDouble = wrapOperator($toDouble)
+ExpressionContext.operators.$toInt = wrapOperator($toInt)
+ExpressionContext.operators.$toLong = wrapOperator($toLong)
+ExpressionContext.operators.$toObjectId = wrapOperator($toObjectId)
+ExpressionContext.operators.$toString = wrapOperator($toString)
+ExpressionContext.operators.$trunc = wrapOperator($trunc)
+ExpressionContext.operators.$type = wrapOperator($type)
 
 /**
  * Parse both values and operators.
@@ -146,7 +141,7 @@ export function parseExpression(arg: BSONNode): ExpressionNode {
   return exp
 }
 
-function parseExpressionInternal(node: ExpressionNode): ExpressionNode {
+function parseExpressionInternal(node: BSONNode): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
       return parseLiteralNode(node)
@@ -171,14 +166,10 @@ function isExclusion(node: ExpressionNode): boolean {
  */
 function parseStringNode({ value }: StringNode): ExpressionNode {
   if (value[0] === '$' && value[1] === '$') {
-    const fn = OPERATORS[value]
-    if (!fn) {
-      throw new TypeError(`Unsupported system variable: ${value}`)
-    }
+    // TODO: check supported variables
     return {
-      kind: NodeKind.EXPRESSION_OPERATOR,
-      operator: value,
-      arg: parseExpressionArgs(fn, nNullish()),
+      kind: NodeKind.EXPRESSION_VARIABLE,
+      variable: value,
     }
   }
 
@@ -249,22 +240,31 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
 }
 
 function parseOperatorNode(node: ObjectNode): ExpressionNode {
-  const key = node.keys[0]
-  if (key === '$literal') {
-    return expected(node.value[key])
+  if (node.keys.length !== 1) {
+    throw new Error('Malformed operator request')
   }
 
-  const operator = OPERATORS[key]
-  if (!operator) {
+  const key = node.keys[0]
+  const value = expected(node.value[key])
+
+  if (key === '$literal') {
+    return value
+  }
+
+  const fn = ExpressionContext.operators[key]
+  if (!fn) {
     throw new TypeError(`Unsupported expression operator: ${key}`)
+  }
+
+  const args = parseOperatorArgs(fn, value)
+  for (let i = 0; i < args.length; i++) {
+    args[i] = parseLiteralNode(args[i])
   }
 
   return {
     kind: NodeKind.EXPRESSION_OPERATOR,
     operator: key,
-    arg: parseExpressionInternal(
-      parseExpressionArgs(operator, expected(node.value[key])),
-    ),
+    args,
   }
 }
 
@@ -301,7 +301,7 @@ function setProjectionKey(
  * Projection is ignored inside literals.
  * This "first" literal you can use to enter this mode is an array.
  */
-function parseLiteralNode(node: BSONNode): ExpressionNode {
+function parseLiteralNode(node: ExpressionNode): ExpressionNode {
   switch (node.kind) {
     case NodeKind.ARRAY:
       return {
@@ -318,6 +318,7 @@ function parseLiteralNode(node: BSONNode): ExpressionNode {
       for (const key of node.keys) {
         obj[key] = parseLiteralNode(expected(node.value[key]))
       }
+
       return {
         kind: NodeKind.EXPRESSION_OBJECT,
         keys: node.keys,
@@ -340,99 +341,17 @@ function isOperator(node: ObjectNode): boolean {
   return node.keys.length === 1 && node.keys[0][0] === '$'
 }
 
-/**
- * Recursive downcast from `ExpressionNode` to `BSONNode`.
- */
-export function resolveExpression(
-  expression: ExpressionNode,
-  document: BSONNode,
-): BSONNode {
-  switch (expression.kind) {
-    case NodeKind.EXPRESSION_OPERATOR: {
-      const fn = expected(OPERATORS[expression.operator])
+export function resolveExpression(node: ExpressionNode, document: BSONNode) {
+  const ctx = new ExpressionContext(document)
 
-      let args: BSONNode[]
-      if (expression.arg.kind === NodeKind.EXPRESSION_ARRAY) {
-        args = expression.arg.nodes.map(n => resolveExpression(n, document))
-      } else if (expression.arg.kind !== NodeKind.NULLISH) {
-        args = [resolveExpression(expression.arg, document)]
-      } else {
-        args = []
-      }
-
-      // Apply operator options
-      if (fn.useRoot) {
-        args.push(document)
-      }
-
-      return resolveExpression(fn(...args), document)
-    }
-
-    case NodeKind.EXPRESSION_ARRAY:
-      return wrapNodes(
-        expression.nodes.map(n => resolveExpression(n, document)),
-      )
-
-    case NodeKind.EXPRESSION_GETTER:
-      return getPathValue(expression.path, document)
-
-    case NodeKind.EXPRESSION_OBJECT: {
-      const obj: BSONNode = {
-        kind: NodeKind.OBJECT,
-        keys: expression.keys,
-        value: {},
-        raw: undefined,
-      }
-
-      for (let i = 0; i < expression.keys.length; i++) {
-        const key = expression.keys[i]
-
-        obj.value[key] = resolveExpression(
-          expected(expression.nodes[key]),
-          document,
-        )
-      }
-
-      return obj
-    }
-
+  switch (node.kind) {
     case NodeKind.EXPRESSION_PROJECT:
-      return expression.exclusion
-        ? applyExclusion(expression, document, document)
-        : applyInclusion(expression, document, document)
-
+      return node.exclusion
+        ? applyExclusion(node, ctx.document, ctx.document)
+        : applyInclusion(node, ctx, ctx.document)
     default:
-      return expression
+      return ctx.eval(node)
   }
-}
-
-/**
- * Keeps only non-nullisth array items.
- */
-export function getPathValue(path: Path, node: BSONNode): BSONNode {
-  if (!path.length) {
-    return node
-  }
-  if (node.kind === NodeKind.OBJECT) {
-    return getPathValue(path.slice(1), node.value[path[0]] || nNullish())
-  }
-
-  if (node.kind === NodeKind.ARRAY) {
-    const items: BSONNode[] = []
-
-    for (let i = 0; i < node.value.length; i++) {
-      const n = getPathValue(path, node.value[i])
-      if (n.kind !== NodeKind.NULLISH) {
-        items.push(n)
-      }
-    }
-
-    if (items.length) {
-      return wrapNodes(items)
-    }
-  }
-
-  return nNullish()
 }
 
 /**
@@ -484,14 +403,14 @@ export function applyExclusion(
  */
 export function applyInclusion(
   project: ExpressionProjectNode,
-  document: BSONNode,
+  ctx: ExpressionContext,
   projection: BSONNode,
 ): BSONNode {
   if (projection.kind === NodeKind.ARRAY) {
     const nodes: BSONNode[] = []
     for (let i = 0; i < projection.value.length; i++) {
       if (projection.value[i].kind !== NodeKind.NULLISH) {
-        nodes.push(applyInclusion(project, document, projection.value[i]))
+        nodes.push(applyInclusion(project, ctx, projection.value[i]))
       }
     }
     return wrapNodes(nodes)
@@ -508,9 +427,9 @@ export function applyInclusion(
     if (!expression) {
       setKey(obj, key, value)
     } else if (expression.kind === NodeKind.EXPRESSION_PROJECT) {
-      setKey(obj, key, applyInclusion(expression, document, value))
+      setKey(obj, key, applyInclusion(expression, ctx, value))
     } else {
-      setKey(obj, key, resolveExpression(expression, document))
+      setKey(obj, key, ctx.eval(expression))
     }
   }
 

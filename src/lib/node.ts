@@ -25,6 +25,7 @@ export const NodeKind = Object.freeze({
   EXPRESSION_OBJECT: 'EXPRESSION_OBJECT',
   EXPRESSION_OPERATOR: 'EXPRESSION_OPERATOR',
   EXPRESSION_PROJECT: 'EXPRESSION_PROJECT',
+  EXPRESSION_VARIABLE: 'EXPRESSION_VARIABLE',
   // Match/Filter query
   MATCH_ARRAY: 'MATCH_ARRAY',
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
@@ -228,6 +229,7 @@ export type ExpressionNode =
   | ExpressionObjectNode
   | ExpressionOperatorNode
   | ExpressionProjectNode
+  | ExpressionVariableNode
 
 /**
  * Part of expression engine.
@@ -264,10 +266,10 @@ export interface ExpressionObjectNode {
 export interface ExpressionOperatorNode {
   kind: typeof NodeKind.EXPRESSION_OPERATOR
   /**
-   * Normally a ARRAY node.
+   * @example "$toBool"
    */
-  arg: ExpressionNode
   operator: string
+  args: ExpressionNode[]
 }
 
 /**
@@ -282,6 +284,17 @@ export interface ExpressionProjectNode {
    */
   values: Record<string, ExpressionNode | undefined>
   exclusion: boolean
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/aggregation-variables/
+ */
+export interface ExpressionVariableNode {
+  kind: typeof NodeKind.EXPRESSION_VARIABLE
+  /**
+   * @example "$$ROOT"
+   */
+  variable: string
 }
 
 /**

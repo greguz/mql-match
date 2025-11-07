@@ -1,5 +1,5 @@
+import { withArguments } from '../lib/expression.js'
 import { type BooleanNode, type BSONNode, nBoolean } from '../lib/node.js'
-import { withArguments } from '../lib/operator.js'
 import { $toBool } from './type.js'
 
 /**

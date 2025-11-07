@@ -1,6 +1,7 @@
 import { Double, Int32, Long, ObjectId } from 'bson'
 
 import { parseBSONType } from '../lib/bson.js'
+import { withParsing } from '../lib/expression.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -17,7 +18,6 @@ import {
   nNullish,
   nString,
 } from '../lib/node.js'
-import { withParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/
@@ -132,7 +132,7 @@ withParsing($convert, arg => {
     parseConvertFormat(arg.value.format),
     arg.value.onError || nNullish(),
     arg.value.onNull || nNullish(),
-  ] as const
+  ]
 })
 
 function parseConvertSubtype(node: BSONNode = nNullish()): BSONNode {
