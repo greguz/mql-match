@@ -76,10 +76,7 @@ function* parseOperator<T extends unknown[]>(
   }
 }
 
-export function resolveUpdate(
-  nodes: UpdatePathNode[],
-  subject: BSONNode,
-): void {
+export function evalUpdate(nodes: UpdatePathNode[], subject: BSONNode): void {
   for (const node of nodes) {
     const fn = expected(OPERATORS[node.operator])
 

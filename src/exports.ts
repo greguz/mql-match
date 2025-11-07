@@ -1,28 +1,26 @@
-import { parseExpression, resolveExpression } from './expression.js'
+import { evalExpression, parseExpression } from './expression.js'
 import { unwrapBSON, wrapBSON } from './lib/bson.js'
 import type { BSONNode } from './lib/node.js'
-import { parseMatch, resolveMatch } from './match.js'
+import { evalMatch, parseMatch } from './match.js'
 import { parsePipeline } from './pipeline.js'
-import { parseUpdate, resolveUpdate } from './update.js'
+import { evalUpdate, parseUpdate } from './update.js'
 
-export function compileAggregationExpression(expr: unknown) {
+export function compileExpression(expr: unknown) {
   const node = parseExpression(wrapBSON(expr))
   return <T = any>(doc?: unknown): T => {
-    return unwrapBSON(resolveExpression(node, wrapBSON(doc))) as T
+    return unwrapBSON(evalExpression(node, wrapBSON(doc))) as T
   }
 }
 
-export function compileFilterQuery(query: Record<string, unknown> = {}) {
+export function compileMatch(query: Record<string, unknown> = {}) {
   const node = parseMatch(wrapBSON(query))
 
   return (value?: unknown): boolean => {
-    return resolveMatch(node, wrapBSON(value)).value
+    return evalMatch(node, wrapBSON(value)).value
   }
 }
 
-export function compileAggregationPipeline(
-  stages: Array<Record<string, unknown>>,
-) {
+export function compilePipeline(stages: Array<Record<string, unknown>>) {
   const aggregate = parsePipeline(stages)
 
   return <T = any>(values: Iterable<unknown>): T[] => {
@@ -44,11 +42,30 @@ function unwrapIterable(docs: Iterable<BSONNode>): unknown[] {
   return results
 }
 
-export function compileUpdateQuery(query: Record<string, unknown>) {
+export function compileUpdate(query: Record<string, unknown>) {
   const nodes = Array.from(parseUpdate(query))
 
   return <T = any>(doc: unknown): T => {
-    resolveUpdate(nodes, wrapBSON(doc))
+    evalUpdate(nodes, wrapBSON(doc))
     return doc as T
   }
+}
+
+export {
+  /**
+   * @deprecated use `compileUpdate` instead
+   */
+  compileUpdate as compileUpdateQuery,
+  /**
+   * @deprecated use `compilePipeline` instead
+   */
+  compilePipeline as compileAggregationPipeline,
+  /**
+   * @deprecated use `compileMatch` instead
+   */
+  compileMatch as compileFilterQuery,
+  /**
+   * @deprecated use `compileExpression` instead
+   */
+  compileExpression as compileAggregationExpression,
 }

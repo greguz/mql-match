@@ -12,7 +12,7 @@ import {
 } from '../lib/node.js'
 import { withQueryParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
-import { parseMatch, resolveMatch } from '../match.js'
+import { evalMatch, parseMatch } from '../match.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pop/
@@ -55,7 +55,7 @@ export function $pull(node: BSONNode, query: MatchNode): BSONNode {
 
   let i = 0
   while (i < node.value.length) {
-    if (resolveMatch(query, node.value[i]).value) {
+    if (evalMatch(query, node.value[i]).value) {
       expected(node.raw).splice(i, 1)
       node.value.splice(i, 1)
     } else {

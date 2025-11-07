@@ -1,4 +1,4 @@
-import { parseExpression, resolveExpression } from './expression.js'
+import { evalExpression, parseExpression } from './expression.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -212,10 +212,10 @@ function* compileOperator(
   }
 }
 
-export function resolveMatch(node: MatchNode, doc: BSONNode): BooleanNode {
+export function evalMatch(node: MatchNode, doc: BSONNode): BooleanNode {
   if (node.kind === NodeKind.MATCH_EXPRESSION) {
     // $toBool was added during parsing
-    return nBoolean(resolveExpression(node.expression, doc).value === true)
+    return nBoolean(evalExpression(node.expression, doc).value === true)
   }
 
   if (node.kind !== NodeKind.MATCH_SEQUENCE) {
@@ -223,7 +223,7 @@ export function resolveMatch(node: MatchNode, doc: BSONNode): BooleanNode {
   }
 
   for (const n of node.nodes) {
-    const result = resolveMatch(n, doc)
+    const result = evalMatch(n, doc)
 
     if (node.operator === '$and' && !result.value) {
       return nBoolean(false)
@@ -262,7 +262,7 @@ function resolveMatchNode(
       case NodeKind.MATCH_ARRAY: {
         if (left.kind === NodeKind.ARRAY) {
           for (let i = 0; i < left.value.length && !result; i++) {
-            result = resolveMatch(node.node, left.value[i]).value
+            result = evalMatch(node.node, left.value[i]).value
           }
         }
         break

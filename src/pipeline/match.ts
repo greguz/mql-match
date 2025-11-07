@@ -1,6 +1,6 @@
 import type { BSONNode, MatchNode } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
-import { parseMatch, resolveMatch } from '../match.js'
+import { evalMatch, parseMatch } from '../match.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/match/
@@ -10,7 +10,7 @@ export function* $match(
   query: MatchNode,
 ): Iterable<BSONNode> {
   for (const doc of docs) {
-    if (resolveMatch(query, doc).value) {
+    if (evalMatch(query, doc).value) {
       yield doc
     }
   }

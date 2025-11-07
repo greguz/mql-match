@@ -1,4 +1,4 @@
-import { parseExpression, resolveExpression } from '../expression.js'
+import { evalExpression, parseExpression } from '../expression.js'
 import type { BSONNode, ExpressionNode } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
 
@@ -10,7 +10,7 @@ export function* $project(
   expr: ExpressionNode,
 ): Iterable<BSONNode> {
   for (const doc of docs) {
-    yield resolveExpression(expr, doc)
+    yield evalExpression(expr, doc)
   }
 }
 

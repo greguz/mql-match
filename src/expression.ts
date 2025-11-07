@@ -341,7 +341,7 @@ function isOperator(node: ObjectNode): boolean {
   return node.keys.length === 1 && node.keys[0][0] === '$'
 }
 
-export function resolveExpression(node: ExpressionNode, document: BSONNode) {
+export function evalExpression(node: ExpressionNode, document: BSONNode) {
   const ctx = new ExpressionContext(document)
 
   switch (node.kind) {

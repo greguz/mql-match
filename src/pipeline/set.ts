@@ -1,4 +1,4 @@
-import { parseExpression, resolveExpression } from '../expression.js'
+import { evalExpression, parseExpression } from '../expression.js'
 import { setKey, wrapNodes, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
 import { withStageParsing } from '../lib/operator.js'
@@ -12,7 +12,7 @@ export function* $set(
   expr: ExpressionNode,
 ): Iterable<BSONNode> {
   for (const doc of docs) {
-    yield mergeNodes(doc, resolveExpression(expr, doc))
+    yield mergeNodes(doc, evalExpression(expr, doc))
   }
 }
 
