@@ -235,6 +235,8 @@ export function $toDouble(arg: BSONNode): BSONNode {
       return nDouble(arg.value.getTime())
     case NodeKind.STRING:
       return nDouble(Double.fromString(arg.value).value)
+    case NodeKind.LONG:
+      return nDouble(arg.value.toNumber())
     default:
       throw new TypeError(`Unsupported double casting from ${arg.kind} type`)
   }
@@ -273,6 +275,8 @@ export function $toString(arg: BSONNode): BSONNode {
       return nString(arg.value.toHexString())
     case NodeKind.DATE:
       return nString(arg.value.toISOString())
+    case NodeKind.BINARY:
+      return nString(arg.value.toString())
     default:
       throw new TypeError(`Unsupported string casting from ${arg.kind} type`)
   }

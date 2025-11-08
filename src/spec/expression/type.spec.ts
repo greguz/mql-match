@@ -320,7 +320,10 @@ test('$toString', t => {
     evalExpression({ $toString: new Date('2018-03-27T16:58:51.538Z') }),
     '2018-03-27T16:58:51.538Z',
   )
-  t.is(evalExpression({ $toString: new Binary([0x86, 0x7d, 0xdf]) }), 'hn3f')
+  t.is(
+    evalExpression({ $toString: new Binary([0x68, 0x6e, 0x33, 0x66]) }),
+    'hn3f',
+  )
 
   // Example
   {

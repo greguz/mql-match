@@ -1,4 +1,11 @@
-import { type Decimal128, Int32, Long, type ObjectId, Timestamp } from 'bson'
+import {
+  type Binary,
+  type Decimal128,
+  Int32,
+  Long,
+  type ObjectId,
+  Timestamp,
+} from 'bson'
 import type { Decimal } from 'decimal.js'
 
 import type { Path } from './path.js'
@@ -49,7 +56,7 @@ export interface ArrayNode {
  */
 export interface BinaryNode {
   kind: typeof NodeKind.BINARY
-  value: Uint8Array
+  value: Binary
 }
 
 /**

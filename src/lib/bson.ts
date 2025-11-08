@@ -1,5 +1,5 @@
 import {
-  type Binary,
+  Binary,
   type BSONRegExp,
   BSONType,
   type Decimal128,
@@ -38,7 +38,7 @@ import {
   expected,
   includes,
   isArray,
-  isBinary,
+  isBuffer,
   isDate,
   isPlainObject,
   isRegExp,
@@ -178,8 +178,8 @@ function parseObject(value: object): BSONNode {
   if (isArray(value)) {
     return wrapArrayRaw(value)
   }
-  if (isBinary(value)) {
-    return { kind: NodeKind.BINARY, value }
+  if (isBuffer(value)) {
+    return { kind: NodeKind.BINARY, value: new Binary(value) }
   }
   if (isDate(value)) {
     return { kind: NodeKind.DATE, value }
@@ -194,7 +194,7 @@ function parseObject(value: object): BSONNode {
       case 'Binary':
         return {
           kind: NodeKind.BINARY,
-          value: (value as Binary).buffer,
+          value: value as Binary,
         }
       case 'ObjectId':
         return {

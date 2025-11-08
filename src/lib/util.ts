@@ -13,7 +13,7 @@ export function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean'
 }
 
-export function isBinary(value: unknown): value is Uint8Array {
+export function isBuffer(value: unknown): value is Uint8Array {
   return value instanceof Uint8Array
 }
 
