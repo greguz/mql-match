@@ -35,7 +35,7 @@ export function $type(arg: BSONNode): BSONNode {
     case NodeKind.LONG:
       return nString('long')
     case NodeKind.NULLISH:
-      return nString('null')
+      return nString(arg.key === undefined ? 'null' : 'missing')
     case NodeKind.DOUBLE:
       return nString('double')
     case NodeKind.OBJECT_ID:
@@ -115,12 +115,12 @@ withParsing($convert, arg => {
     throw new TypeError("Missing 'input' parameter to $convert")
   }
 
-  let toType: BSONNode = arg.value.to || nNullish()
+  let toType: BSONNode = arg.value.to || nNullish('to')
   let toSubtype: BSONNode | undefined
 
   if (toType.kind === NodeKind.OBJECT) {
     toSubtype = toType.value.subtype
-    toType = toType.value.type || nNullish()
+    toType = toType.value.type || nNullish('type')
   }
 
   // input, to.type, to.subtype, byteOrder, format, onError, onNull
@@ -130,8 +130,8 @@ withParsing($convert, arg => {
     parseConvertSubtype(toSubtype),
     parseConvertByteOrder(arg.value.byteOrder),
     parseConvertFormat(arg.value.format),
-    arg.value.onError || nNullish(),
-    arg.value.onNull || nNullish(),
+    arg.value.onError || nNullish('onError'),
+    arg.value.onNull || nNullish('onNull'),
   ]
 })
 

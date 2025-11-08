@@ -103,7 +103,8 @@ function parseUnwindBoolean(node: BSONNode = nNullish()): boolean {
 function getPathValue(node: BSONNode, path: Path): BSONNode {
   for (let i = 0; i < path.length && node.kind !== NodeKind.NULLISH; i++) {
     if (node.kind === NodeKind.OBJECT) {
-      node = node.value[`${path[i]}`] || nNullish()
+      const key = `${path[i]}`
+      node = node.value[key] || nNullish(key)
     } else {
       node = nNullish()
     }

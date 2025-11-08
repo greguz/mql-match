@@ -264,10 +264,8 @@ export function evalExpressionGetter(path: Path, node: BSONNode): BSONNode {
     return node
   }
   if (node.kind === NodeKind.OBJECT) {
-    return evalExpressionGetter(
-      path.slice(1),
-      node.value[path[0]] || nNullish(),
-    )
+    const key = `${path[0]}`
+    return evalExpressionGetter(path.slice(1), node.value[key] || nNullish(key))
   }
 
   if (node.kind === NodeKind.ARRAY) {

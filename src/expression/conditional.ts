@@ -83,7 +83,7 @@ withParsing($switch, arg => {
     )
   }
 
-  const branchesNode = arg.value.branches || nNullish()
+  const branchesNode = arg.value.branches || nNullish('branches')
   if (branchesNode.kind !== NodeKind.ARRAY) {
     throw new TypeError(
       `$switch expected an array for 'branches' (found ${branchesNode.kind})`,

@@ -35,7 +35,7 @@ withQueryParsing($currentDate, arg => {
     )
   }
 
-  const dateType = arg.value.$type || nNullish()
+  const dateType = arg.value.$type || nNullish('$type')
   if (dateType.value !== 'date' && dateType.value !== 'timestamp') {
     throw new TypeError(
       `The '$type' string field is required to be 'date' or 'timestamp': { $currentDate: { field : { $type: 'date' } } }`,
@@ -115,7 +115,7 @@ export function $rename(
   const obj = assertBSON(parentNode, NodeKind.OBJECT)
   const oldKey = assertBSON(oldKeyNode, NodeKind.STRING).value
   const newKey = assertBSON(newKeyNode, NodeKind.STRING).value
-  const value = obj.value[oldKey] || nNullish()
+  const value = obj.value[oldKey] || nNullish(oldKey)
 
   unsetKey(obj, oldKey)
   if (value.kind !== NodeKind.NULLISH) {

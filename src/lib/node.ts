@@ -141,10 +141,18 @@ export function nLong(value: bigint | number | Long): LongNode {
 export interface NullishNode {
   kind: typeof NodeKind.NULLISH
   value: null
+  /**
+   * Nullish property from an object.
+   */
+  key: string | undefined
 }
 
-export function nNullish(): NullishNode {
-  return { kind: NodeKind.NULLISH, value: null }
+export function nNullish(key?: string): NullishNode {
+  return {
+    kind: NodeKind.NULLISH,
+    value: null,
+    key,
+  }
 }
 
 /**

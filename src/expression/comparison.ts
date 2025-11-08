@@ -144,8 +144,8 @@ function compareObjects(left: ObjectNode, right: ObjectNode): DoubleNode {
 
   for (const key of keys) {
     const result = $cmp(
-      left.value[key] || nNullish(),
-      right.value[key] || nNullish(),
+      left.value[key] || nNullish(key),
+      right.value[key] || nNullish(key),
     )
     if (result.value !== 0) {
       return result

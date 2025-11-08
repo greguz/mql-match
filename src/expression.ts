@@ -439,6 +439,6 @@ export function applyInclusion(
 
 function getKeyValue(node: BSONNode, key: string): BSONNode {
   return node.kind === NodeKind.OBJECT
-    ? node.value[key] || nNullish()
+    ? node.value[key] || nNullish(key)
     : nNullish()
 }
