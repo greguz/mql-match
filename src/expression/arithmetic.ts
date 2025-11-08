@@ -248,21 +248,24 @@ export function $round(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
     return numberNode
   }
 
-  const value = unwrapDecimal(
+  const n = unwrapDecimal(
     numberNode,
     `$round only supports numeric types (got ${numberNode.kind})`,
   )
 
   const place = unwrapPlace(placeNode, '$round')
-
-  if (place.lessThan(0)) {
-    return nDouble(
-      value.toSignificantDigits(place.abs().toNumber(), Decimal.ROUND_DOWN),
-    )
+  if (place >= 0) {
+    return nDouble(n.toDecimalPlaces(place, Decimal.ROUND_HALF_EVEN))
   }
 
+  const factor = new Decimal(10).pow(-place)
+
   return nDouble(
-    value.toDecimalPlaces(place.toNumber(), Decimal.ROUND_HALF_EVEN),
+    n
+      .div(factor)
+      .toDecimalPlaces(0, Decimal.ROUND_FLOOR)
+      .times(factor)
+      .toNumber(),
   )
 }
 
@@ -272,20 +275,20 @@ withArguments($round, 1, 2)
  * An integer between -20 and 100, exclusive.
  * Defaults to zero.
  */
-function unwrapPlace(node: BSONNode, operator: string): Decimal {
+function unwrapPlace(node: BSONNode, operator: string): number {
   if (node.kind === NodeKind.NULLISH) {
-    return Decimal(0)
+    return 0
   }
-  const place = unwrapDecimal(
+  const place = unwrapNumber(
     node,
     `${operator} precision must be a numeric value (got ${node.kind})`,
   )
-  if (!place.isInteger()) {
+  if (!Number.isInteger(place)) {
     throw new TypeError(
       `precision argument to ${operator} must be a integral value`,
     )
   }
-  if (place.lessThan(-20) || place.greaterThan(100)) {
+  if (place < -20 || place > 100) {
     throw new TypeError(
       `cannot apply ${operator} with precision value -500 value must be in [-20, 100]`,
     )
@@ -339,7 +342,7 @@ export function $subtract(left: BSONNode, right: BSONNode): BSONNode {
  */
 export function $trunc(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
   if (numberNode.kind === NodeKind.NULLISH) {
-    return nNullish()
+    return numberNode
   }
 
   const n = unwrapDecimal(
@@ -347,29 +350,20 @@ export function $trunc(numberNode: BSONNode, placeNode: BSONNode): BSONNode {
     `$trunc only supports numeric types (got ${numberNode.kind})`,
   )
 
-  const p = unwrapPlace(placeNode, '$trunc')
-
-  if (p.isZero()) {
-    // truncates all digits to the right of the decimal and returns the whole integer value
-    return nDouble(n.floor())
+  const place = unwrapPlace(placeNode, '$trunc')
+  if (place >= 0) {
+    return nDouble(n.toDecimalPlaces(place, Decimal.ROUND_DOWN))
   }
 
-  if (p.isPositive()) {
-    // truncates to <place> decimal places
-    return nDouble(n.toDecimalPlaces(p.toNumber(), Decimal.ROUND_DOWN))
-  }
+  const factor = new Decimal(10).pow(-place)
 
-  // if (p.isNegative()) ...
-  // replaces <place> digits left of the decimal with 0
-
-  // If the absolute value of <place> exceeds the number of digits to the left of the decimal,
-  // $trunc returns 0.
-  const integersCount = n.floor().toString().length
-  if (p.abs().gte(integersCount)) {
-    return nDouble(0)
-  }
-
-  return nDouble(n.toSignificantDigits(p.abs().toNumber(), Decimal.ROUND_DOWN))
+  return nDouble(
+    n
+      .div(factor)
+      .toDecimalPlaces(0, Decimal.ROUND_DOWN)
+      .times(factor)
+      .toNumber(),
+  )
 }
 
 withArguments($trunc, 1, 2)

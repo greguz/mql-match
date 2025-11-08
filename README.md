@@ -3,7 +3,6 @@
 [![NPM Version](https://img.shields.io/npm/v/mql-match)](https://www.npmjs.com/package/mql-match)
 [![NPM Dependency status](https://img.shields.io/librariesio/release/npm/mql-match)](https://www.npmjs.com/package/mql-match)
 [![NPM Downloads](https://img.shields.io/npm/dm/mql-match)](https://www.npmjs.com/package/mql-match)
-[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 [![GitHub last commit](https://img.shields.io/github/last-commit/greguz/mql-match)](https://github.com/greguz/mql-match)
 
 This project is a MQL (MongoDB Query Language) compiler. Filter, Update, and Aggregation queries are supported. See the [support table](#supported-features) table for more info.
@@ -11,6 +10,12 @@ This project is a MQL (MongoDB Query Language) compiler. Filter, Update, and Agg
 ## Why
 
 This project can be useful to mock some basic functionality of MongoDB's driver or simply using its query syntax for object matching.
+
+## Compatibility
+
+The project is written in TypeScript, and targets `ES2023`.
+
+This is a pure ESM package.
 
 ## Example
 
@@ -399,7 +404,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$substr`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substr/)
 - [ ] [`$substrBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrBytes/)
 - [ ] [`$substrCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrCP/)
-- [ ] [`$toLower`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/)
+- [x] [`$toLower`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/)
 - [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
 - [ ] [`$trim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trim/)
 - [ ] [`$toUpper`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toUpper/)

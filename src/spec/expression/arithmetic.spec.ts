@@ -439,6 +439,11 @@ test('$pow', t => {
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/round/
  */
 test('$round', t => {
+  t.is(evalExpression({ $round: [1234.5678, 2] }), 1234.57)
+  t.is(evalExpression({ $round: [1234.5678, -2] }), 1200)
+  t.is(evalExpression({ $round: [1234.5678, -4] }), 0)
+  t.is(evalExpression({ $round: [1234.5678, 0] }), 1235)
+
   // Rounding to Even Values
   {
     const docs = [

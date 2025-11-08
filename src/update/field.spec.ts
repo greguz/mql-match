@@ -2,7 +2,7 @@ import test from 'ava'
 
 import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import type { BSONNode } from '../lib/node.js'
-import { $inc, $rename } from './fields.js'
+import { $inc, $rename } from './field.js'
 
 function bind<T extends BSONNode>(
   fn: (...args: BSONNode[]) => T,

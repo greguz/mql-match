@@ -1,4 +1,4 @@
-import { $avg, $stdDevPop, $sum } from './expression/accumulators.js'
+import { $avg, $sum } from './expression/accumulators.js'
 import {
   $abs,
   $add,
@@ -29,7 +29,7 @@ import {
   $ne,
 } from './expression/comparison.js'
 import { $cond, $ifNull, $switch } from './expression/conditional.js'
-import { $regexMatch } from './expression/string.js'
+import { $regexMatch, $toLower } from './expression/string.js'
 import {
   $convert,
   $isNumber,
@@ -96,7 +96,6 @@ ExpressionContext.operators.$regexMatch = wrapOperator($regexMatch)
 ExpressionContext.operators.$round = wrapOperator($round)
 ExpressionContext.operators.$size = wrapOperator($size)
 ExpressionContext.operators.$sqrt = wrapOperator($sqrt)
-ExpressionContext.operators.$stdDevPop = wrapOperator($stdDevPop)
 ExpressionContext.operators.$subtract = wrapOperator($subtract)
 ExpressionContext.operators.$sum = wrapOperator($sum)
 ExpressionContext.operators.$switch = $switch
@@ -105,6 +104,7 @@ ExpressionContext.operators.$toDate = wrapOperator($toDate)
 ExpressionContext.operators.$toDouble = wrapOperator($toDouble)
 ExpressionContext.operators.$toInt = wrapOperator($toInt)
 ExpressionContext.operators.$toLong = wrapOperator($toLong)
+ExpressionContext.operators.$toLower = wrapOperator($toLower)
 ExpressionContext.operators.$toObjectId = wrapOperator($toObjectId)
 ExpressionContext.operators.$toString = wrapOperator($toString)
 ExpressionContext.operators.$trunc = wrapOperator($trunc)

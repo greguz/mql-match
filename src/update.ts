@@ -25,7 +25,7 @@ import {
   $rename,
   $set,
   $unset,
-} from './update/fields.js'
+} from './update/field.js'
 
 const OPERATORS: Record<string, UpdateOperator<any[]> | undefined> = {
   $addToSet,

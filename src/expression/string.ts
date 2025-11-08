@@ -6,6 +6,8 @@ import {
   NodeKind,
   nBoolean,
   nNullish,
+  nString,
+  type StringNode,
 } from '../lib/node.js'
 
 /**
@@ -52,3 +54,20 @@ withParsing($regexMatch, arg => {
 
   return [inputNode, regexNode, arg.value.options || nNullish('options')]
 })
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/
+ */
+export function $toLower(node: BSONNode): StringNode {
+  if (node.kind === NodeKind.NULLISH) {
+    return nString('')
+  }
+
+  const input = assertBSON(
+    node,
+    NodeKind.STRING,
+    "$toLower needs 'input' to be of type string",
+  ).value
+
+  return nString(input.toLowerCase())
+}
