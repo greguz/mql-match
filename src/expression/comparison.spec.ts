@@ -16,6 +16,11 @@ function bind<T extends BSONNode>(
 test('$cmp', t => {
   const cmp = (l: unknown, r: unknown) => $cmp(wrapBSON(l), wrapBSON(r)).value
 
+  t.is(cmp(false, false), 0)
+  t.is(cmp(true, false), 1)
+  t.is(cmp(false, true), -1)
+  t.is(cmp(true, true), 0)
+
   // string
   t.is(cmp('lol', 'lol'), 0)
   t.is(cmp('42', 42), 1)

@@ -187,11 +187,13 @@ export function $isNumber(arg: BSONNode): BSONNode {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/
  */
-export function $toBool(arg: BSONNode): BooleanNode | NullishNode {
+export function $toBool(arg: BSONNode): BooleanNode {
   switch (arg.kind) {
     case NodeKind.BOOLEAN:
-    case NodeKind.NULLISH:
       return arg
+
+    case NodeKind.NULLISH:
+      return nBoolean(false)
 
     case NodeKind.ARRAY:
     case NodeKind.BINARY:
@@ -322,6 +324,12 @@ export function $toDate(arg: BSONNode): DateNode | NullishNode {
   }
 }
 
+const BASE10_INT = /^-?\d+$/
+
+const INT32_MIN = -2_147_483_648
+
+const INT32_MAX = 2_147_483_647
+
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/
  */
@@ -330,13 +338,43 @@ export function $toInt(arg: BSONNode): IntNode | NullishNode {
     case NodeKind.INT:
     case NodeKind.NULLISH:
       return arg
+
     case NodeKind.BOOLEAN:
       return nInt(arg.value ? 1 : 0)
+
     case NodeKind.DOUBLE:
-    case NodeKind.STRING:
-      return nInt(new Int32(arg.value)) // TODO: ?
-    case NodeKind.LONG:
+      if (arg.value < INT32_MIN || arg.value > INT32_MAX) {
+        throw new TypeError(`Cannot convert ${arg.value} to ${NodeKind.INT}`)
+      }
+
+      // Returns truncated value.
+      // The truncated double value must fall within the minimum and maximum value for an integer.
+      return nInt(new Int32(arg.value))
+
+    case NodeKind.STRING: {
+      // The string value must be a base 10 integer; e.g. "-5", "123456").
+      if (!BASE10_INT.test(arg.value)) {
+        throw new TypeError(`Cannot convert ${arg.value} to ${NodeKind.INT}`)
+      }
+
+      const n = Number.parseInt(arg.value, 10)
+      if (n < INT32_MIN || n > INT32_MAX) {
+        throw new TypeError(`Cannot accept ${n} as ${NodeKind.INT}`)
+      }
+
+      return nInt(new Int32(n))
+    }
+
+    case NodeKind.LONG: {
+      if (arg.value.lt(INT32_MIN) || arg.value.gt(INT32_MAX)) {
+        throw new TypeError(
+          `Cannot accept ${arg.value.toNumber()} as ${NodeKind.INT}`,
+        )
+      }
+
       return nInt(arg.value.toInt())
+    }
+
     default:
       throw new TypeError(`Unsupported int casting from ${arg.kind} type`)
   }

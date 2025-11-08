@@ -95,7 +95,7 @@ function compareLong(left: LongNode, right: BSONNode) {
 }
 
 function mapBoolean(node: BSONNode): number {
-  return assertBSON(node, NodeKind.BOOLEAN) ? 1 : 0
+  return assertBSON(node, NodeKind.BOOLEAN).value ? 1 : 0
 }
 
 function mapDate(node: BSONNode): string {

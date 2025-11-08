@@ -529,9 +529,7 @@ test('$round', t => {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/sigmoid/
  */
-test('$sigmoid', t => {
-  t.fail()
-})
+test.todo('$sigmoid')
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/sqrt/

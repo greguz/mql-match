@@ -16,9 +16,10 @@ function exec(expr: unknown, ...docs: unknown[]): unknown {
 }
 
 test('$type', t => {
-  t.throws(() => exec({ $type: null }))
   t.throws(() => exec({ $type: [] }))
   t.throws(() => exec({ $type: [4, 2] }))
+  t.is(exec({ $type: null }), 'null')
+  t.is(exec({ $type: [null] }), 'null')
   t.is(exec({ $type: [42] }), 'double')
   t.is(exec({ $type: [[]] }), 'array')
   t.is(exec({ $type: ['panic'] }), 'string')
@@ -44,7 +45,7 @@ test('$convert', t => {
 })
 
 test('$toBool', t => {
-  t.is(exec({ $toBool: [null] }), null)
+  t.is(exec({ $toBool: [null] }), false)
   t.is(exec({ $toBool: 0 }), false)
   t.is(exec({ $toBool: -1 }), true)
 })
