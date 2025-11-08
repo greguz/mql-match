@@ -7,6 +7,7 @@ import {
   unwrapNumber,
   unwrapRegex,
 } from '../lib/bson.js'
+import { withArrayUnwrap, withParsing } from '../lib/match.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -15,7 +16,6 @@ import {
   nNullish,
   type RegexNode,
 } from '../lib/node.js'
-import { withQueryParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
 
 /**
@@ -41,7 +41,7 @@ export function $mod(
   )
 }
 
-withQueryParsing($mod, arg => {
+withParsing($mod, arg => {
   if (arg.kind !== NodeKind.ARRAY) {
     throw new TypeError('malformed mod, needs to be an array')
   }
@@ -69,16 +69,21 @@ withQueryParsing($mod, arg => {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/regex/
  */
-export function $regex(input: BSONNode, regex: RegexNode): BooleanNode {
+function $regexStrict(input: BSONNode, regex: RegexNode): BooleanNode {
   if (input.kind !== NodeKind.STRING) {
     return nBoolean(false)
   }
   return nBoolean(regex.value.test(input.value))
 }
 
-withQueryParsing($regex, arg => {
+withParsing($regexStrict, arg => {
   if (arg.kind === NodeKind.REGEX) {
     return [arg] as const
+  }
+
+  if (arg.kind === NodeKind.STRING) {
+    const regex = unwrapRegex('$regex', arg, '$regex', nNullish(), '$options')
+    return [{ kind: NodeKind.REGEX, value: regex }] as const
   }
 
   // Hacked "parent" object (see `match.ts`)
@@ -94,3 +99,5 @@ withQueryParsing($regex, arg => {
 
   return [{ kind: NodeKind.REGEX, value: regex }] as const
 })
+
+export const $regex = withArrayUnwrap($regexStrict)

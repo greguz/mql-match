@@ -1,5 +1,6 @@
 import { $toBool } from '../expression/type.js'
 import { assertBSON, parseBSONType } from '../lib/bson.js'
+import { withParsing } from '../lib/match.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -7,20 +8,19 @@ import {
   nBoolean,
   nString,
 } from '../lib/node.js'
-import { withQueryParsing } from '../lib/operator.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/type/
  */
-export function $exists(value: BSONNode, presence: BSONNode): BooleanNode {
+export function $exists(value: BSONNode, presence: BooleanNode): BooleanNode {
   return nBoolean(
-    assertBSON(presence, NodeKind.BOOLEAN).value
+    presence.value
       ? value.kind !== NodeKind.NULLISH
       : value.kind === NodeKind.NULLISH,
   )
 }
 
-withQueryParsing<[BSONNode]>($exists, arg => [$toBool(arg)])
+withParsing<[BooleanNode]>($exists, arg => [$toBool(arg)])
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/type/
@@ -36,7 +36,7 @@ export function $type(
   return nBoolean(result)
 }
 
-withQueryParsing($type, arg => {
+withParsing($type, arg => {
   return arg.kind === NodeKind.ARRAY
     ? arg.value.map(a => nString(parseBSONType(a)))
     : [nString(parseBSONType(arg))]

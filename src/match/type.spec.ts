@@ -1,16 +1,16 @@
 import test from 'ava'
 import { Double } from 'bson'
 
-import { parseBSONType, unwrapBSON, wrapBSON } from '../lib/bson.js'
-import type { BSONNode } from '../lib/node.js'
+import { parseBSONType, wrapBSON } from '../lib/bson.js'
+import type { BooleanNode } from '../lib/node.js'
 import { $exists, $type } from './type.js'
 
-function bind<T extends BSONNode>(
-  fn: (...args: BSONNode[]) => T,
+function bind(
+  fn: (...args: any[]) => BooleanNode,
   ...right: unknown[]
-): (...left: unknown[]) => unknown {
+): (...left: unknown[]) => boolean {
   return (...left: unknown[]) =>
-    unwrapBSON(fn(...left.map(wrapBSON), ...right.map(wrapBSON)))
+    fn(...left.map(wrapBSON), ...right.map(wrapBSON)).value
 }
 
 test('$exists', t => {

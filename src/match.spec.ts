@@ -257,7 +257,7 @@ test('$eq', t => {
     ],
   )
 
-  t.true(matchOne({ tags: { $eq: /w/ } }, { tags: ['hello', 'world'] }))
+  t.false(matchOne({ tags: { $eq: /w/ } }, { tags: ['hello', 'world'] }))
 })
 
 test('$expr', t => {

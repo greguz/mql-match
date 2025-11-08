@@ -1,25 +1,24 @@
-import { assertBSON, unwrapDecimal } from '../lib/bson.js'
+import { unwrapDecimal } from '../lib/bson.js'
+import { withParsing } from '../lib/match.js'
 import {
   type BooleanNode,
   type BSONNode,
+  type DoubleNode,
   NodeKind,
   nBoolean,
   nDouble,
 } from '../lib/node.js'
-import { withQueryParsing } from '../lib/operator.js'
-import { $eq } from './comparison.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/size/
  */
-export function $size(left: BSONNode, right: BSONNode): BooleanNode {
-  const size = assertBSON(right, NodeKind.DOUBLE).value
+export function $size(left: BSONNode, right: DoubleNode): BooleanNode {
   return nBoolean(
-    left.kind === NodeKind.ARRAY ? left.value.length === size : false,
+    left.kind === NodeKind.ARRAY ? left.value.length === right.value : false,
   )
 }
 
-withQueryParsing($size, arg => {
+withParsing<[DoubleNode]>($size, arg => {
   const n = unwrapDecimal(
     arg,
     `Failed to parse $size: expected a number (got ${arg.kind})`,
@@ -32,25 +31,5 @@ withQueryParsing($size, arg => {
       `Failed to parse $size: expected a non-negative number (got ${n})`,
     )
   }
-  return [nDouble(n)] as const
+  return [nDouble(n)]
 })
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/query/all/
- */
-export function $all(left: BSONNode, right: BSONNode): BooleanNode {
-  const values = assertBSON(right, NodeKind.ARRAY).value
-
-  for (let i = 0; i < values.length; i++) {
-    const result = $eq(left, values[i])
-    if (!result.value) {
-      return result
-    }
-  }
-
-  return nBoolean(values.length > 0)
-}
-
-withQueryParsing<[BSONNode]>($all, arg => [
-  assertBSON(arg, NodeKind.ARRAY, '$all needs an array'),
-])

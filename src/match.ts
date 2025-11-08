@@ -1,4 +1,5 @@
 import { evalExpression, parseExpression } from './expression.js'
+import { type MatchOperator, parseOperatorArgs } from './lib/match.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -11,10 +12,9 @@ import {
   nNullish,
   type ObjectNode,
 } from './lib/node.js'
-import { parseQueryArgs, type QueryOperator } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
 import { expected } from './lib/util.js'
-import { $all, $size } from './match/array.js'
+import { $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
 import { $mod, $regex } from './match/miscellaneous.js'
 import { $exists, $type } from './match/type.js'
@@ -22,8 +22,7 @@ import { $exists, $type } from './match/type.js'
 /**
  * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/
  */
-const OPERATORS: Record<string, QueryOperator<any[]> | undefined> = {
-  $all,
+const OPERATORS: Record<string, MatchOperator<any[]> | undefined> = {
   $eq,
   $exists,
   $gt,
@@ -46,8 +45,16 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
     operator: '$and',
     nodes: [],
   }
+
   if (query.kind !== NodeKind.OBJECT) {
-    $and.nodes.push(...compileOperator([], '$eq', query))
+    $and.nodes.push(
+      ...compileOperator(
+        [],
+        query.kind === NodeKind.REGEX ? '$eq' : '$regex',
+        query,
+      ),
+    )
+
     return $and.nodes.length === 1 ? $and.nodes[0] : $and
   }
 
@@ -56,7 +63,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
 
     // Handle direct path values
     if (key[0] !== '$') {
-      $and.nodes.push(...compilePredicateKey(key, value))
+      $and.nodes.push(...compilePredicateKey(parsePath(key), value))
       continue
     }
 
@@ -116,11 +123,9 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
 }
 
 function* compilePredicateKey(
-  key: string,
+  path: Path,
   node: BSONNode,
-): Generator<MatchNode> {
-  const path = parsePath(key)
-
+): Generator<MatchArrayNode | MatchPathNode> {
   if (node.kind === NodeKind.OBJECT) {
     if (node.keys.some(k => k[0] === '$')) {
       yield* compilePredicateObject(node, path)
@@ -128,7 +133,11 @@ function* compilePredicateKey(
     }
   }
 
-  yield* compileOperator(path, '$eq', node)
+  yield* compileOperator(
+    path,
+    node.kind === NodeKind.REGEX ? '$regex' : '$eq',
+    node,
+  )
 }
 
 function* compilePredicateObject(
@@ -159,6 +168,31 @@ function* compileOperator(
 ): Generator<MatchArrayNode | MatchPathNode> {
   if (key === '$comment') {
     // Stub
+    return
+  }
+
+  if (key === '$all') {
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError('$all needs an array')
+    }
+
+    if (value.value.length === 0) {
+      // When passed an empty array, $all matches no documents.
+      // This is a dummy node because the $all operator is NOT present inside OPERATORS global.
+      yield {
+        kind: NodeKind.MATCH_PATH,
+        path,
+        operator: key,
+        args: [],
+        negate: false,
+      }
+    } else {
+      // Match a list of sub-queries
+      for (const item of value.value) {
+        yield* compilePredicateKey(path, item)
+      }
+    }
+
     return
   }
 
@@ -207,7 +241,7 @@ function* compileOperator(
     kind: NodeKind.MATCH_PATH,
     path,
     operator: key,
-    args: parseQueryArgs(fn, value),
+    args: parseOperatorArgs(fn, value),
     negate,
   }
 }
@@ -269,8 +303,11 @@ function resolveMatchNode(
       }
 
       case NodeKind.MATCH_PATH: {
-        const fn = expected(OPERATORS[node.operator])
-        result = !!fn(left, ...node.args).value
+        // Handle dummy $all operator node
+        if (node.operator !== '$all') {
+          const fn = expected(OPERATORS[node.operator])
+          result = !!fn(left, ...node.args).value
+        }
         break
       }
     }
