@@ -1,5 +1,5 @@
 import type { BSONNode, MatchNode } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/pipeline.js'
 import { evalMatch, parseMatch } from '../match.js'
 
 /**
@@ -16,4 +16,4 @@ export function* $match(
   }
 }
 
-withStageParsing<[MatchNode]>($match, arg => [parseMatch(arg)])
+withParsing<[MatchNode]>($match, arg => [parseMatch(arg)])

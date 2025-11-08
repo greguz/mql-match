@@ -12,8 +12,8 @@ import {
   nString,
   type UpdatePathNode,
 } from './lib/node.js'
-import { parseQueryArgs, type QueryOperator } from './lib/operator.js'
 import { type Path, parsePath } from './lib/path.js'
+import { parseOperatorArgs, type UpdateOperator } from './lib/update.js'
 import { expected, isPlainObject } from './lib/util.js'
 import { $addToSet, $pop, $pull, $pullAll, $push } from './update/array.js'
 import {
@@ -27,7 +27,7 @@ import {
   $unset,
 } from './update/fields.js'
 
-const OPERATORS: Record<string, QueryOperator<any[]> | undefined> = {
+const OPERATORS: Record<string, UpdateOperator<any[]> | undefined> = {
   $addToSet,
   $currentDate,
   $inc,
@@ -59,7 +59,7 @@ export function* parseUpdate(obj: unknown): Generator<UpdatePathNode> {
 }
 
 function* parseOperator<T extends unknown[]>(
-  operator: QueryOperator<T>,
+  operator: UpdateOperator<T>,
   obj: unknown,
 ): Generator<UpdatePathNode> {
   if (!isPlainObject(obj)) {
@@ -71,7 +71,7 @@ function* parseOperator<T extends unknown[]>(
       kind: NodeKind.UPDATE_PATH,
       operator: operator.name,
       path: parsePath(key),
-      args: parseQueryArgs<T>(operator, wrapBSON(obj[key])),
+      args: parseOperatorArgs<T>(operator, wrapBSON(obj[key])),
     }
   }
 }

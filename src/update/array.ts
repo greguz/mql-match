@@ -10,7 +10,7 @@ import {
   nDouble,
   nNullish,
 } from '../lib/node.js'
-import { withQueryParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/update.js'
 import { expected } from '../lib/util.js'
 import { evalMatch, parseMatch } from '../match.js'
 
@@ -35,7 +35,7 @@ export function $pop(left: BSONNode, right: BSONNode): BSONNode {
   return left
 }
 
-withQueryParsing($pop, arg => {
+withParsing($pop, arg => {
   const n = unwrapNumber(arg, `$pop expects a number (got ${arg.kind})`)
   if (n !== 1 && n !== -1) {
     throw new TypeError(`$pop expects 1 or -1 (got ${n})`)
@@ -66,7 +66,7 @@ export function $pull(node: BSONNode, query: MatchNode): BSONNode {
   return node
 }
 
-withQueryParsing($pull, arg => [parseMatch(arg)] as const)
+withParsing($pull, arg => [parseMatch(arg)] as const)
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/
@@ -93,7 +93,7 @@ export function $pullAll(node: BSONNode, blacklist: ArrayNode): BSONNode {
   return node
 }
 
-withQueryParsing<[ArrayNode]>($pullAll, arg => [
+withParsing<[ArrayNode]>($pullAll, arg => [
   assertBSON(arg, NodeKind.ARRAY, '$pullAll expectes an array'),
 ])
 
@@ -153,7 +153,7 @@ export function $push(
   return node
 }
 
-withQueryParsing($push, arg => {
+withParsing($push, arg => {
   if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
     return [
       parseEach(arg.value.$each),
@@ -248,7 +248,7 @@ export function $addToSet(left: BSONNode, right: ArrayNode): ArrayNode {
   return left
 }
 
-withQueryParsing($addToSet, arg => {
+withParsing($addToSet, arg => {
   if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
     return [parseEach(arg.value.$each)] as const
   }

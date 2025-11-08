@@ -1,6 +1,6 @@
 import { unwrapNumber } from '../lib/bson.js'
 import { type BSONNode, type DoubleNode, nDouble } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/pipeline.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/limit/
@@ -18,7 +18,7 @@ export function* $limit(
   }
 }
 
-withStageParsing($limit, arg => {
+withParsing($limit, arg => {
   const message = 'Stage $limit expects limit a positive integer'
   const n = unwrapNumber(arg, message)
   if (!Number.isInteger(n) || n <= 0) {

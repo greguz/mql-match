@@ -1,7 +1,7 @@
 import { evalExpression, parseExpression } from '../expression.js'
 import { setKey, wrapNodes, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/pipeline.js'
 import { expected, includes } from '../lib/util.js'
 
 /**
@@ -16,7 +16,7 @@ export function* $set(
   }
 }
 
-withStageParsing<[ExpressionNode]>($set, arg => [parseExpression(arg)])
+withParsing<[ExpressionNode]>($set, arg => [parseExpression(arg)])
 
 function mergeNodes(target: BSONNode, source: BSONNode): BSONNode {
   if (target.kind === NodeKind.ARRAY && source.kind !== NodeKind.ARRAY) {

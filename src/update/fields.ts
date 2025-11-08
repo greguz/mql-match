@@ -16,7 +16,7 @@ import {
   nString,
   nTimestamp,
 } from '../lib/node.js'
-import { useParent, withQueryParsing } from '../lib/operator.js'
+import { useParent, withParsing } from '../lib/update.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/
@@ -25,7 +25,7 @@ export function $currentDate(_left: BSONNode, right: BSONNode): BSONNode {
   return right.value === 'timestamp' ? nTimestamp() : nDate()
 }
 
-withQueryParsing($currentDate, arg => {
+withParsing($currentDate, arg => {
   if (arg.kind === NodeKind.BOOLEAN && arg.value === true) {
     return [nString('date')] as const
   }
@@ -61,7 +61,7 @@ export function $inc(left: BSONNode, right: BSONNode): BSONNode {
   )
 }
 
-withQueryParsing<[BSONNode]>($inc, right => [
+withParsing<[BSONNode]>($inc, right => [
   nDouble(unwrapNumber(right, 'Cannot increment with non-numeric argument')),
 ])
 
@@ -100,7 +100,7 @@ export function $mul(left: BSONNode, right: BSONNode): BSONNode {
   )
 }
 
-withQueryParsing<[BSONNode]>($mul, arg => [
+withParsing<[BSONNode]>($mul, arg => [
   assertNumber(arg, 'Cannot multiply with non-numeric argument'),
 ])
 

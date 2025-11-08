@@ -1,6 +1,6 @@
 import { assertBSON, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, NodeKind, type StringNode } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/pipeline.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/count/
@@ -17,6 +17,4 @@ export function* $count(
   yield wrapObjectRaw({ [key.value]: count })
 }
 
-withStageParsing<[StringNode]>($count, arg => [
-  assertBSON(arg, NodeKind.STRING),
-])
+withParsing<[StringNode]>($count, arg => [assertBSON(arg, NodeKind.STRING)])

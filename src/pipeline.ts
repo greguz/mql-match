@@ -1,6 +1,6 @@
 import { wrapBSON } from './lib/bson.js'
 import type { BSONNode } from './lib/node.js'
-import { type PipelineOperator, parsePipelineArgs } from './lib/operator.js'
+import { type PipelineOperator, parseOperatorArgs } from './lib/pipeline.js'
 import { isPlainObject } from './lib/util.js'
 import { $count } from './pipeline/count.js'
 import { $limit } from './pipeline/limit.js'
@@ -51,7 +51,7 @@ function parseStage(obj: unknown): PipelineStage {
     throw new TypeError(`Unsupported pipeline operator: ${keys[0]}`)
   }
 
-  const args = parsePipelineArgs(operator, wrapBSON(obj[keys[0]]))
+  const args = parseOperatorArgs(operator, wrapBSON(obj[keys[0]]))
 
   return docs => operator(docs, ...args)
 }

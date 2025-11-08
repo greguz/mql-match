@@ -1,7 +1,7 @@
 import { evalExpression, parseExpression } from '../expression.js'
 import { wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
+import { withParsing } from '../lib/pipeline.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/
@@ -15,7 +15,7 @@ export function* $unset(
   }
 }
 
-withStageParsing<[ExpressionNode]>($unset, arg => {
+withParsing<[ExpressionNode]>($unset, arg => {
   if (arg.kind === NodeKind.STRING) {
     return [parseExpression(wrapObjectRaw({ [arg.value]: 0 }))]
   }

@@ -6,8 +6,8 @@ import {
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
-import { withStageParsing } from '../lib/operator.js'
 import { type Path, parsePath } from '../lib/path.js'
+import { withParsing } from '../lib/pipeline.js'
 import { expected } from '../lib/util.js'
 
 /**
@@ -40,7 +40,7 @@ export function* $unwind(
   }
 }
 
-withStageParsing($unwind, arg => {
+withParsing($unwind, arg => {
   if (arg.kind === NodeKind.STRING) {
     return [parseUnwindPath(arg), '', false] as const
   }
