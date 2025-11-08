@@ -57,12 +57,3 @@ export function isString(value: unknown): value is string {
 export function isUndefined(value: unknown): value is undefined {
   return value === undefined
 }
-
-export function includes(items: string[], value: string): boolean {
-  for (let i = 0; i < items.length; i++) {
-    if (items[i] === value) {
-      return true
-    }
-  }
-  return false
-}

@@ -2,7 +2,7 @@ import { evalExpression, parseExpression } from '../expression.js'
 import { setKey, wrapNodes, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
 import { withParsing } from '../lib/pipeline.js'
-import { expected, includes } from '../lib/util.js'
+import { expected } from '../lib/util.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/
@@ -40,7 +40,7 @@ function mergeNodes(target: BSONNode, source: BSONNode): BSONNode {
   }
 
   for (const key of target.keys) {
-    if (!includes(obj.keys, key)) {
+    if (!obj.keys.includes(key)) {
       setKey(obj, key, expected(target.value[key]))
     }
   }

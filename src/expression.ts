@@ -59,7 +59,7 @@ import {
   type StringNode,
 } from './lib/node.js'
 import { type Path, parsePath } from './lib/path.js'
-import { expected, includes } from './lib/util.js'
+import { expected } from './lib/util.js'
 
 // Inject operators into ExpressionContext store
 ExpressionContext.operators.$abs = wrapOperator($abs)
@@ -130,7 +130,7 @@ export function parseExpression(arg: BSONNode): ExpressionNode {
     !withoutId &&
     exp.kind === NodeKind.EXPRESSION_PROJECT &&
     !exp.exclusion &&
-    !includes(exp.keys, '_id')
+    !exp.keys.includes('_id')
   ) {
     exp.keys.push('_id')
     exp.values._id = {
@@ -276,7 +276,7 @@ function setProjectionKey(
 ): void {
   for (let i = 0; i < path.length; i++) {
     const key = `${path[i]}`
-    if (!includes(project.keys, key)) {
+    if (!project.keys.includes(key)) {
       project.keys.push(key)
     }
 
@@ -391,7 +391,7 @@ export function applyExclusion(
         throw new Error('Expected exclusion projection')
       }
       setKey(obj, key, applyExclusion(childProject, document, value))
-    } else if (!includes(project.keys, key)) {
+    } else if (!project.keys.includes(key)) {
       setKey(obj, key, value)
     }
   }

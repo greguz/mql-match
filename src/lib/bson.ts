@@ -36,7 +36,6 @@ import {
 } from './node.js'
 import {
   expected,
-  includes,
   isArray,
   isBuffer,
   isDate,
@@ -262,7 +261,7 @@ export function setKey<T extends BSONNode>(
   key: string,
   value: T,
 ): T {
-  if (!includes(obj.keys, key)) {
+  if (!obj.keys.includes(key)) {
     obj.keys.push(key)
   }
   if (obj.raw) {

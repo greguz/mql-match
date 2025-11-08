@@ -21,7 +21,7 @@ import {
   compileMatch,
   compilePipeline,
   compileUpdate,
-} from './build/exports.js'
+} from 'mql-match'
 
 const documents = [
   {
