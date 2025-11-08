@@ -30,7 +30,7 @@ import {
   nString,
   type ObjectIdNode,
   type ObjectNode,
-  type RegExpNode,
+  type RegexNode,
   type StringNode,
   type TimestampNode,
 } from './node.js'
@@ -405,7 +405,7 @@ export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.REGEX,
   message?: string,
-): RegExpNode
+): RegexNode
 export function assertBSON(
   node: BSONNode,
   kind: typeof NodeKind.STRING,
@@ -487,4 +487,45 @@ export function assertNumber(
         message || `Expected numeric value (got ${node.kind})`,
       )
   }
+}
+
+export function unwrapRegex(
+  operator: string,
+  regNode: BSONNode,
+  regField: string,
+  optNode: BSONNode,
+  optField: string,
+): RegExp {
+  let regex: RegExp
+  switch (regNode.kind) {
+    case NodeKind.REGEX:
+      regex = regNode.value
+      break
+    case NodeKind.STRING:
+      regex = new RegExp(regNode.value) // TODO: escape?
+      break
+    default:
+      throw new TypeError(
+        `${operator} needs '${regField}' to be of type string or regex`,
+      )
+  }
+
+  if (optNode.kind !== NodeKind.NULLISH) {
+    const flags = assertBSON(
+      optNode,
+      NodeKind.STRING,
+      `${operator} needs '${optField}' to be of type string`,
+    ).value
+
+    if (regex.flags) {
+      throw new TypeError(
+        `${operator}: found regex option(s) specified in both '${regField}' and '${optField}' fields`,
+      )
+    }
+
+    // Inject flags
+    regex = new RegExp(regex, flags)
+  }
+
+  return regex
 }

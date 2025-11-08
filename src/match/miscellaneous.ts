@@ -1,11 +1,11 @@
 import { Decimal } from 'decimal.js'
 
-import { $regexMatch } from '../expression/string.js'
 import {
   assertBSON,
   isBSONNumber,
   unwrapDecimal,
   unwrapNumber,
+  unwrapRegex,
 } from '../lib/bson.js'
 import {
   type BooleanNode,
@@ -13,6 +13,7 @@ import {
   NodeKind,
   nBoolean,
   nNullish,
+  type RegexNode,
 } from '../lib/node.js'
 import { withQueryParsing } from '../lib/operator.js'
 import { expected } from '../lib/util.js'
@@ -68,48 +69,28 @@ withQueryParsing($mod, arg => {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/regex/
  */
-export function $regex(
-  input: BSONNode,
-  regex: BSONNode,
-  options: BSONNode,
-): BooleanNode {
-  // TODO: strange modes?
-  return input.kind === NodeKind.STRING
-    ? $regexMatch(input, regex, options)
-    : nBoolean(false)
+export function $regex(input: BSONNode, regex: RegexNode): BooleanNode {
+  if (input.kind !== NodeKind.STRING) {
+    return nBoolean(false)
+  }
+  return nBoolean(regex.value.test(input.value))
 }
 
 withQueryParsing($regex, arg => {
+  if (arg.kind === NodeKind.REGEX) {
+    return [arg] as const
+  }
+
   // Hacked "parent" object (see `match.ts`)
   const obj = assertBSON(arg, NodeKind.OBJECT).value
 
-  // Always present because hacked
-  const regexNode = expected(obj.$regex)
-  if (regexNode.kind !== NodeKind.REGEX && regexNode.kind !== NodeKind.STRING) {
-    throw new TypeError('$regex has to be a string or regex')
-  }
+  const regex = unwrapRegex(
+    '$regex',
+    expected(obj.$regex),
+    '$regex',
+    obj.$options || nNullish(),
+    '$options',
+  )
 
-  // TODO: escape?
-  let regex: RegExp =
-    regexNode.kind === NodeKind.REGEX
-      ? regexNode.value
-      : new RegExp(regexNode.value)
-
-  const optionsNode = obj.$options
-  if (optionsNode) {
-    const flags = assertBSON(
-      optionsNode,
-      NodeKind.STRING,
-      '$options has to be a string',
-    ).value
-
-    if (regex.flags) {
-      throw new TypeError('options set in both $regex and $options')
-    }
-
-    // Inject flags
-    regex = new RegExp(regex, flags)
-  }
-
-  return [{ kind: NodeKind.REGEX, value: regex }, nNullish()] as const
+  return [{ kind: NodeKind.REGEX, value: regex }] as const
 })

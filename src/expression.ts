@@ -348,8 +348,8 @@ export function evalExpression(node: ExpressionNode, document: BSONNode) {
   switch (node.kind) {
     case NodeKind.EXPRESSION_PROJECT:
       return node.exclusion
-        ? applyExclusion(node, ctx.document, ctx.document)
-        : applyInclusion(node, ctx, ctx.document)
+        ? applyExclusion(node, ctx.root, ctx.root)
+        : applyInclusion(node, ctx, ctx.root)
     default:
       return ctx.eval(node)
   }

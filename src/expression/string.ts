@@ -1,4 +1,4 @@
-import { assertBSON } from '../lib/bson.js'
+import { assertBSON, unwrapRegex } from '../lib/bson.js'
 import { withParsing } from '../lib/expression.js'
 import {
   type BooleanNode,
@@ -22,39 +22,15 @@ export function $regexMatch(
     "$regexMatch needs 'input' to be of type string",
   ).value
 
-  let regex: RegExp = unwrapRegExp(regexNode)
-
-  if (optionsNode.kind !== NodeKind.NULLISH) {
-    const flags = assertBSON(
-      optionsNode,
-      NodeKind.STRING,
-      "$regexMatch needs 'options' to be of type string",
-    ).value
-
-    if (regex.flags) {
-      throw new TypeError(
-        "$regexMatch: found regex option(s) specified in both 'regex' and 'option' fields",
-      )
-    }
-
-    // Inject flags
-    regex = new RegExp(regex, flags)
-  }
+  const regex = unwrapRegex(
+    '$regexMatch',
+    regexNode,
+    'input',
+    optionsNode,
+    'options',
+  )
 
   return nBoolean(regex.test(input))
-}
-
-function unwrapRegExp(node: BSONNode): RegExp {
-  switch (node.kind) {
-    case NodeKind.REGEX:
-      return node.value
-    case NodeKind.STRING:
-      return new RegExp(node.value) // TODO: escape?
-    default:
-      throw new TypeError(
-        "$regexMatch needs 'regex' to be of type string or regex",
-      )
-  }
 }
 
 withParsing($regexMatch, arg => {

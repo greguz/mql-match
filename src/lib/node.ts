@@ -176,7 +176,7 @@ export interface ObjectIdNode {
 /**
  * BSON node: `RegExp` instance.
  */
-export interface RegExpNode {
+export interface RegexNode {
   kind: typeof NodeKind.REGEX
   value: RegExp
 }
@@ -223,7 +223,7 @@ export type BSONNode =
   | NullishNode
   | ObjectIdNode
   | ObjectNode
-  | RegExpNode
+  | RegexNode
   | StringNode
   | TimestampNode
 

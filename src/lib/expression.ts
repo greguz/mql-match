@@ -184,13 +184,13 @@ export class ExpressionContext {
    * Current expression document.
    * Can be anything (`null`, `number`, etc...).
    */
-  readonly document: BSONNode
+  readonly root: BSONNode
 
   /**
    * @constructor
    */
-  constructor(document: BSONNode) {
-    this.document = document
+  constructor(root: BSONNode) {
+    this.root = root
   }
 
   /**
@@ -203,7 +203,7 @@ export class ExpressionContext {
         return wrapNodes(node.nodes.map(n => this.eval(n)))
 
       case NodeKind.EXPRESSION_GETTER:
-        return evalExpressionGetter(node.path, this.document)
+        return evalExpressionGetter(node.path, this.root)
 
       case NodeKind.EXPRESSION_OBJECT: {
         const obj: BSONNode = {
@@ -247,9 +247,9 @@ export class ExpressionContext {
       case '$$CLUSTER_TIME':
         return nTimestamp()
       case '$$NOW':
-        return nDate(new Date())
+        return nDate()
       case '$$ROOT':
-        return this.document
+        return this.root
       default:
         throw new TypeError(`Unsupported system variable: ${key}`)
     }
