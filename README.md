@@ -17,73 +17,67 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 ```javascript
 import { ObjectId } from 'bson' // or 'mongodb'
 import {
-  compileAggregationExpression,
-  compileAggregationPipeline,
-  compileFilterQuery,
-  compileUpdateQuery
-} from 'mql-match'
+  compileExpression,
+  compileMatch,
+  compilePipeline,
+  compileUpdate,
+} from './build/exports.js'
 
 const documents = [
   {
-    _id: new ObjectId("507f1f77bcf86cd799439011"),
-    value: 130
+    _id: new ObjectId('507f1f77bcf86cd799439011'),
+    value: 130,
   },
   {
-    _id: new ObjectId("507f191e810c19729de860ea"),
-    value: 42
-  }
+    _id: new ObjectId('507f191e810c19729de860ea'),
+    value: 42,
+  },
 ]
 
-const match = compileFilterQuery({
-  _id: new ObjectId("507f1f77bcf86cd799439011")
+const match = compileMatch({
+  _id: new ObjectId('507f1f77bcf86cd799439011'),
 })
 
 // logs { _id: new ObjectId("507f1f77bcf86cd799439011"), value: 130 }
 console.log(documents.find(match))
 
-const update = compileUpdateQuery({
+const update = compileUpdate({
   $set: {
-    my: 'Pleasure'
-  }
+    my: 'Pleasure',
+  },
 })
 
-const oldObject = { _id: "my_doc" }
+const oldObject = { _id: 'my_doc' }
 update(oldObject)
 // logs { _id: 'my_doc', my: 'Pleasure' }
 console.log(oldObject)
 
-const map = compileAggregationExpression({
+const map = compileExpression({
   _id: 0,
   item: 1,
   discount: {
     $cond: {
       if: { $gte: ['$qty', 250] },
       then: 30,
-      else: 20
-    }
-  }
+      else: 20,
+    },
+  },
 })
 
 // logs { item: 'xyz1', discount: 30 }
 console.log(map({ _id: 3, item: 'xyz1', qty: 250 }))
 
 // Returns a function that accepts an iterable (both sync or async) and returns an async iterable
-const aggregate = compileAggregationPipeline([
+const aggregate = compilePipeline([
   {
     $match: {
-      value: 42
-    }
-  }
+      value: 42,
+    },
+  },
 ])
 
-async function pipelineExample () {
-  // logs { _id: new ObjectId("507f191e810c19729de860ea"), value: 42 }
-  for await (const document of aggregate(documents)) {
-    console.log(document)
-  }
-}
-
-pipelineExample().catch(err => console.error(err))
+// logs [{ _id: new ObjectId("507f191e810c19729de860ea"), value: 42 }]
+console.log(aggregate(documents))
 ```
 
 ## Supported features
