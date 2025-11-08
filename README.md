@@ -17,82 +17,67 @@ This project can be useful to mock some basic functionality of MongoDB's driver 
 ```javascript
 import { ObjectId } from 'bson' // or 'mongodb'
 import {
-  compileAggregationExpression,
-  compileAggregationPipeline,
-  compileFilterQuery,
-  compileUpdateQuery
+  compileExpression,
+  compileMatch,
+  compilePipeline,
+  compileUpdate,
 } from 'mql-match'
 
 const documents = [
   {
-    _id: new ObjectId("507f1f77bcf86cd799439011"),
-    value: 130
+    _id: new ObjectId('507f1f77bcf86cd799439011'),
+    value: 130,
   },
   {
-    _id: new ObjectId("507f191e810c19729de860ea"),
-    value: 42
-  }
+    _id: new ObjectId('507f191e810c19729de860ea'),
+    value: 42,
+  },
 ]
 
-const match = compileFilterQuery({
-  _id: new ObjectId("507f1f77bcf86cd799439011")
+const match = compileMatch({
+  _id: new ObjectId('507f1f77bcf86cd799439011'),
 })
 
 // logs { _id: new ObjectId("507f1f77bcf86cd799439011"), value: 130 }
 console.log(documents.find(match))
 
-const update = compileUpdateQuery({
-  $setOnInsert: {
-    hello: 'World'
-  },
+const update = compileUpdate({
   $set: {
-    my: 'Pleasure'
-  }
+    my: 'Pleasure',
+  },
 })
 
-const oldObject = { _id: "my_doc" }
+const oldObject = { _id: 'my_doc' }
 update(oldObject)
 // logs { _id: 'my_doc', my: 'Pleasure' }
 console.log(oldObject)
 
-const newObject = {}
-// the `true` say that this document was inserted
-update(newObject, true)
-// logs { _id: new ObjectId("xxxxxxxxxxxxxxxxxxxxxxxx"), hello: 'World', my: 'Pleasure' }
-console.log(newObject)
-
-const map = compileAggregationExpression({
+const map = compileExpression({
   _id: 0,
   item: 1,
   discount: {
     $cond: {
       if: { $gte: ['$qty', 250] },
       then: 30,
-      else: 20
-    }
-  }
+      else: 20,
+    },
+  },
 })
 
 // logs { item: 'xyz1', discount: 30 }
 console.log(map({ _id: 3, item: 'xyz1', qty: 250 }))
 
 // Returns a function that accepts an iterable (both sync or async) and returns an async iterable
-const aggregate = compileAggregationPipeline([
+const aggregate = compilePipeline([
   {
     $match: {
-      value: 42
-    }
-  }
+      value: 42,
+    },
+  },
 ])
 
-async function pipelineExample () {
-  // logs { _id: new ObjectId("507f191e810c19729de860ea"), value: 42 }
-  for await (const document of aggregate(documents)) {
-    console.log(document)
-  }
-}
-
-pipelineExample().catch(err => console.error(err))
+// logs [{ _id: new ObjectId("507f191e810c19729de860ea"), value: 42 }]
+console.log(aggregate(documents))
 ```
 
 ## Supported features
@@ -174,7 +159,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$mul`](https://www.mongodb.com/docs/manual/reference/operator/update/mul/)
 - [x] [`$rename`](https://www.mongodb.com/docs/manual/reference/operator/update/rename/)
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
-- [x] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
+- [ ] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/update/unset/)
 
 #### Array
@@ -193,7 +178,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
 - [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
 - [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
-- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/) Limited to a single field.
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
 
 #### Bitwise
 
@@ -234,7 +219,7 @@ pipelineExample().catch(err => console.error(err))
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/)
 - [ ] [`$setWindowFields`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/)
 - [x] [`$skip`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/skip/)
-- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sort/)
 - [ ] [`$sortByCount`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sortByCount/)
 - [ ] [`$unionWith`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unionWith/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/)
@@ -355,6 +340,18 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$week`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/week/)
 - [ ] [`$year`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/year/)
 
+#### Expressions Associated with Accumulators
+
+- [x] [`$avg`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/avg/)
+- [ ] [`$max`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/max/)
+- [ ] [`$median`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/median/)
+- [ ] [`$min`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/min/)
+- [ ] [`$percentile`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/percentile/)
+- [ ] [`$setUnion`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/setUnion/)
+- [ ] [`$stdDevPop`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/stdDevPop/)
+- [ ] [`$stdDevSamp`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/stdDevSamp/)
+- [x] [`$sum`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/sum/)
+
 #### Literal Expression Operator
 
 - [x] [`$literal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/literal/) No validation.
@@ -391,7 +388,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$ltrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/ltrim/)
 - [ ] [`$regexFind`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFind/)
 - [ ] [`$regexFindAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexFindAll/)
-- [ ] [`$regexMatch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/)
+- [x] [`$regexMatch`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/regexMatch/)
 - [ ] [`$replaceOne`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceOne/)
 - [ ] [`$replaceAll`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceAll/)
 - [ ] [`$rtrim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/rtrim/)
@@ -403,7 +400,7 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [ ] [`$substrBytes`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrBytes/)
 - [ ] [`$substrCP`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/substrCP/)
 - [ ] [`$toLower`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/)
-- [ ] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
+- [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
 - [ ] [`$trim`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/trim/)
 - [ ] [`$toUpper`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toUpper/)
 
@@ -439,11 +436,11 @@ Operators not listed here are currently not supported. Feel free to open an [Git
 - [x] [`$convert`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/)
 - [x] [`$isNumber`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/isNumber/)
 - [x] [`$toBool`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/)
-- [ ] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
+- [x] [`$toDate`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/)
 - [ ] [`$toDecimal`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDecimal/)
 - [x] [`$toDouble`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/)
-- [ ] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
-- [ ] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
+- [x] [`$toInt`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/)
+- [x] [`$toLong`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/)
 - [x] [`$toObjectId`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/)
 - [x] [`$toString`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/)
 - [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/) Adds `"unknown"` type.

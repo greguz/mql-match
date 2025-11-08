@@ -1,0 +1,319 @@
+import test from 'ava'
+import { ObjectId } from 'bson'
+
+import { compileAggregationExpression } from './exports.js'
+
+function exec(expr: unknown, ...docs: unknown[]): unknown {
+  const fn = compileAggregationExpression(expr)
+  switch (docs.length) {
+    case 0:
+      return fn()
+    case 1:
+      return fn(docs[0])
+    default:
+      return docs.map(fn)
+  }
+}
+
+test('$type', t => {
+  t.throws(() => exec({ $type: [] }))
+  t.throws(() => exec({ $type: [4, 2] }))
+  t.is(exec({ $type: null }), 'null')
+  t.is(exec({ $type: [null] }), 'null')
+  t.is(exec({ $type: [42] }), 'double')
+  t.is(exec({ $type: [[]] }), 'array')
+  t.is(exec({ $type: ['panic'] }), 'string')
+  t.is(exec({ $type: ['$$NOW'] }), 'date')
+})
+
+test('$$NOW', t => {
+  t.true(exec('$$NOW') instanceof Date)
+  const a = exec('$$NOW')
+  const b = exec('$$NOW')
+  t.is(a === b, false)
+})
+
+test('$$ROOT', t => {
+  t.is(exec('$$ROOT'), null)
+  t.is(exec('$$ROOT', 42), 42)
+})
+
+test('$convert', t => {
+  t.throws(() => exec({ $convert: 24 }))
+  t.is(exec({ $convert: { input: 1.99999, to: 'bool' } }), true)
+  t.is(exec({ $convert: { input: 0, to: 'bool' } }), false)
+})
+
+test('$toBool', t => {
+  t.is(exec({ $toBool: [null] }), false)
+  t.is(exec({ $toBool: 0 }), false)
+  t.is(exec({ $toBool: -1 }), true)
+})
+
+test('$literal', t => {
+  t.is(exec({ $literal: '$$NOW' }), '$$NOW')
+})
+
+test('$isNumber', t => {
+  t.is(exec({ $isNumber: 0 }), true)
+  // t.is(exec({ $isNumber: 1n }), true)
+  t.is(exec({ $isNumber: Number.NaN }), true)
+  t.is(exec({ $isNumber: [null] }), false)
+})
+
+test('$toObjectId', t => {
+  const hex = '424242424242424242424242'
+
+  const a = exec({ $toObjectId: hex })
+  t.true(a instanceof ObjectId && a.toHexString() === hex)
+
+  const b = exec({ $toObjectId: a })
+  t.true(b instanceof ObjectId && a === b)
+})
+
+test('$toString', t => {
+  const date = new Date()
+  t.is(exec({ $toString: date }), date.toISOString())
+  t.is(exec({ $toString: false }), 'false')
+  t.is(exec({ $toString: true }), 'true')
+  t.is(exec({ $toString: 4.2 }), '4.2')
+})
+
+test('$toDouble', t => {
+  t.is(exec({ $toDouble: true }), 1)
+  t.is(exec({ $toDouble: false }), 0)
+  t.is(exec({ $toDouble: 2.5 }), 2.5)
+  t.is(exec({ $toDouble: '-5.5' }), -5.5)
+  t.is(exec({ $toDouble: new Date('2018-03-27T05:04:47.890Z') }), 1522127087890)
+})
+
+test('$', t => {
+  t.is(exec('$v', { v: 4 }), 4)
+  t.is(exec('$a.b', { a: { b: 2 } }), 2)
+})
+
+test('project', t => {
+  t.deepEqual(
+    exec(
+      {
+        'author.first': 0,
+        lastModified: 0,
+      },
+      {
+        _id: 1,
+        title: 'abc123',
+        isbn: '0001122223334',
+        author: { last: 'zzz', first: 'aaa' },
+        copies: 5,
+        lastModified: '2016-07-28',
+      },
+    ),
+    {
+      _id: 1,
+      title: 'abc123',
+      isbn: '0001122223334',
+      author: {
+        last: 'zzz',
+      },
+      copies: 5,
+    },
+  )
+  t.deepEqual(
+    exec(
+      {
+        author: { first: 0 },
+        lastModified: 0,
+      },
+      {
+        _id: 1,
+        title: 'abc123',
+        isbn: '0001122223334',
+        author: { last: 'zzz', first: 'aaa' },
+        copies: 5,
+        lastModified: '2016-07-28',
+      },
+    ),
+    {
+      _id: 1,
+      title: 'abc123',
+      isbn: '0001122223334',
+      author: {
+        last: 'zzz',
+      },
+      copies: 5,
+    },
+  )
+  t.deepEqual(
+    exec(
+      {
+        'a.b': 1,
+        'c.d.e': 1,
+      },
+      {
+        _id: 'my_document',
+        a: {
+          b: 4,
+          x: 2,
+        },
+        c: {
+          d: [
+            null,
+            {
+              e: true,
+              x: false,
+            },
+          ],
+        },
+      },
+    ),
+    {
+      _id: 'my_document',
+      a: {
+        b: 4,
+      },
+      c: {
+        d: [
+          {
+            e: true,
+          },
+        ],
+      },
+    },
+  )
+  t.deepEqual(
+    exec(
+      {
+        'a.b': 0,
+        'c.d.e': 0,
+      },
+      {
+        _id: 'my_document',
+        a: {
+          b: 4,
+          x: 2,
+        },
+        c: {
+          d: [
+            null,
+            {
+              e: true,
+              x: false,
+            },
+          ],
+        },
+      },
+    ),
+    {
+      _id: 'my_document',
+      a: {
+        x: 2,
+      },
+      c: {
+        d: [
+          {
+            x: false,
+          },
+        ],
+      },
+    },
+  )
+})
+
+test('array', t => {
+  t.deepEqual(
+    exec(
+      { a: ['$value', 2, { $multiply: [7, 3] }] },
+      { _id: 'my_doc', value: 4 },
+    ),
+    { _id: 'my_doc', a: [4, 2, 21] },
+  )
+})
+
+test('smoke', t => {
+  t.deepEqual(
+    exec(
+      {
+        a: {
+          b: { value: '$left' },
+          c: { value: '$right' },
+        },
+      },
+      { left: 4, right: 2 },
+    ),
+    {
+      _id: null,
+      a: {
+        b: { value: 4 },
+        c: { value: 2 },
+      },
+    },
+  )
+})
+
+test('cross-path projection', t => {
+  t.deepEqual(
+    exec(
+      {
+        prof: { from: 'pokemon' },
+        'prof.id': 1,
+      },
+      {
+        prof: [
+          { id: 0, value: 'Oak' },
+          { id: 1, name: 'Elm' },
+          { id: 2, name: 'Birch' },
+        ],
+      },
+    ),
+    {
+      _id: null,
+      prof: [
+        { id: 0, from: 'pokemon' },
+        { id: 1, from: 'pokemon' },
+        { id: 2, from: 'pokemon' },
+      ],
+    },
+  )
+})
+
+test('$sum', t => {
+  t.deepEqual(
+    exec(
+      {
+        quizTotal: { $sum: '$quizzes' },
+        labTotal: { $sum: '$labs' },
+        examTotal: { $sum: ['$final', '$midterm'] },
+      },
+      { _id: 1, quizzes: [10, 6, 7], labs: [5, 8], final: 80, midterm: 75 },
+      { _id: 2, quizzes: [9, 10], labs: [8, 8], final: 95, midterm: 80 },
+      { _id: 3, quizzes: [4, 5, 5], labs: [6, 5], final: 78, midterm: 70 },
+    ),
+    [
+      { _id: 1, quizTotal: 23, labTotal: 13, examTotal: 155 },
+      { _id: 2, quizTotal: 19, labTotal: 16, examTotal: 175 },
+      { _id: 3, quizTotal: 14, labTotal: 11, examTotal: 148 },
+    ],
+  )
+  t.deepEqual(
+    exec({
+      result: {
+        $sum: [1, 2, 3],
+      },
+    }),
+    {
+      _id: null,
+      result: 6,
+    },
+  )
+  t.deepEqual(
+    exec({
+      result: {
+        $sum: [[1, 2, 3], 1, 2, 3],
+      },
+    }),
+    {
+      _id: null,
+      result: 6,
+    },
+  )
+})

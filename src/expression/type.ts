@@ -1,0 +1,385 @@
+import { Double, Int32, Long, ObjectId } from 'bson'
+
+import { parseBSONType } from '../lib/bson.js'
+import { withParsing } from '../lib/expression.js'
+import {
+  type BooleanNode,
+  type BSONNode,
+  type DateNode,
+  type IntNode,
+  type LongNode,
+  NodeKind,
+  type NullishNode,
+  nBoolean,
+  nDate,
+  nDouble,
+  nInt,
+  nLong,
+  nNullish,
+  nString,
+} from '../lib/node.js'
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/type/
+ */
+export function $type(arg: BSONNode): BSONNode {
+  switch (arg.kind) {
+    case NodeKind.ARRAY:
+      return nString('array')
+    case NodeKind.BOOLEAN:
+      return nString('bool')
+    case NodeKind.DATE:
+      return nString('date')
+    case NodeKind.BINARY:
+      return nString('binData')
+    case NodeKind.LONG:
+      return nString('long')
+    case NodeKind.NULLISH:
+      return nString(arg.key === undefined ? 'null' : 'missing')
+    case NodeKind.DOUBLE:
+      return nString('double')
+    case NodeKind.OBJECT_ID:
+      return nString('objectId')
+    case NodeKind.REGEX:
+      return nString('regex')
+    case NodeKind.STRING:
+      return nString('string')
+    case NodeKind.TIMESTAMP:
+      return nString('timestamp')
+    case NodeKind.OBJECT:
+      return nString('object')
+    case NodeKind.INT:
+      return nString('int')
+    case NodeKind.DECIMAL:
+      return nString('decimal')
+  }
+}
+
+const ConvertFormat = Object.freeze({
+  BASE64: 'base64',
+  BASE64URL: 'base64url',
+  UTF8: 'utf8',
+  HEX: 'hex',
+  UUID: 'uuid',
+})
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/
+ */
+export function $convert(
+  input: BSONNode,
+  toType: BSONNode,
+  toSubtype: BSONNode,
+  byteOrder: BSONNode,
+  format: BSONNode,
+  onError: BSONNode,
+  onNullish: BSONNode,
+): BSONNode {
+  if (input.kind === NodeKind.NULLISH) {
+    return onNullish
+  }
+
+  try {
+    const nodeKind = parseBSONType(toType)
+    switch (nodeKind) {
+      case NodeKind.BOOLEAN:
+        return $toBool(input)
+      case NodeKind.OBJECT_ID:
+        return $toObjectId(input)
+      case NodeKind.DOUBLE:
+        return $toDouble(input)
+      case NodeKind.STRING:
+        return $toString(input)
+      case NodeKind.LONG:
+        return $toLong(input)
+      case NodeKind.DATE:
+        return $toDate(input)
+      case NodeKind.INT:
+        return $toInt(input)
+      default:
+        throw new TypeError(`Unsupported $convert type: ${nodeKind}`)
+    }
+  } catch (err) {
+    if (onError.kind === NodeKind.NULLISH) {
+      throw err
+    }
+    return onError
+  }
+}
+
+withParsing($convert, arg => {
+  if (arg.kind !== NodeKind.OBJECT) {
+    throw new TypeError('$convert operator expects an object as argument')
+  }
+  if (!arg.value.input) {
+    throw new TypeError("Missing 'input' parameter to $convert")
+  }
+
+  let toType: BSONNode = arg.value.to || nNullish('to')
+  let toSubtype: BSONNode | undefined
+
+  if (toType.kind === NodeKind.OBJECT) {
+    toSubtype = toType.value.subtype
+    toType = toType.value.type || nNullish('type')
+  }
+
+  // input, to.type, to.subtype, byteOrder, format, onError, onNull
+  return [
+    arg.value.input,
+    toType,
+    parseConvertSubtype(toSubtype),
+    parseConvertByteOrder(arg.value.byteOrder),
+    parseConvertFormat(arg.value.format),
+    arg.value.onError || nNullish('onError'),
+    arg.value.onNull || nNullish('onNull'),
+  ]
+})
+
+function parseConvertSubtype(node: BSONNode = nNullish()): BSONNode {
+  if (node.kind === NodeKind.NULLISH) {
+    return node
+  }
+  throw new TypeError('$convert.to.subtype is currently not supported')
+}
+
+function parseConvertByteOrder(node: BSONNode = nNullish()): BSONNode {
+  if (node.kind === NodeKind.NULLISH) {
+    return nString('little')
+  }
+  if (node.value === 'big' || node.value === 'little') {
+    return node
+  }
+  throw new TypeError(`Unsupported $convert.byteOrder: ${node.value}`)
+}
+
+function parseConvertFormat(node: BSONNode = nNullish()): BSONNode {
+  if (node.kind === NodeKind.NULLISH) {
+    return node
+  }
+
+  switch (node.value) {
+    case ConvertFormat.BASE64:
+    case ConvertFormat.BASE64URL:
+    case ConvertFormat.UTF8:
+    case ConvertFormat.HEX:
+    case ConvertFormat.UUID:
+      return nString(node.value)
+    default:
+      throw new TypeError(`Unsupported $convert.format: ${node.value}`)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/isNumber/
+ */
+export function $isNumber(arg: BSONNode): BSONNode {
+  switch (arg.kind) {
+    case NodeKind.DECIMAL:
+    case NodeKind.DOUBLE:
+    case NodeKind.INT:
+    case NodeKind.LONG:
+      return nBoolean(true)
+    default:
+      return nBoolean(false)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toBool/
+ */
+export function $toBool(arg: BSONNode): BooleanNode {
+  switch (arg.kind) {
+    case NodeKind.BOOLEAN:
+      return arg
+
+    case NodeKind.NULLISH:
+      return nBoolean(false)
+
+    case NodeKind.ARRAY:
+    case NodeKind.BINARY:
+    case NodeKind.DATE:
+    case NodeKind.OBJECT:
+    case NodeKind.OBJECT_ID:
+    case NodeKind.REGEX:
+    case NodeKind.STRING:
+    case NodeKind.TIMESTAMP:
+      return nBoolean(true)
+
+    case NodeKind.DOUBLE:
+      return nBoolean(arg.value !== 0)
+
+    case NodeKind.INT:
+      return nBoolean(arg.value.value !== 0)
+
+    case NodeKind.LONG:
+      return nBoolean(!arg.value.isZero())
+
+    case NodeKind.DECIMAL:
+      return nBoolean(arg.value.toString() !== '0') // TODO: yes?
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDouble/
+ */
+export function $toDouble(arg: BSONNode): BSONNode {
+  switch (arg.kind) {
+    case NodeKind.DOUBLE:
+    case NodeKind.NULLISH:
+      return arg
+    case NodeKind.INT:
+      return nDouble(arg.value.value)
+    case NodeKind.BOOLEAN:
+      return nDouble(arg.value ? 1 : 0)
+    case NodeKind.DATE:
+      return nDouble(arg.value.getTime())
+    case NodeKind.STRING:
+      return nDouble(Double.fromString(arg.value).value)
+    case NodeKind.LONG:
+      return nDouble(arg.value.toNumber())
+    default:
+      throw new TypeError(`Unsupported double casting from ${arg.kind} type`)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toObjectId/
+ */
+export function $toObjectId(arg: BSONNode): BSONNode {
+  if (arg.kind === NodeKind.OBJECT_ID) {
+    return arg
+  }
+  if (arg.kind === NodeKind.STRING && ObjectId.isValid(arg.value)) {
+    return { kind: NodeKind.OBJECT_ID, value: new ObjectId(arg.value) }
+  }
+  throw new TypeError(`Unsupported ObjectId casting from ${arg.kind} type`)
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toString/
+ */
+export function $toString(arg: BSONNode): BSONNode {
+  // TODO: binData
+  switch (arg.kind) {
+    case NodeKind.NULLISH:
+    case NodeKind.STRING:
+      return arg
+    case NodeKind.BOOLEAN:
+    case NodeKind.DOUBLE:
+      return nString(`${arg.value}`)
+    case NodeKind.INT:
+      return nString(`${arg.value.value}`)
+    case NodeKind.LONG:
+      return nString(arg.value.toString())
+    case NodeKind.OBJECT_ID:
+      return nString(arg.value.toHexString())
+    case NodeKind.DATE:
+      return nString(arg.value.toISOString())
+    case NodeKind.BINARY:
+      return nString(arg.value.toString())
+    default:
+      throw new TypeError(`Unsupported string casting from ${arg.kind} type`)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLong/
+ */
+export function $toLong(arg: BSONNode): LongNode | NullishNode {
+  switch (arg.kind) {
+    case NodeKind.LONG:
+    case NodeKind.NULLISH:
+      return arg
+    case NodeKind.BOOLEAN:
+      return nLong(arg.value ? 1 : 0)
+    case NodeKind.STRING:
+      return nLong(Long.fromString(arg.value))
+    case NodeKind.DATE:
+      return nLong(arg.value.getTime())
+    case NodeKind.DOUBLE:
+      return nLong(arg.value)
+    default:
+      throw new TypeError(`Unsupported long casting from ${arg.kind} type`)
+  }
+}
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toDate/
+ */
+export function $toDate(arg: BSONNode): DateNode | NullishNode {
+  switch (arg.kind) {
+    case NodeKind.DATE:
+    case NodeKind.NULLISH:
+      return arg
+    case NodeKind.OBJECT_ID:
+      return nDate(arg.value.getTimestamp())
+    case NodeKind.TIMESTAMP:
+      return nDate(new Date(arg.value.t * 1000))
+    case NodeKind.STRING:
+      return nDate(new Date(arg.value)) // TODO: validate
+    case NodeKind.DOUBLE:
+      return nDate(new Date(arg.value))
+    case NodeKind.LONG:
+      return nDate(new Date(arg.value.toNumber()))
+    case NodeKind.INT:
+      return nDate(new Date(arg.value.value))
+    default:
+      throw new TypeError(`Unsupported date casting from ${arg.kind} type`)
+  }
+}
+
+const BASE10_INT = /^-?\d+$/
+
+const INT32_MIN = -2_147_483_648
+
+const INT32_MAX = 2_147_483_647
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toInt/
+ */
+export function $toInt(arg: BSONNode): IntNode | NullishNode {
+  switch (arg.kind) {
+    case NodeKind.INT:
+    case NodeKind.NULLISH:
+      return arg
+
+    case NodeKind.BOOLEAN:
+      return nInt(arg.value ? 1 : 0)
+
+    case NodeKind.DOUBLE:
+      if (arg.value < INT32_MIN || arg.value > INT32_MAX) {
+        throw new TypeError(`Cannot convert ${arg.value} to ${NodeKind.INT}`)
+      }
+
+      // Returns truncated value.
+      // The truncated double value must fall within the minimum and maximum value for an integer.
+      return nInt(new Int32(arg.value))
+
+    case NodeKind.STRING: {
+      // The string value must be a base 10 integer; e.g. "-5", "123456").
+      if (!BASE10_INT.test(arg.value)) {
+        throw new TypeError(`Cannot convert ${arg.value} to ${NodeKind.INT}`)
+      }
+
+      const n = Number.parseInt(arg.value, 10)
+      if (n < INT32_MIN || n > INT32_MAX) {
+        throw new TypeError(`Cannot accept ${n} as ${NodeKind.INT}`)
+      }
+
+      return nInt(new Int32(n))
+    }
+
+    case NodeKind.LONG: {
+      if (arg.value.lt(INT32_MIN) || arg.value.gt(INT32_MAX)) {
+        throw new TypeError(
+          `Cannot accept ${arg.value.toNumber()} as ${NodeKind.INT}`,
+        )
+      }
+
+      return nInt(arg.value.toInt())
+    }
+
+    default:
+      throw new TypeError(`Unsupported int casting from ${arg.kind} type`)
+  }
+}

@@ -2,20 +2,17 @@
   "name": "mql-match",
   "version": "0.7.1",
   "description": "A MongoDB Query Language compiler.",
-  "main": "./mql-match.cjs",
-  "types": "./mql-match.d.ts",
   "type": "module",
   "exports": {
-    "import": "./mql-match.mjs",
-    "require": "./mql-match.cjs",
-    "types": "./mql-match.d.ts"
+    ".": {
+      "import": "./build/exports.js",
+      "types": "./build/exports.d.ts"
+    }
   },
   "files": [
-    "!**/*.spec.mjs",
-    "lib",
-    "mql-match.cjs",
-    "mql-match.d.ts",
-    "mql-match.mjs"
+    "!**/*.spec.js",
+    "!**/*.js.map",
+    "build"
   ],
   "repository": {
     "type": "git",
@@ -25,38 +22,49 @@
     "url": "https://github.com/greguz/mql-match/issues"
   },
   "scripts": {
-    "lint": "standard",
-    "build": "rollup -c rollup.config.js",
-    "test": "c8 ava",
-    "prepublishOnly": "npm run lint && npm run build && npm run test"
+    "lint": "biome lint ./src",
+    "build": "rimraf build && tsc -p tsconfig.build.json",
+    "test": "rimraf build && c8 ava",
+    "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
+    "aggregation",
+    "compile",
+    "filter",
+    "mock",
     "mongo",
     "mongodb",
     "mql",
     "query",
-    "filter",
-    "compile"
+    "test",
+    "update"
   ],
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "dependencies": {
-    "bson": "^5.1.0",
-    "buffer": "^6.0.3",
-    "decimal.js": "^10.4.3"
+    "bson": "^7.0.0",
+    "decimal.js": "^10.6.0"
   },
   "devDependencies": {
-    "ava": "^5.2.0",
-    "c8": "^7.13.0",
-    "rollup": "^3.20.1",
-    "standard": "^17.0.0"
+    "@ava/typescript": "6.0.0",
+    "@biomejs/biome": "2.3.4",
+    "ava": "6.4.1",
+    "c8": "10.1.3",
+    "rimraf": "6.1.0",
+    "typescript": "5.9.3"
   },
   "ava": {
-    "extensions": [
-      "mjs"
-    ],
     "files": [
-      "**/*.spec.mjs"
-    ]
+      "./src/**/*.spec.ts"
+    ],
+    "typescript": {
+      "extensions": [
+        "ts"
+      ],
+      "rewritePaths": {
+        "src/": "build/"
+      },
+      "compile": "tsc"
+    }
   }
 }
