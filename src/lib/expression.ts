@@ -4,6 +4,7 @@ import {
   type ExpressionNode,
   NodeKind,
   nDate,
+  nMissing,
   nNullish,
   nTimestamp,
 } from './node.js'
@@ -263,12 +264,12 @@ export function evalExpressionGetter(
   path: PathSegment[],
   node: BSONNode,
 ): BSONNode {
-  if (!path.length) {
+  if (!path.length || node.kind === NodeKind.NULLISH) {
     return node
   }
   if (node.kind === NodeKind.OBJECT) {
     const key = path[0].raw
-    return evalExpressionGetter(path.slice(1), node.value[key] || nNullish(key))
+    return evalExpressionGetter(path.slice(1), node.value[key] || nMissing(key))
   }
 
   if (node.kind === NodeKind.ARRAY) {

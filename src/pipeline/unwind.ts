@@ -108,7 +108,7 @@ function getPathValue(node: BSONNode, path: Path): BSONNode {
   ) {
     if (node.kind === NodeKind.OBJECT) {
       const key = path.segments[i].raw
-      node = node.value[key] || nNullish(key)
+      node = node.value[key] || nNullish()
     } else {
       node = nNullish()
     }

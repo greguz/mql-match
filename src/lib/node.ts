@@ -146,17 +146,25 @@ export function nLong(value: bigint | number | Long): LongNode {
 export interface NullishNode {
   kind: typeof NodeKind.NULLISH
   value: null
-  /**
-   * Nullish property from an object.
-   */
   key: string | undefined
 }
 
-export function nNullish(key?: string): NullishNode {
+/**
+ * Represents an `undefined` property from some object.
+ */
+export function nMissing(key: string): NullishNode {
   return {
     kind: NodeKind.NULLISH,
     value: null,
     key,
+  }
+}
+
+export function nNullish(): NullishNode {
+  return {
+    kind: NodeKind.NULLISH,
+    value: null,
+    key: undefined,
   }
 }
 
@@ -355,8 +363,7 @@ export interface MatchPathNode {
   /**
    * `QueryOperator`'s name.
    */
-  operator: string
-  args: BSONNode[]
+  operator: (value: BSONNode) => BooleanNode
   /**
    * Negates the operator result (always a boolean for match operators).
    *

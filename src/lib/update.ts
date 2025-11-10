@@ -1,6 +1,7 @@
 import {
   type BSONNode,
   NodeKind,
+  nMissing,
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
@@ -71,14 +72,14 @@ export function getPathValue(node: BSONNode, path: Path): BSONNode {
       case NodeKind.ARRAY:
         node =
           segment.kind === PathSegmentKind.INDEX
-            ? node.value[segment.index] || nNullish(segment.raw)
-            : nNullish(segment.raw)
+            ? node.value[segment.index] || nNullish()
+            : nNullish()
         break
       case NodeKind.OBJECT:
-        node = node.value[segment.raw] || nNullish(segment.raw)
+        node = node.value[segment.raw] || nMissing(segment.raw)
         break
       default:
-        node = nNullish(segment.raw)
+        node = nNullish()
         break
     }
   }

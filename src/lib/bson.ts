@@ -149,7 +149,7 @@ export function getBSONTypeWeight(value: BSONNode['kind']): number {
 /**
  * Parse literal values.
  */
-export function wrapBSON(value?: unknown): BSONNode {
+export function wrapBSON(value: unknown): BSONNode {
   switch (typeof value) {
     case 'bigint':
       return nLong(value)

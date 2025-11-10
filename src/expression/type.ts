@@ -115,12 +115,12 @@ withParsing($convert, arg => {
     throw new TypeError("Missing 'input' parameter to $convert")
   }
 
-  let toType: BSONNode = arg.value.to || nNullish('to')
+  let toType: BSONNode = arg.value.to || nNullish()
   let toSubtype: BSONNode | undefined
 
   if (toType.kind === NodeKind.OBJECT) {
     toSubtype = toType.value.subtype
-    toType = toType.value.type || nNullish('type')
+    toType = toType.value.type || nNullish()
   }
 
   // input, to.type, to.subtype, byteOrder, format, onError, onNull
@@ -130,8 +130,8 @@ withParsing($convert, arg => {
     parseConvertSubtype(toSubtype),
     parseConvertByteOrder(arg.value.byteOrder),
     parseConvertFormat(arg.value.format),
-    arg.value.onError || nNullish('onError'),
-    arg.value.onNull || nNullish('onNull'),
+    arg.value.onError || nNullish(),
+    arg.value.onNull || nNullish(),
   ]
 })
 

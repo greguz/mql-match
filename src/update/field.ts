@@ -31,7 +31,7 @@ export function $currentDate(arg: BSONNode): UpdateMapper {
     )
   }
 
-  const dateType = arg.value.$type || nNullish('$type')
+  const dateType = arg.value.$type || nNullish()
   if (dateType.value === 'date') {
     return () => nDate()
   }
@@ -121,8 +121,7 @@ export function $rename(arg: BSONNode, oldPath: Path): UpdateOperator {
 
   // TODO: $rename does not work on embedded documents in arrays.
   return obj => {
-    const value =
-      obj.value[oldPath.segments[0].raw] || nNullish(oldPath.segments[0].raw)
+    const value = obj.value[oldPath.segments[0].raw] || nNullish()
 
     unsetKey(obj, oldPath.segments[0].raw)
     if (value.kind !== NodeKind.NULLISH) {

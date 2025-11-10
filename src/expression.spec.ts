@@ -20,6 +20,8 @@ test('$type', t => {
   t.throws(() => exec({ $type: [4, 2] }))
   t.is(exec({ $type: null }), 'null')
   t.is(exec({ $type: [null] }), 'null')
+  t.is(exec({ $type: '$value' }, {}), 'missing')
+  t.is(exec({ $type: '$value' }), 'null') // this is not possible on MongoDB (documents are always objects)
   t.is(exec({ $type: [42] }), 'double')
   t.is(exec({ $type: [[]] }), 'array')
   t.is(exec({ $type: ['panic'] }), 'string')
