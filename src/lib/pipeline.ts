@@ -1,31 +1,12 @@
 import type { BSONNode } from './node.js'
 
-export interface PipelineOperator<T extends unknown[] = unknown[]> {
-  /**
-   * Accepts an iterable and returns a new iterable.
-   */
-  (docs: Iterable<BSONNode>, ...args: T): Iterable<BSONNode>
-  /**
-   * Maps from X input arguments to Y input arguments.
-   */
-  parse?: (arg: BSONNode) => T
-}
+/**
+ * Accepts an iterable of documents and returns a new iterable of documents.
+ * A document can be any value (non-objects).
+ */
+export type PipelineOperator = (docs: Iterable<BSONNode>) => Iterable<BSONNode>
 
-export function withParsing<T extends unknown[]>(
-  operator: PipelineOperator<T>,
-  parse: (...args: BSONNode[]) => T,
-): void {
-  if (operator.parse !== undefined) {
-    throw new Error(
-      `Pipeline operator ${operator.name} cannot have multiple parsers`,
-    )
-  }
-  operator.parse = parse
-}
-
-export function parseOperatorArgs<T extends unknown[]>(
-  operator: PipelineOperator<T>,
-  arg: BSONNode,
-): T {
-  return operator.parse ? operator.parse(arg) : ([arg] as T)
-}
+/**
+ * Stage constructor.
+ */
+export type PipelineOperatorConstructor = (arg: BSONNode) => PipelineOperator

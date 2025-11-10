@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compileMatch } from '../../exports.js'
+import { compileMatch, compileUpdate } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
@@ -222,9 +222,209 @@ test.todo('$lte')
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/ne/
  */
-test.todo('$ne')
+test('$ne', t => {
+  const inventory = [
+    {
+      item: 'nuts',
+      quantity: 30,
+      carrier: { name: 'Shipit', fee: 3 },
+    },
+    {
+      item: 'bolts',
+      quantity: 50,
+      carrier: { name: 'Shipit', fee: 4 },
+    },
+    {
+      item: 'washers',
+      quantity: 10,
+      carrier: { name: 'Shipit', fee: 1 },
+    },
+  ]
+
+  // Match Document Fields That Are Not Equal
+  {
+    const match = compileMatch({ quantity: { $ne: 20 } })
+
+    t.deepEqual(inventory.filter(match), [
+      {
+        item: 'nuts',
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+      },
+      {
+        item: 'bolts',
+        quantity: 50,
+        carrier: { name: 'Shipit', fee: 4 },
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+
+  // Update Based on Not Equal Embedded Document Fields
+  {
+    const match = compileMatch({ 'carrier.fee': { $ne: 1 } })
+
+    const update = compileUpdate({ $set: { price: 9.99 } })
+
+    for (const doc of inventory) {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+
+    t.deepEqual(inventory, [
+      {
+        item: 'nuts',
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+        price: 9.99,
+      },
+      {
+        item: 'bolts',
+        quantity: 50,
+        carrier: { name: 'Shipit', fee: 4 },
+        price: 9.99,
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+
+  // Arrays
+  {
+    const match = compileMatch({ item: 'nuts' })
+    const update = compileUpdate({ $set: { type: ['hardware'] } })
+    for (const doc of inventory) {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+  }
+
+  // Arrays
+  {
+    const match = compileMatch({ item: 'bolts' })
+    const update = compileUpdate({ $set: { type: ['hardware', 'fasteners'] } })
+    for (const doc of inventory) {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+  }
+
+  // Arrays
+  {
+    const match = compileMatch({ type: { $ne: ['hardware', 'fasteners'] } })
+
+    t.deepEqual(inventory.filter(match), [
+      {
+        item: 'nuts',
+        price: 9.99,
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+        type: ['hardware'],
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+
+  // Arrays
+  {
+    const match = compileMatch({ type: { $ne: ['fasteners', 'hardware'] } })
+
+    t.deepEqual(inventory.filter(match), [
+      {
+        item: 'nuts',
+        price: 9.99,
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+        type: ['hardware'],
+      },
+      {
+        item: 'bolts',
+        price: 9.99,
+        quantity: 50,
+        carrier: { name: 'Shipit', fee: 4 },
+        type: ['hardware', 'fasteners'],
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+
+  // Arrays
+  {
+    const match = compileMatch({ type: { $ne: 'fasteners' } })
+
+    t.deepEqual(inventory.filter(match), [
+      {
+        item: 'nuts',
+        price: 9.99,
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+        type: ['hardware'],
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/nin/
  */
-test.todo('$nin')
+test('$nin', t => {
+  const inventory = [
+    { item: 'Pens', quantity: 350, tags: ['school', 'office'] },
+    { item: 'Erasers', quantity: 15, tags: ['school', 'home'] },
+    { item: 'Maps', tags: ['office', 'storage'] },
+    { item: 'Books', quantity: 5, tags: ['school', 'storage', 'home'] },
+  ]
+
+  // Select on Unmatching Documents
+  {
+    const match = compileMatch({ quantity: { $nin: [5, 15] } })
+
+    t.deepEqual(inventory.filter(match), [
+      { item: 'Pens', quantity: 350, tags: ['school', 'office'] },
+      { item: 'Maps', tags: ['office', 'storage'] },
+    ])
+  }
+
+  // Select on Elements Not in an Array
+  {
+    const match = compileMatch({ tags: { $nin: ['school'] } })
+
+    const update = compileUpdate({ $set: { exclude: true } })
+
+    for (const doc of inventory) {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+
+    t.deepEqual(inventory, [
+      { item: 'Pens', quantity: 350, tags: ['school', 'office'] },
+      { item: 'Erasers', quantity: 15, tags: ['school', 'home'] },
+      { item: 'Maps', tags: ['office', 'storage'], exclude: true },
+      { item: 'Books', quantity: 5, tags: ['school', 'storage', 'home'] },
+    ])
+  }
+})

@@ -7,55 +7,58 @@ import {
   type ObjectNode,
 } from '../lib/node.js'
 import { Path } from '../lib/path.js'
-import { withParsing } from '../lib/pipeline.js'
+import type { PipelineOperator } from '../lib/pipeline.js'
 import { expected } from '../lib/util.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/unwind/
  */
-export function* $unwind(
-  docs: Iterable<BSONNode>,
-  path: Path,
-  includeArrayIndex: string,
-  preserveNullAndEmptyArrays: boolean,
-): Iterable<BSONNode> {
-  for (const doc of docs) {
-    const node = getPathValue(doc, path)
+export function $unwind(arg: BSONNode): PipelineOperator {
+  let path: Path
+  let includeArrayIndex: string
+  let preserveNullAndEmptyArrays: boolean
 
-    if (node.kind === NodeKind.ARRAY && node.value.length) {
-      for (let i = 0; i < node.value.length; i++) {
-        yield setPathValue(
-          doc,
-          path,
-          includeArrayIndex,
-          node.value[i],
-          nDouble(i),
-        )
-      }
-    } else if (node.kind !== NodeKind.ARRAY && node.kind !== NodeKind.NULLISH) {
-      yield setPathValue(doc, path, includeArrayIndex, node, nNullish())
-    } else if (preserveNullAndEmptyArrays) {
-      yield setPathValue(doc, path, includeArrayIndex, nNullish(), nNullish())
-    }
-  }
-}
-
-withParsing($unwind, arg => {
-  if (arg.kind === NodeKind.STRING) {
-    return [parseUnwindPath(arg), '', false] as const
-  }
-  if (arg.kind !== NodeKind.OBJECT) {
+  if (arg.kind === NodeKind.OBJECT) {
+    path = parseUnwindPath(arg.value.path)
+    includeArrayIndex = parseIndexField(arg.value.includeArrayIndex)
+    preserveNullAndEmptyArrays = parseUnwindBoolean(
+      arg.value.preserveNullAndEmptyArrays,
+    )
+  } else if (arg.kind === NodeKind.STRING) {
+    path = parseUnwindPath(arg)
+    includeArrayIndex = ''
+    preserveNullAndEmptyArrays = false
+  } else {
     throw new TypeError(
       `expected either a string or an object as specification for $unwind stage (got ${arg.kind})`,
     )
   }
 
-  return [
-    parseUnwindPath(arg.value.path),
-    parseIndexField(arg.value.includeArrayIndex),
-    parseUnwindBoolean(arg.value.preserveNullAndEmptyArrays),
-  ] as const
-})
+  return function* unwindStage(docs) {
+    for (const doc of docs) {
+      const node = getPathValue(doc, path)
+
+      if (node.kind === NodeKind.ARRAY && node.value.length) {
+        for (let i = 0; i < node.value.length; i++) {
+          yield setPathValue(
+            doc,
+            path,
+            includeArrayIndex,
+            node.value[i],
+            nDouble(i),
+          )
+        }
+      } else if (
+        node.kind !== NodeKind.ARRAY &&
+        node.kind !== NodeKind.NULLISH
+      ) {
+        yield setPathValue(doc, path, includeArrayIndex, node, nNullish())
+      } else if (preserveNullAndEmptyArrays) {
+        yield setPathValue(doc, path, includeArrayIndex, nNullish(), nNullish())
+      }
+    }
+  }
+}
 
 function parseUnwindPath(node: BSONNode = nNullish()): Path {
   if (node.kind !== NodeKind.STRING) {

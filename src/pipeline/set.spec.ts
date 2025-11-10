@@ -1,13 +1,12 @@
 import test from 'ava'
 
-import { parseExpression } from '../expression.js'
 import { unwrapBSON, wrapBSON } from '../lib/bson.js'
 import { $set } from './set.js'
 
 function bind(expr: unknown) {
-  const exprNode = parseExpression(wrapBSON(expr))
+  const fn = $set(wrapBSON(expr))
   return (doc?: unknown) => {
-    const results = Array.from($set([wrapBSON(doc)], exprNode))
+    const results = Array.from(fn([wrapBSON(doc)]))
     if (results.length !== 1) {
       throw new Error('Expected exactly one document')
     }

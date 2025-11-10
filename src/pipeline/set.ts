@@ -1,22 +1,21 @@
 import { evalExpression, parseExpression } from '../expression.js'
 import { setKey, wrapNodes, wrapObjectRaw } from '../lib/bson.js'
-import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
-import { withParsing } from '../lib/pipeline.js'
+import { type BSONNode, NodeKind } from '../lib/node.js'
+import type { PipelineOperator } from '../lib/pipeline.js'
 import { expected } from '../lib/util.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/
  */
-export function* $set(
-  docs: Iterable<BSONNode>,
-  expr: ExpressionNode,
-): Iterable<BSONNode> {
-  for (const doc of docs) {
-    yield mergeNodes(doc, evalExpression(expr, doc))
+export function $set(arg: BSONNode): PipelineOperator {
+  const expr = parseExpression(arg)
+
+  return function* setStage(docs) {
+    for (const doc of docs) {
+      yield mergeNodes(doc, evalExpression(expr, doc))
+    }
   }
 }
-
-withParsing<[ExpressionNode]>($set, arg => [parseExpression(arg)])
 
 function mergeNodes(target: BSONNode, source: BSONNode): BSONNode {
   if (target.kind === NodeKind.ARRAY && source.kind !== NodeKind.ARRAY) {
