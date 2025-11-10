@@ -6,7 +6,7 @@ import {
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
-import { type Path, parsePath } from '../lib/path.js'
+import { Path } from '../lib/path.js'
 import { withParsing } from '../lib/pipeline.js'
 import { expected } from '../lib/util.js'
 
@@ -68,7 +68,7 @@ function parseUnwindPath(node: BSONNode = nNullish()): Path {
       `path option to $unwind stage should be prefixed with a "$" (got ${node.value})`,
     )
   }
-  return parsePath(node.value.substring(1))
+  return Path.parse(node.value.substring(1))
 }
 
 function parseIndexField(node: BSONNode = nNullish()): string {
@@ -101,9 +101,13 @@ function parseUnwindBoolean(node: BSONNode = nNullish()): boolean {
 }
 
 function getPathValue(node: BSONNode, path: Path): BSONNode {
-  for (let i = 0; i < path.length && node.kind !== NodeKind.NULLISH; i++) {
+  for (
+    let i = 0;
+    i < path.segments.length && node.kind !== NodeKind.NULLISH;
+    i++
+  ) {
     if (node.kind === NodeKind.OBJECT) {
-      const key = `${path[i]}`
+      const key = path.segments[i].raw
       node = node.value[key] || nNullish(key)
     } else {
       node = nNullish()
@@ -128,10 +132,10 @@ function setPathValue(
   }
 
   let subject: ObjectNode = result
-  for (let i = 0; i < path.length; i++) {
-    const key = `${path[i]}`
+  for (let i = 0; i < path.segments.length; i++) {
+    const key = path.segments[i].raw
 
-    if (i === path.length - 1) {
+    if (i === path.segments.length - 1) {
       setKey(subject, key, value)
     } else {
       subject = copyObject(expected(subject.value[key]))

@@ -12,7 +12,7 @@ import {
   nNullish,
   type ObjectNode,
 } from './lib/node.js'
-import { type Path, parsePath } from './lib/path.js'
+import { Path, type PathSegment } from './lib/path.js'
 import { expected } from './lib/util.js'
 import { $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
@@ -49,7 +49,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
   if (query.kind !== NodeKind.OBJECT) {
     $and.nodes.push(
       ...compileOperator(
-        [],
+        new Path('', false),
         query.kind === NodeKind.REGEX ? '$eq' : '$regex',
         query,
       ),
@@ -63,7 +63,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
 
     // Handle direct path values
     if (key[0] !== '$') {
-      $and.nodes.push(...compilePredicateKey(parsePath(key), value))
+      $and.nodes.push(...compilePredicateKey(Path.parse(key), value))
       continue
     }
 
@@ -114,7 +114,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
       }
 
       default:
-        $and.nodes.push(...compileOperator([], key, value))
+        $and.nodes.push(...compileOperator(new Path('', false), key, value))
         break
     }
   }
@@ -280,7 +280,7 @@ function resolveMatchNode(
   node: MatchArrayNode | MatchPathNode,
   doc: BSONNode,
 ): BooleanNode {
-  const values = getPathValues(node.path, doc)
+  const values = getPathValues(node.path.segments, doc)
   if (!values.length) {
     values.push(nNullish())
   }
@@ -318,7 +318,7 @@ function resolveMatchNode(
 }
 
 export function getPathValues(
-  path: Path,
+  path: PathSegment[],
   node: BSONNode,
   results: BSONNode[] = [],
 ): BSONNode[] {
@@ -329,7 +329,7 @@ export function getPathValues(
       getPathValues(path, node.value[i], results)
     }
   } else if (node.kind === NodeKind.OBJECT) {
-    const child = node.value[path[0]]
+    const child = node.value[path[0].raw]
     if (child) {
       getPathValues(path.slice(1), child, results)
     }

@@ -1,101 +1,97 @@
 import { $eq } from '../expression/comparison.js'
 import { assertBSON, unwrapBSON, unwrapNumber, wrapNodes } from '../lib/bson.js'
-import {
-  type ArrayNode,
-  type BSONNode,
-  type DoubleNode,
-  type MatchNode,
-  NodeKind,
-  type NullishNode,
-  nDouble,
-  nNullish,
-} from '../lib/node.js'
-import { withParsing } from '../lib/update.js'
+import { type BSONNode, NodeKind, nNullish } from '../lib/node.js'
+import type { UpdateMapper } from '../lib/update.js'
 import { expected } from '../lib/util.js'
 import { evalMatch, parseMatch } from '../match.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pop/
  */
-export function $pop(left: BSONNode, right: BSONNode): BSONNode {
-  if (left.kind !== NodeKind.ARRAY) {
-    throw new TypeError(
-      `$pop found an element of non-array type (got ${left.kind})`,
-    )
-  }
-
-  if (right.value === -1) {
-    expected(left.raw).shift()
-    left.value.shift()
-  } else {
-    expected(left.raw).pop()
-    left.value.pop()
-  }
-
-  return left
-}
-
-withParsing($pop, arg => {
+export function $pop(arg: BSONNode): UpdateMapper {
   const n = unwrapNumber(arg, `$pop expects a number (got ${arg.kind})`)
   if (n !== 1 && n !== -1) {
     throw new TypeError(`$pop expects 1 or -1 (got ${n})`)
   }
-  return [nDouble(n)] as const
-})
+
+  return value => {
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError(
+        `$pop found an element of non-array type (got ${value.kind})`,
+      )
+    }
+
+    if (n === -1) {
+      expected(value.raw).shift()
+      value.value.shift()
+    } else {
+      expected(value.raw).pop()
+      value.value.pop()
+    }
+
+    return value
+  }
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pull/
  */
-export function $pull(node: BSONNode, query: MatchNode): BSONNode {
-  if (node.kind !== NodeKind.ARRAY) {
-    throw new TypeError(
-      `$pull found an element of non-array type (got ${node.kind})`,
-    )
-  }
+export function $pull(arg: BSONNode): UpdateMapper {
+  const query = parseMatch(arg)
 
-  let i = 0
-  while (i < node.value.length) {
-    if (evalMatch(query, node.value[i]).value) {
-      expected(node.raw).splice(i, 1)
-      node.value.splice(i, 1)
-    } else {
-      i++
+  return value => {
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError(
+        `$pull found an element of non-array type (got ${value.kind})`,
+      )
     }
-  }
 
-  return node
-}
-
-withParsing($pull, arg => [parseMatch(arg)] as const)
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/
- */
-export function $pullAll(node: BSONNode, blacklist: ArrayNode): BSONNode {
-  if (node.kind !== NodeKind.ARRAY) {
-    throw new TypeError(
-      `$pullAll found an element of non-array type (got ${node.kind})`,
-    )
-  }
-
-  for (const value of blacklist.value) {
     let i = 0
-    while (i < node.value.length) {
-      if ($eq(node.value[i], value).value) {
-        expected(node.raw).splice(i, 1)
-        node.value.splice(i, 1)
+    while (i < value.value.length) {
+      if (evalMatch(query, value.value[i]).value) {
+        expected(value.raw).splice(i, 1)
+        value.value.splice(i, 1)
       } else {
         i++
       }
     }
-  }
 
-  return node
+    return value
+  }
 }
 
-withParsing<[ArrayNode]>($pullAll, arg => [
-  assertBSON(arg, NodeKind.ARRAY, '$pullAll expectes an array'),
-])
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/
+ */
+export function $pullAll(arg: BSONNode): UpdateMapper {
+  const blacklist = assertBSON(
+    arg,
+    NodeKind.ARRAY,
+    '$pullAll expectes an array',
+  ).value
+
+  return value => {
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError(
+        `$pullAll found an element of non-array type (got ${value.kind})`,
+      )
+    }
+
+    for (const item of blacklist) {
+      let i = 0
+      while (i < value.value.length) {
+        if ($eq(value.value[i], item).value) {
+          expected(value.raw).splice(i, 1)
+          value.value.splice(i, 1)
+        } else {
+          i++
+        }
+      }
+    }
+
+    return value
+  }
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/push/
@@ -105,78 +101,74 @@ withParsing<[ArrayNode]>($pullAll, arg => [
  * Slice the array, if specified.
  * Store the array.
  */
-export function $push(
-  node: BSONNode,
-  each: ArrayNode,
-  position: DoubleNode,
-  sort: BSONNode,
-  slice: DoubleNode | NullishNode,
-): BSONNode {
-  if (node.kind === NodeKind.NULLISH) {
-    return each
-  }
-  if (node.kind !== NodeKind.ARRAY) {
-    throw new TypeError(
-      `$push found an element of non-array type (got ${node.kind})`,
-    )
-  }
+export function $push(arg: BSONNode): UpdateMapper {
+  let $each: BSONNode[]
+  let $position: number
+  let $slice: number
 
-  let i = position.value
-  if (i < 0) {
-    i = Math.max(0, node.value.length + i)
-  }
-
-  if (i >= node.value.length) {
-    expected(node.raw).push(...each.value.map(unwrapBSON))
-    node.value.push(...each.value)
+  if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
+    $each = parseEach(arg.value.$each)
+    $position = parsePosition(arg.value.$position)
+    parseSort(arg.value.$sort)
+    $slice = parseSlice(arg.value.$slice)
   } else {
-    expected(node.raw).splice(i, 0, ...each.value.map(unwrapBSON))
-    node.value.splice(i, 0, ...each.value)
+    $each = [arg]
+    $position = parsePosition()
+    parseSort()
+    $slice = parseSlice()
   }
 
-  if (sort.kind !== NodeKind.NULLISH) {
-    throw new Error('$sort modifier is not supported')
-  }
-
-  if (slice.kind !== NodeKind.NULLISH) {
-    if (slice.value >= 0) {
-      const n = node.value.length
-      expected(node.raw).splice(slice.value, n)
-      node.value.splice(slice.value, n)
-    } else {
-      const n = node.value.length + slice.value
-      expected(node.raw).splice(0, n)
-      node.value.splice(0, n)
+  return value => {
+    if ($slice === 0) {
+      return wrapNodes([])
     }
-  }
+    if (value.kind === NodeKind.NULLISH) {
+      return wrapNodes($each)
+    }
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError(
+        `$push found an element of non-array type (got ${value.kind})`,
+      )
+    }
 
-  return node
+    // From 0 to "length"
+    const i: number =
+      $position < 0
+        ? Math.max(0, value.value.length + $position)
+        : Math.min(value.value.length, $position)
+
+    if (i >= value.value.length) {
+      expected(value.raw).push(...$each.map(unwrapBSON))
+      value.value.push(...$each)
+    } else {
+      expected(value.raw).splice(i, 0, ...$each.map(unwrapBSON))
+      value.value.splice(i, 0, ...$each)
+    }
+
+    if (Number.isFinite($slice)) {
+      if ($slice >= 0) {
+        const n = value.value.length
+        expected(value.raw).splice($slice, n)
+        value.value.splice($slice, n)
+      } else {
+        const n = value.value.length + $slice
+        expected(value.raw).splice(0, n)
+        value.value.splice(0, n)
+      }
+    }
+
+    return value
+  }
 }
 
-withParsing($push, arg => {
-  if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
-    return [
-      parseEach(arg.value.$each),
-      parsePosition(arg.value.$position),
-      parseSort(arg.value.$sort),
-      parseSlice(arg.value.$slice),
-    ] as const
-  }
-
-  return [
-    wrapNodes([arg]),
-    nDouble(Number.POSITIVE_INFINITY),
-    nNullish(),
-    nNullish(),
-  ] as const
-})
-
 /**
+ * Returns integer or any kind of "infinity".
+ *
  * https://www.mongodb.com/docs/manual/reference/operator/update/position/
  */
-function parsePosition(arg: BSONNode = nNullish()): DoubleNode {
+function parsePosition(arg: BSONNode = nNullish()): number {
   if (arg.kind === NodeKind.NULLISH) {
-    return nDouble(Number.POSITIVE_INFINITY)
+    return Number.POSITIVE_INFINITY
   }
   const n = unwrapNumber(
     arg,
@@ -185,72 +177,78 @@ function parsePosition(arg: BSONNode = nNullish()): DoubleNode {
   if (Number.isNaN(n) || (Number.isFinite(n) && !Number.isInteger(n))) {
     throw new TypeError(`$position required a numeric value (got ${n})`)
   }
-  return nDouble(n)
+  return n
 }
 
 /**
+ * Returns a list of BSON nodes.
+ *
  * https://www.mongodb.com/docs/manual/reference/operator/update/each/
  */
-function parseEach(arg: BSONNode = nNullish()): ArrayNode {
-  if (arg.kind === NodeKind.NULLISH) {
+function parseEach(arg: BSONNode | undefined): BSONNode[] {
+  if (!arg) {
     throw new TypeError('Expected $each modifier')
   }
   if (arg.kind !== NodeKind.ARRAY) {
     throw new TypeError(`$slice requires an integer (got ${arg.kind})`)
   }
-  return arg
+  return arg.value
 }
 
 /**
+ * Returns integer or any kind of "infinity".
+ *
  * https://www.mongodb.com/docs/manual/reference/operator/update/slice/
  */
-function parseSlice(arg: BSONNode = nNullish()): DoubleNode | NullishNode {
+function parseSlice(arg: BSONNode = nNullish()): number {
   if (arg.kind === NodeKind.NULLISH) {
-    return arg
+    return Number.POSITIVE_INFINITY
   }
   const n = unwrapNumber(arg)
   if (!Number.isInteger(n)) {
     throw new TypeError(`$slice requires an integer (got ${n})`)
   }
-  return nDouble(n)
+  return n
 }
 
 /**
+ * TODO: $sort modifier
+ *
  * https://www.mongodb.com/docs/manual/reference/operator/update/sort/
  */
-function parseSort(arg: BSONNode = nNullish()): BSONNode {
+function parseSort(arg: BSONNode = nNullish()): null {
   if (arg.kind !== NodeKind.NULLISH) {
     throw new Error('$sort modifier is not supported')
   }
-  return arg
+  return null
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/
  */
-export function $addToSet(left: BSONNode, right: ArrayNode): ArrayNode {
-  if (left.kind === NodeKind.NULLISH) {
-    return right
-  }
-  if (left.kind !== NodeKind.ARRAY) {
-    throw new TypeError(
-      `$addToSet found an element of non-array type (got ${left.kind})`,
-    )
-  }
+export function $addToSet(arg: BSONNode): UpdateMapper {
+  const $each: BSONNode[] =
+    arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')
+      ? parseEach(arg.value.$each)
+      : [arg]
 
-  for (const r of right.value) {
-    if (!left.value.some(l => $eq(l, r).value)) {
-      expected(left.raw).push(unwrapBSON(r))
-      left.value.push(r)
+  return value => {
+    if (value.kind === NodeKind.NULLISH) {
+      return wrapNodes($each)
     }
-  }
+    if (value.kind !== NodeKind.ARRAY) {
+      throw new TypeError(
+        `$addToSet found an element of non-array type (got ${value.kind})`,
+      )
+    }
 
-  return left
+    for (const newItem of $each) {
+      if (!value.value.some(oldItem => $eq(oldItem, newItem).value)) {
+        expected(value.raw).push(unwrapBSON(newItem))
+        value.value.push(newItem)
+      }
+    }
+
+    return value
+  }
 }
-
-withParsing($addToSet, arg => {
-  if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
-    return [parseEach(arg.value.$each)] as const
-  }
-  return [wrapNodes([arg])] as const
-})

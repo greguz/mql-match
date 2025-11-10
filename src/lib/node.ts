@@ -38,8 +38,6 @@ export const NodeKind = Object.freeze({
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
   MATCH_PATH: 'MATCH_PATH',
   MATCH_SEQUENCE: 'MATCH_SEQUENCE',
-  // Update query
-  UPDATE_PATH: 'UPDATE_PATH',
 })
 
 /**
@@ -387,20 +385,4 @@ export interface MatchSequenceNode {
    */
   operator: '$and' | '$or' | '$nor'
   nodes: MatchNode[]
-}
-
-/**
- * Part of update query engine.
- */
-export interface UpdatePathNode {
-  kind: typeof NodeKind.UPDATE_PATH
-  path: Path
-  /**
-   * `QueryOperator`'s name.
-   */
-  operator: string
-  /**
-   * Operator's arguments.
-   */
-  args: unknown[]
 }

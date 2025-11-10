@@ -40,7 +40,85 @@ test.todo('$pull')
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/push/
  */
-test.todo('$push')
+test('$push', t => {
+  const students = [
+    { _id: 1, scores: [44, 78, 38, 80] },
+    { _id: 2, scores: [45, 78, 38, 80, 89] },
+    { _id: 3, scores: [46, 78, 38, 80, 89] },
+    { _id: 4, scores: [47, 78, 38, 80, 89] },
+  ]
+
+  // Append a Value to an Array
+  {
+    const update = compileUpdate({ $push: { scores: 89 } })
+    update(students[0])
+
+    t.deepEqual(students[0], { _id: 1, scores: [44, 78, 38, 80, 89] })
+  }
+
+  // Append a Value to Arrays in Multiple Documents
+  {
+    const update = compileUpdate({ $push: { scores: 95 } })
+    students.forEach(update)
+
+    t.deepEqual(students, [
+      { _id: 1, scores: [44, 78, 38, 80, 89, 95] },
+      { _id: 2, scores: [45, 78, 38, 80, 89, 95] },
+      { _id: 3, scores: [46, 78, 38, 80, 89, 95] },
+      { _id: 4, scores: [47, 78, 38, 80, 89, 95] },
+    ])
+  }
+
+  // Append Multiple Values to an Array
+  {
+    const doc = { name: 'joe', scores: [42] }
+
+    const update = compileUpdate({ $push: { scores: { $each: [90, 92, 85] } } })
+    update(doc)
+
+    t.deepEqual(doc, {
+      name: 'joe',
+      scores: [42, 90, 92, 85],
+    })
+  }
+
+  // Use $push Operator with Multiple Modifiers
+  {
+    const doc = {
+      _id: 5,
+      quizzes: [
+        { wk: 1, score: 10 },
+        { wk: 2, score: 8 },
+        { wk: 3, score: 5 },
+        { wk: 4, score: 6 },
+      ],
+    }
+
+    const update = compileUpdate({
+      $push: {
+        quizzes: {
+          $each: [
+            { wk: 5, score: 8 },
+            { wk: 6, score: 7 },
+            { wk: 7, score: 6 },
+          ],
+          $sort: { score: -1 },
+          $slice: 3,
+        },
+      },
+    })
+    update(doc)
+
+    t.deepEqual(doc, {
+      _id: 5,
+      quizzes: [
+        { wk: 1, score: 10 },
+        { wk: 2, score: 8 },
+        { wk: 5, score: 8 },
+      ],
+    })
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/
@@ -55,7 +133,58 @@ test.todo('$each')
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/position/
  */
-test.todo('$position')
+test('$position', t => {
+  // Add Elements at the Start of the Array
+  {
+    const doc = { _id: 1, scores: [100] }
+
+    const update = compileUpdate({
+      $push: {
+        scores: {
+          $each: [50, 60, 70],
+          $position: 0,
+        },
+      },
+    })
+    update(doc)
+
+    t.deepEqual(doc, { _id: 1, scores: [50, 60, 70, 100] })
+  }
+
+  // Add Elements to the Middle of the Array
+  {
+    const doc = { _id: 2, scores: [50, 60, 70, 100] }
+
+    const update = compileUpdate({
+      $push: {
+        scores: {
+          $each: [20, 30],
+          $position: 2,
+        },
+      },
+    })
+    update(doc)
+
+    t.deepEqual(doc, { _id: 2, scores: [50, 60, 20, 30, 70, 100] })
+  }
+
+  // Use a Negative Array Index (Position) to Add Elements to the Array
+  {
+    const doc = { _id: 3, scores: [50, 60, 20, 30, 70, 100] }
+
+    const update = compileUpdate({
+      $push: {
+        scores: {
+          $each: [90, 80],
+          $position: -2,
+        },
+      },
+    })
+    update(doc)
+
+    t.deepEqual(doc, { _id: 3, scores: [50, 60, 20, 30, 90, 80, 70, 100] })
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/slice/
@@ -66,3 +195,18 @@ test.todo('$slice')
  * https://www.mongodb.com/docs/manual/reference/operator/update/sort/
  */
 test.todo('$sort')
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/update/positional/
+ */
+test.todo('$')
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/
+ */
+test.todo('$[]')
+
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/
+ */
+test.todo('$[<identifier>]')

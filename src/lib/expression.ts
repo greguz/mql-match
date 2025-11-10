@@ -7,7 +7,7 @@ import {
   nNullish,
   nTimestamp,
 } from './node.js'
-import type { Path } from './path.js'
+import type { PathSegment } from './path.js'
 import { expected } from './util.js'
 
 /**
@@ -203,7 +203,7 @@ export class ExpressionContext {
         return wrapNodes(node.nodes.map(n => this.eval(n)))
 
       case NodeKind.EXPRESSION_GETTER:
-        return evalExpressionGetter(node.path, this.root)
+        return evalExpressionGetter(node.path.segments, this.root)
 
       case NodeKind.EXPRESSION_OBJECT: {
         const obj: BSONNode = {
@@ -257,14 +257,17 @@ export class ExpressionContext {
 }
 
 /**
- * Keeps only non-nullisth array items.
+ * Keeps only non-nullish array items.
  */
-export function evalExpressionGetter(path: Path, node: BSONNode): BSONNode {
+export function evalExpressionGetter(
+  path: PathSegment[],
+  node: BSONNode,
+): BSONNode {
   if (!path.length) {
     return node
   }
   if (node.kind === NodeKind.OBJECT) {
-    const key = `${path[0]}`
+    const key = path[0].raw
     return evalExpressionGetter(path.slice(1), node.value[key] || nNullish(key))
   }
 

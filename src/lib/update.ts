@@ -1,56 +1,120 @@
-import type { BSONNode } from './node.js'
+import {
+  type BSONNode,
+  NodeKind,
+  nNullish,
+  type ObjectNode,
+} from '../lib/node.js'
+import { type Path, PathSegmentKind } from '../lib/path.js'
+import { setIndex, setKey, wrapObjectRaw } from './bson.js'
+import { expected } from './util.js'
 
-/**
- * Both match and update query types.
- */
-export interface UpdateOperator<T extends unknown[] = unknown[]> {
+export interface UpdateContext {
   /**
-   * Accepts the current document's value and the operator's argument.
-   * Returns the the document's value.
+   * Key is the matched document.
+   * Value is the index.
+   *
+   * @see https://www.mongodb.com/docs/manual/reference/operator/update/positional/
    */
-  (value: BSONNode, ...args: T): BSONNode
-  /**
-   * Custom query arguments parsing function.
-   * By default take the query as-is.
-   */
-  parse?: (...args: BSONNode[]) => T
-  /**
-   * Update operators.
-   * When `true` replaces the field's value with its parent and key nodes.
-   */
-  useParent?: boolean
-}
-
-export function withParsing<T extends unknown[]>(
-  fn: UpdateOperator<T>,
-  parse: (...args: BSONNode[]) => T,
-): void {
-  if (fn.parse !== undefined) {
-    throw new Error(`Query operator ${fn.name} cannot have multiple parsers`)
-  }
-  fn.parse = parse
+  positions: Map<unknown, number>
 }
 
 /**
- * This will inject a second heading arguments during query resolution.
- * This means that the parsing function must ignore the first 2 arguments.
+ * Takes the object to modify and applies the requested updates.
  */
-export function useParent<T extends unknown[]>(
-  operator: UpdateOperator<[BSONNode, ...T]>,
-  parse?: (...args: BSONNode[]) => T,
-): void {
-  if (operator.useParent !== undefined) {
-    throw new Error('Double useParent assignment')
-  }
-  operator.useParent = true
-  if (parse) {
-    withParsing(operator, parse as any) // TODO: hacky
-  }
-}
+export type UpdateOperator = (obj: ObjectNode, ctx: UpdateContext) => void
 
-export function parseOperatorArgs<T extends unknown[]>(
-  operator: UpdateOperator<T>,
+/**
+ * Accepts a BSON argument, the path to modify,
+ * and returns the operator function that performs the update.
+ */
+export type UpdateOperatorConstructor = (
   arg: BSONNode,
-): T {
-  return operator.parse ? operator.parse(arg) : ([arg] as T)
+  path: Path,
+) => UpdateOperator
+
+/**
+ * Map from the current BSON value into another value.
+ */
+export type UpdateMapper = (value: BSONNode) => BSONNode
+
+/**
+ * Accepts a BSON argument and returns a BSON mapper.
+ */
+export type UpdateMapperConstructor = (arg: BSONNode) => UpdateMapper
+
+/**
+ * Cast a mapper constructor into a standard operator constructor.
+ */
+export function wrapOperator(
+  $operator: UpdateMapperConstructor,
+): UpdateOperatorConstructor {
+  return (arg: BSONNode, path: Path): UpdateOperator => {
+    const map = $operator(arg)
+    return (obj: ObjectNode): void => {
+      setPathValue(obj, path, map(getPathValue(obj, path)))
+    }
+  }
+}
+
+/**
+ * Single value, exact match, index included.
+ */
+export function getPathValue(node: BSONNode, path: Path): BSONNode {
+  for (
+    let i = 0;
+    i < path.segments.length && node.kind !== NodeKind.NULLISH;
+    i++
+  ) {
+    const segment = path.segments[i]
+
+    switch (node.kind) {
+      case NodeKind.ARRAY:
+        node =
+          segment.kind === PathSegmentKind.INDEX
+            ? node.value[segment.index] || nNullish(segment.raw)
+            : nNullish(segment.raw)
+        break
+      case NodeKind.OBJECT:
+        node = node.value[segment.raw] || nNullish(segment.raw)
+        break
+      default:
+        node = nNullish(segment.raw)
+        break
+    }
+  }
+
+  return node
+}
+
+/**
+ * Always creates objects.
+ */
+export function setPathValue(
+  node: BSONNode,
+  path: Path,
+  value: BSONNode,
+): void {
+  for (let i = 0; i < path.segments.length; i++) {
+    const segment = path.segments[i]
+    const next = i === path.segments.length - 1 ? value : wrapObjectRaw()
+
+    if (
+      segment.kind === PathSegmentKind.INDEX &&
+      node.kind === NodeKind.ARRAY
+    ) {
+      if (next === value || node.value.length <= segment.index) {
+        node = setIndex(node, segment.index, next)
+      } else {
+        node = node.value[segment.index]
+      }
+    } else if (node.kind === NodeKind.OBJECT) {
+      if (next === value || !node.value[segment.raw]) {
+        node = setKey(node, segment.raw, next)
+      } else {
+        node = expected(node.value[segment.raw])
+      }
+    } else {
+      throw new TypeError(`Unable to write value at ${path.raw}`)
+    }
+  }
 }

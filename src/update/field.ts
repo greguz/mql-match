@@ -1,7 +1,6 @@
 import { $gt, $lt } from '../expression/comparison.js'
 import {
   assertBSON,
-  assertNumber,
   setKey,
   unsetKey,
   unwrapDecimal,
@@ -13,22 +12,19 @@ import {
   nDate,
   nDouble,
   nNullish,
-  nString,
   nTimestamp,
 } from '../lib/node.js'
-import { useParent, withParsing } from '../lib/update.js'
+import { Path } from '../lib/path.js'
+import type { UpdateMapper, UpdateOperator } from '../lib/update.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/
  */
-export function $currentDate(_left: BSONNode, right: BSONNode): BSONNode {
-  return right.value === 'timestamp' ? nTimestamp() : nDate()
-}
-
-withParsing($currentDate, arg => {
+export function $currentDate(arg: BSONNode): UpdateMapper {
   if (arg.kind === NodeKind.BOOLEAN && arg.value === true) {
-    return [nString('date')] as const
+    return () => nDate()
   }
+
   if (arg.kind !== NodeKind.OBJECT) {
     throw new TypeError(
       `${arg.kind} is not valid type for $currentDate. Please use a boolean ('true') or a $type expression ({ $type: 'timestamp/date' }).`,
@@ -36,121 +32,127 @@ withParsing($currentDate, arg => {
   }
 
   const dateType = arg.value.$type || nNullish('$type')
-  if (dateType.value !== 'date' && dateType.value !== 'timestamp') {
-    throw new TypeError(
-      `The '$type' string field is required to be 'date' or 'timestamp': { $currentDate: { field : { $type: 'date' } } }`,
-    )
+  if (dateType.value === 'date') {
+    return () => nDate()
+  }
+  if (dateType.value === 'timestamp') {
+    return () => nTimestamp()
   }
 
-  return [dateType] as const
-})
+  throw new TypeError(
+    `The '$type' string field is required to be 'date' or 'timestamp': { $currentDate: { field : { $type: 'date' } } }`,
+  )
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/inc/
  */
-export function $inc(left: BSONNode, right: BSONNode): BSONNode {
-  if (left.kind === NodeKind.NULLISH) {
-    return right
+export function $inc(arg: BSONNode): UpdateMapper {
+  const n = unwrapNumber(arg, 'Cannot increment with non-numeric argument')
+
+  return value => {
+    if (value.kind === NodeKind.NULLISH) {
+      return arg
+    }
+    return nDouble(
+      unwrapDecimal(
+        value,
+        `Cannot apply $inc to a value of non-numeric type (got ${value.kind})`,
+      ).add(n),
+    )
   }
-
-  return nDouble(
-    unwrapDecimal(
-      left,
-      `Cannot apply $inc to a value of non-numeric type (got ${left.kind})`,
-    ).add(unwrapNumber(right)),
-  )
 }
-
-withParsing<[BSONNode]>($inc, right => [
-  nDouble(unwrapNumber(right, 'Cannot increment with non-numeric argument')),
-])
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/min/
  */
-export function $min(left: BSONNode, right: BSONNode): BSONNode {
-  if (left.kind === NodeKind.NULLISH) {
-    return right
+export function $min(arg: BSONNode): UpdateMapper {
+  return value => {
+    if (value.kind === NodeKind.NULLISH) {
+      return arg
+    }
+    return $lt(arg, value).value ? arg : value
   }
-  return $lt(right, left).value ? right : left
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/max/
  */
-export function $max(left: BSONNode, right: BSONNode): BSONNode {
-  if (left.kind === NodeKind.NULLISH) {
-    return right
+export function $max(arg: BSONNode): UpdateMapper {
+  return value => {
+    if (value.kind === NodeKind.NULLISH) {
+      return arg
+    }
+    return $gt(arg, value).value ? arg : value
   }
-  return $gt(right, left).value ? right : left
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/mul/
  */
-export function $mul(left: BSONNode, right: BSONNode): BSONNode {
-  if (left.kind === NodeKind.NULLISH) {
-    return nDouble(0)
-  }
-  return nDouble(
-    unwrapDecimal(
-      left,
-      `Cannot apply $mul to a value of non-numeric type (got ${left.kind})`,
-    ).mul(unwrapNumber(right)),
-  )
-}
+export function $mul(arg: BSONNode): UpdateMapper {
+  const n = unwrapNumber(arg, 'Cannot multiply with non-numeric argument')
 
-withParsing<[BSONNode]>($mul, arg => [
-  assertNumber(arg, 'Cannot multiply with non-numeric argument'),
-])
+  return value => {
+    if (value.kind === NodeKind.NULLISH) {
+      return nDouble(0)
+    }
+    return nDouble(
+      unwrapDecimal(
+        value,
+        `Cannot apply $mul to a value of non-numeric type (got ${value.kind})`,
+      ).mul(n),
+    )
+  }
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/rename/
  */
-export function $rename(
-  parentNode: BSONNode,
-  oldKeyNode: BSONNode,
-  newKeyNode: BSONNode,
-): BSONNode {
-  const obj = assertBSON(parentNode, NodeKind.OBJECT)
-  const oldKey = assertBSON(oldKeyNode, NodeKind.STRING).value
-  const newKey = assertBSON(newKeyNode, NodeKind.STRING).value
-  const value = obj.value[oldKey] || nNullish(oldKey)
+export function $rename(arg: BSONNode, oldPath: Path): UpdateOperator {
+  const newPath = Path.parseUpdate(
+    assertBSON(arg, NodeKind.STRING, '$rename expects a string').value,
+  )
 
-  unsetKey(obj, oldKey)
-  if (value.kind !== NodeKind.NULLISH) {
-    setKey(obj, newKey, value)
+  // TODO: support nested paths
+  if (oldPath.segments.length !== 1 || newPath.segments.length !== 1) {
+    throw new Error('TODO: $rename and sub-paths not supported')
   }
 
-  return parentNode // ignored value
-}
+  // TODO: $rename does not work on embedded documents in arrays.
+  return obj => {
+    const value =
+      obj.value[oldPath.segments[0].raw] || nNullish(oldPath.segments[0].raw)
 
-useParent<[BSONNode]>($rename, arg => [
-  assertBSON(arg, NodeKind.STRING, '$rename expects a string'),
-])
+    unsetKey(obj, oldPath.segments[0].raw)
+    if (value.kind !== NodeKind.NULLISH) {
+      setKey(obj, newPath.segments[0].raw, value)
+    }
+  }
+}
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/set/
  */
-export function $set(_left: BSONNode, right: BSONNode): BSONNode {
-  return right
+export function $set(arg: BSONNode): UpdateMapper {
+  return () => arg
 }
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/unset/
  */
-export function $unset(parent: BSONNode, key: BSONNode): BSONNode {
-  unsetKey(
-    assertBSON(parent, NodeKind.OBJECT),
-    assertBSON(key, NodeKind.STRING).value,
-  )
-
-  return parent // ignored value
-}
-
-useParent<[]>($unset, arg => {
+export function $unset(arg: BSONNode, path: Path): UpdateOperator {
   if (arg.value !== '') {
     throw new TypeError('$unset expectes empty strings')
   }
-  return []
-})
+
+  // TODO: support nested paths
+  if (path.segments.length !== 1) {
+    throw new Error('TODO: $unset and sub-paths not supported')
+  }
+
+  // TODO: questo funziona con gli array, usando gli indici dentro al path
+  return obj => {
+    unsetKey(obj, path.segments[0].raw)
+  }
+}

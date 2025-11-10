@@ -1,6 +1,7 @@
 import { evalExpression, parseExpression } from './expression.js'
 import { unwrapBSON, wrapBSON } from './lib/bson.js'
 import type { BSONNode } from './lib/node.js'
+import type { UpdateContext } from './lib/update.js'
 import { evalMatch, parseMatch } from './match.js'
 import { parsePipeline } from './pipeline.js'
 import { evalUpdate, parseUpdate } from './update.js'
@@ -45,8 +46,13 @@ function unwrapIterable(docs: Iterable<BSONNode>): unknown[] {
 export function compileUpdate(query: Record<string, unknown>) {
   const nodes = Array.from(parseUpdate(query))
 
+  // TODO: argument
+  const ctx: UpdateContext = {
+    positions: new Map(),
+  }
+
   return <T = any>(doc: unknown): T => {
-    evalUpdate(nodes, wrapBSON(doc))
+    evalUpdate(ctx, nodes, wrapBSON(doc))
     return doc as T
   }
 }

@@ -145,7 +145,7 @@ test('$toBool', t => {
       { _id: 2, item: 'pie', qty: 10, shipped: 0 },
       { _id: 3, item: 'ice cream', shipped: 1 },
       { _id: 4, item: 'almonds', qty: 2, shipped: 'true' },
-      { _id: 5, item: 'pecans', shipped: 'false' }, // Note: All strings convert to true
+      { _id: 5, item: 'pecans', shipped: 'false' },
       { _id: 6, item: 'nougat', shipped: '' }, // Note: All strings convert to true
     ]
 
