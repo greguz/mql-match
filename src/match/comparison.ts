@@ -6,45 +6,54 @@ import {
   $lt as $ltStrict,
 } from '../expression/comparison.js'
 import { assertBSON } from '../lib/bson.js'
-import { withArrayUnwrap, withParsing } from '../lib/match.js'
-import {
-  type ArrayNode,
-  type BooleanNode,
-  type BSONNode,
-  NodeKind,
-  nBoolean,
-} from '../lib/node.js'
+import { type MatchOperator, withArrayUnwrap } from '../lib/match.js'
+import { type BSONNode, NodeKind, nBoolean } from '../lib/node.js'
 
-export const $eq = withArrayUnwrap($eqStrict)
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
+ */
+export const $eq = withArrayUnwrap(right => left => $eqStrict(left, right))
 
-export const $gt = withArrayUnwrap($gtStrict)
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/gt/
+ */
+export const $gt = withArrayUnwrap(right => left => $gtStrict(left, right))
 
-export const $gte = withArrayUnwrap($gteStrict)
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/gte/
+ */
+export const $gte = withArrayUnwrap(right => left => $gteStrict(left, right))
 
-export const $lt = withArrayUnwrap($ltStrict)
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/lt/
+ */
+export const $lt = withArrayUnwrap(right => left => $ltStrict(left, right))
 
-export const $lte = withArrayUnwrap($lteStrict)
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/lte/
+ */
+export const $lte = withArrayUnwrap(right => left => $lteStrict(left, right))
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/in/
  */
-export function $in(valueNode: BSONNode, arrayNode: ArrayNode): BooleanNode {
-  for (const item of arrayNode.value) {
-    let result = false
-    if (item.kind !== NodeKind.REGEX) {
-      result = $eq(valueNode, item).value
-    } else if (valueNode.kind === NodeKind.STRING) {
-      item.value.test(valueNode.value)
-    }
+export function $in(arg: BSONNode): MatchOperator {
+  const fns: MatchOperator[] = assertBSON(
+    arg,
+    NodeKind.ARRAY,
+    '$in needs an array',
+  ).value.map(n => (n.kind === NodeKind.REGEX ? matchRegex(n.value) : $eq(n)))
 
-    if (result) {
-      return nBoolean(result)
+  return value => {
+    let result = nBoolean(false)
+    for (let i = 0; i < fns.length && !result.value; i++) {
+      result = fns[i](value)
     }
+    return result
   }
-
-  return nBoolean(false)
 }
 
-withParsing<[ArrayNode]>($in, arg => [
-  assertBSON(arg, NodeKind.ARRAY, '$in needs an array'),
-])
+function matchRegex(regex: RegExp): MatchOperator {
+  return value =>
+    nBoolean(value.kind === NodeKind.STRING ? regex.test(value.value) : false)
+}

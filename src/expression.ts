@@ -58,7 +58,7 @@ import {
   type ObjectNode,
   type StringNode,
 } from './lib/node.js'
-import { type Path, parsePath } from './lib/path.js'
+import { Path } from './lib/path.js'
 import { expected } from './lib/util.js'
 
 // Inject operators into ExpressionContext store
@@ -135,7 +135,7 @@ export function parseExpression(arg: BSONNode): ExpressionNode {
     exp.keys.push('_id')
     exp.values._id = {
       kind: NodeKind.EXPRESSION_GETTER,
-      path: ['_id'],
+      path: Path.parse('_id'),
     }
   }
 
@@ -177,7 +177,7 @@ function parseStringNode({ value }: StringNode): ExpressionNode {
   if (value[0] === '$') {
     return {
       kind: NodeKind.EXPRESSION_GETTER,
-      path: parsePath(value.substring(1)),
+      path: Path.parse(value.substring(1)),
     }
   }
 
@@ -197,7 +197,7 @@ function parseObjectNode(node: ObjectNode): ExpressionNode {
   }
 
   for (const key of node.keys) {
-    const path = parsePath(key)
+    const path = Path.parse(key)
     const value = expected(node.value[key])
 
     if (value.value === true || value.value === 1) {
@@ -274,13 +274,13 @@ function setProjectionKey(
   path: Path,
   value?: ExpressionNode,
 ): void {
-  for (let i = 0; i < path.length; i++) {
-    const key = `${path[i]}`
+  for (let i = 0; i < path.segments.length; i++) {
+    const key = path.segments[i].raw
     if (!project.keys.includes(key)) {
       project.keys.push(key)
     }
 
-    if (i < path.length - 1) {
+    if (i < path.segments.length - 1) {
       const child = project.values[key] || {
         kind: NodeKind.EXPRESSION_PROJECT,
         keys: [],
@@ -288,7 +288,7 @@ function setProjectionKey(
         exclusion: project.exclusion,
       }
       if (child.kind !== NodeKind.EXPRESSION_PROJECT) {
-        throw new TypeError(`Path collision at ${path.join('.')}`)
+        throw new TypeError(`Path collision at ${path.raw}`)
       }
       project.values[key] = child
       project = child
@@ -439,6 +439,6 @@ export function applyInclusion(
 
 function getKeyValue(node: BSONNode, key: string): BSONNode {
   return node.kind === NodeKind.OBJECT
-    ? node.value[key] || nNullish(key)
+    ? node.value[key] || nNullish()
     : nNullish()
 }

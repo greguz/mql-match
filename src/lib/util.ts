@@ -57,3 +57,9 @@ export function isString(value: unknown): value is string {
 export function isUndefined(value: unknown): value is undefined {
   return value === undefined
 }
+
+export function last<T>(items: T[]): T | undefined {
+  if (items.length > 0) {
+    return items[items.length - 1]
+  }
+}

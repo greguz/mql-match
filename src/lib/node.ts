@@ -38,8 +38,6 @@ export const NodeKind = Object.freeze({
   MATCH_EXPRESSION: 'MATCH_EXPRESSION',
   MATCH_PATH: 'MATCH_PATH',
   MATCH_SEQUENCE: 'MATCH_SEQUENCE',
-  // Update query
-  UPDATE_PATH: 'UPDATE_PATH',
 })
 
 /**
@@ -148,17 +146,25 @@ export function nLong(value: bigint | number | Long): LongNode {
 export interface NullishNode {
   kind: typeof NodeKind.NULLISH
   value: null
-  /**
-   * Nullish property from an object.
-   */
   key: string | undefined
 }
 
-export function nNullish(key?: string): NullishNode {
+/**
+ * Represents an `undefined` property from some object.
+ */
+export function nMissing(key: string): NullishNode {
   return {
     kind: NodeKind.NULLISH,
     value: null,
     key,
+  }
+}
+
+export function nNullish(): NullishNode {
+  return {
+    kind: NodeKind.NULLISH,
+    value: null,
+    key: undefined,
   }
 }
 
@@ -357,8 +363,7 @@ export interface MatchPathNode {
   /**
    * `QueryOperator`'s name.
    */
-  operator: string
-  args: BSONNode[]
+  operator: (value: BSONNode) => BooleanNode
   /**
    * Negates the operator result (always a boolean for match operators).
    *
@@ -387,20 +392,4 @@ export interface MatchSequenceNode {
    */
   operator: '$and' | '$or' | '$nor'
   nodes: MatchNode[]
-}
-
-/**
- * Part of update query engine.
- */
-export interface UpdatePathNode {
-  kind: typeof NodeKind.UPDATE_PATH
-  path: Path
-  /**
-   * `QueryOperator`'s name.
-   */
-  operator: string
-  /**
-   * Operator's arguments.
-   */
-  args: unknown[]
 }

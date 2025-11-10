@@ -1,23 +1,24 @@
 import { evalExpression, parseExpression } from '../expression.js'
 import { wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
-import { withParsing } from '../lib/pipeline.js'
+import type { PipelineOperator } from '../lib/pipeline.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/unset/
  */
-export function* $unset(
-  docs: Iterable<BSONNode>,
-  expr: ExpressionNode,
-): Iterable<BSONNode> {
-  for (const doc of docs) {
-    yield evalExpression(expr, doc)
+export function $unset(arg: BSONNode): PipelineOperator {
+  const expr = parseArgument(arg)
+
+  return function* unsetStage(docs) {
+    for (const doc of docs) {
+      yield evalExpression(expr, doc)
+    }
   }
 }
 
-withParsing<[ExpressionNode]>($unset, arg => {
+function parseArgument(arg: BSONNode): ExpressionNode {
   if (arg.kind === NodeKind.STRING) {
-    return [parseExpression(wrapObjectRaw({ [arg.value]: 0 }))]
+    return parseExpression(wrapObjectRaw({ [arg.value]: 0 }))
   }
   if (arg.kind !== NodeKind.ARRAY) {
     throw new TypeError('$unset specification must be a string or an array')
@@ -34,5 +35,5 @@ withParsing<[ExpressionNode]>($unset, arg => {
     obj[item.value] = 0
   }
 
-  return [parseExpression(wrapObjectRaw(obj))]
-})
+  return parseExpression(wrapObjectRaw(obj))
+}

@@ -1,20 +1,13 @@
+import { wrapBSON } from './lib/bson.js'
+import { type BSONNode, NodeKind } from './lib/node.js'
+import { Path } from './lib/path.js'
 import {
-  setIndex,
-  setKey,
-  wrapBSON,
-  wrapNodes,
-  wrapObjectRaw,
-} from './lib/bson.js'
-import {
-  type BSONNode,
-  NodeKind,
-  nNullish,
-  nString,
-  type UpdatePathNode,
-} from './lib/node.js'
-import { type Path, parsePath } from './lib/path.js'
-import { parseOperatorArgs, type UpdateOperator } from './lib/update.js'
-import { expected, isPlainObject } from './lib/util.js'
+  type UpdateContext,
+  type UpdateOperator,
+  type UpdateOperatorConstructor,
+  wrapOperator,
+} from './lib/update.js'
+import { isPlainObject } from './lib/util.js'
 import { $addToSet, $pop, $pull, $pullAll, $push } from './update/array.js'
 import {
   $currentDate,
@@ -27,119 +20,57 @@ import {
   $unset,
 } from './update/field.js'
 
-const OPERATORS: Record<string, UpdateOperator<any[]> | undefined> = {
-  $addToSet,
-  $currentDate,
-  $inc,
-  $max,
-  $min,
-  $mul,
-  $pop,
-  $pull,
-  $pullAll,
-  $push,
+const OPERATORS: Record<string, UpdateOperatorConstructor | undefined> = {
+  $addToSet: wrapOperator($addToSet),
+  $currentDate: wrapOperator($currentDate),
+  $inc: wrapOperator($inc),
+  $max: wrapOperator($max),
+  $min: wrapOperator($min),
+  $mul: wrapOperator($mul),
+  $pop: wrapOperator($pop),
+  $pull: wrapOperator($pull),
+  $pullAll: wrapOperator($pullAll),
+  $push: wrapOperator($push),
   $rename,
-  $set,
+  $set: wrapOperator($set),
   $unset,
 }
 
-export function* parseUpdate(obj: unknown): Generator<UpdatePathNode> {
+export function* parseUpdate(obj: unknown): Generator<UpdateOperator> {
   if (!isPlainObject(obj)) {
-    throw new TypeError() // TODO: error message
+    throw new TypeError('Update query must be an object')
   }
 
   for (const key of Object.keys(obj)) {
-    const fn = OPERATORS[key]
-    if (!fn) {
+    const $operator = OPERATORS[key]
+    if (!$operator) {
       throw new TypeError(`Unsupported update operator: ${key}`)
     }
 
-    yield* parseOperator(fn, obj[key])
+    yield* parseOperator($operator, obj[key])
   }
 }
 
-function* parseOperator<T extends unknown[]>(
-  operator: UpdateOperator<T>,
+function* parseOperator(
+  $operator: UpdateOperatorConstructor,
   obj: unknown,
-): Generator<UpdatePathNode> {
+): Generator<UpdateOperator> {
   if (!isPlainObject(obj)) {
-    throw new TypeError() // TODO: error message
+    throw new TypeError('Expected object')
   }
-
   for (const key of Object.keys(obj)) {
-    yield {
-      kind: NodeKind.UPDATE_PATH,
-      operator: operator.name,
-      path: parsePath(key),
-      args: parseOperatorArgs<T>(operator, wrapBSON(obj[key])),
-    }
+    yield $operator(wrapBSON(obj[key]), Path.parseUpdate(key))
   }
 }
 
-export function evalUpdate(nodes: UpdatePathNode[], subject: BSONNode): void {
-  for (const node of nodes) {
-    const fn = expected(OPERATORS[node.operator])
-
-    if (fn.useParent) {
-      // Operators that updates the parent object (relative to requested path)
-      const key = nString(`${expected(node.path.pop())}`)
-      const parent = readValue(node.path, subject)
-      fn(parent, key, ...node.args)
-    } else {
-      // Operators that updates the actual path's value
-      const oldValue = readValue(node.path, subject)
-      const newValue = fn(oldValue, ...node.args)
-      writeValue(node.path, subject, newValue)
-    }
-  }
-}
-
-function readValue(path: Path, node: BSONNode): BSONNode {
-  if (!path.length) {
-    return node
-  }
-  if (node.kind === NodeKind.OBJECT) {
-    const key = `${path[0]}`
-    return readValue(path.slice(1), node.value[key] || nNullish(key))
-  }
-
-  if (node.kind === NodeKind.ARRAY) {
-    const items: BSONNode[] = []
-
-    for (let i = 0; i < node.value.length; i++) {
-      const n = readValue(path, node.value[i])
-      if (n.kind !== NodeKind.NULLISH) {
-        items.push(n)
-      }
-    }
-
-    if (items.length) {
-      return wrapNodes(items)
-    }
-  }
-
-  return nNullish()
-}
-
-function writeValue(path: Path, obj: BSONNode, value: BSONNode): void {
-  for (let i = 0; i < path.length; i++) {
-    const key = path[i]
-    const next = i === path.length - 1 ? value : wrapObjectRaw()
-
-    if (typeof key === 'number' && obj.kind === NodeKind.ARRAY) {
-      if (next === value || obj.value.length <= key) {
-        obj = setIndex(obj, key, next)
-      } else {
-        obj = obj.value[key]
-      }
-    } else if (obj.kind === NodeKind.OBJECT) {
-      if (next === value || !obj.value[key]) {
-        obj = setKey(obj, `${key}`, next)
-      } else {
-        obj = expected(obj.value[key])
-      }
-    } else {
-      throw new TypeError(`Unable to write value at ${path.join('.')}`)
+export function evalUpdate(
+  ctx: UpdateContext,
+  operators: UpdateOperator[],
+  doc: BSONNode,
+): void {
+  if (doc.kind === NodeKind.OBJECT) {
+    for (const fn of operators) {
+      fn(doc, ctx)
     }
   }
 }

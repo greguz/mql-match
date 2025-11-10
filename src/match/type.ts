@@ -1,43 +1,67 @@
-import { $toBool } from '../expression/type.js'
-import { assertBSON, parseBSONType } from '../lib/bson.js'
-import { withParsing } from '../lib/match.js'
-import {
-  type BooleanNode,
-  type BSONNode,
-  NodeKind,
-  nBoolean,
-  nString,
-} from '../lib/node.js'
+import { parseBSONType } from '../lib/bson.js'
+import { type MatchOperator, withArrayUnwrap } from '../lib/match.js'
+import { type BSONNode, NodeKind, nBoolean } from '../lib/node.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/type/
  */
-export function $exists(value: BSONNode, presence: BooleanNode): BooleanNode {
-  return nBoolean(
-    presence.value
-      ? value.kind !== NodeKind.NULLISH
-      : value.kind === NodeKind.NULLISH,
-  )
-}
-
-withParsing<[BooleanNode]>($exists, arg => [$toBool(arg)])
-
-/**
- * https://www.mongodb.com/docs/manual/reference/operator/query/type/
- */
-export function $type(
-  value: BSONNode,
-  ...expectedTypes: BSONNode[]
-): BooleanNode {
-  let result = false
-  for (let i = 0; i < expectedTypes.length && !result; i++) {
-    result = value.kind === assertBSON(expectedTypes[i], NodeKind.STRING).value
+export function $exists(arg: BSONNode): MatchOperator {
+  if (arg.value === true) {
+    return value => {
+      return nBoolean(
+        value.kind !== NodeKind.NULLISH || value.key === undefined,
+      )
+    }
   }
-  return nBoolean(result)
+
+  if (arg.value === false) {
+    return value => {
+      return nBoolean(
+        value.kind === NodeKind.NULLISH && value.key !== undefined,
+      )
+    }
+  }
+
+  throw new TypeError(`$exists expects a boolean (got ${arg.kind})`)
 }
 
-withParsing($type, arg => {
-  return arg.kind === NodeKind.ARRAY
-    ? arg.value.map(a => nString(parseBSONType(a)))
-    : [nString(parseBSONType(arg))]
-})
+/**
+ * https://www.mongodb.com/docs/manual/reference/operator/query/type/
+ */
+function $typeStrict(arg: BSONNode): MatchOperator {
+  const expectedTypes = Array.from(parseNodeKinds(arg))
+
+  return value => {
+    let result = false
+    for (let i = 0; i < expectedTypes.length && !result; i++) {
+      result = value.kind === expectedTypes[i]
+    }
+    return nBoolean(result)
+  }
+}
+
+function* parseNodeKinds(arg: BSONNode): Generator<BSONNode['kind']> {
+  if (arg.kind === NodeKind.ARRAY) {
+    if (!arg.value.length) {
+      throw new TypeError('$type must match with at least one type')
+    }
+    for (const y of arg.value) {
+      yield* parseNodeKind(y)
+    }
+  } else {
+    yield* parseNodeKind(arg)
+  }
+}
+
+function* parseNodeKind(arg: BSONNode): Generator<BSONNode['kind']> {
+  if (arg.kind === NodeKind.STRING && arg.value === 'number') {
+    yield NodeKind.DECIMAL
+    yield NodeKind.DOUBLE
+    yield NodeKind.INT
+    yield NodeKind.LONG
+  } else {
+    yield parseBSONType(arg)
+  }
+}
+
+export const $type = withArrayUnwrap($typeStrict)

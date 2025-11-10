@@ -52,7 +52,7 @@ withParsing($regexMatch, arg => {
     throw new TypeError("$regexMatch requires 'regex' parameter")
   }
 
-  return [inputNode, regexNode, arg.value.options || nNullish('options')]
+  return [inputNode, regexNode, arg.value.options || nNullish()]
 })
 
 /**

@@ -1,5 +1,5 @@
 import { evalExpression, parseExpression } from './expression.js'
-import { type MatchOperator, parseOperatorArgs } from './lib/match.js'
+import type { MatchOperatorConstructor } from './lib/match.js'
 import {
   type BooleanNode,
   type BSONNode,
@@ -9,10 +9,11 @@ import {
   type MatchSequenceNode,
   NodeKind,
   nBoolean,
+  nMissing,
   nNullish,
   type ObjectNode,
 } from './lib/node.js'
-import { type Path, parsePath } from './lib/path.js'
+import { Path, type PathSegment } from './lib/path.js'
 import { expected } from './lib/util.js'
 import { $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
@@ -22,7 +23,7 @@ import { $exists, $type } from './match/type.js'
 /**
  * https://www.mongodb.com/docs/manual/reference/mql/query-predicates/
  */
-const OPERATORS: Record<string, MatchOperator<any[]> | undefined> = {
+const OPERATORS: Record<string, MatchOperatorConstructor | undefined> = {
   $eq,
   $exists,
   $gt,
@@ -49,7 +50,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
   if (query.kind !== NodeKind.OBJECT) {
     $and.nodes.push(
       ...compileOperator(
-        [],
+        new Path('', false),
         query.kind === NodeKind.REGEX ? '$eq' : '$regex',
         query,
       ),
@@ -63,7 +64,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
 
     // Handle direct path values
     if (key[0] !== '$') {
-      $and.nodes.push(...compilePredicateKey(parsePath(key), value))
+      $and.nodes.push(...compilePredicateKey(Path.parse(key), value))
       continue
     }
 
@@ -114,7 +115,7 @@ export function parseMatch(query: BSONNode): MatchNode | MatchSequenceNode {
       }
 
       default:
-        $and.nodes.push(...compileOperator([], key, value))
+        $and.nodes.push(...compileOperator(new Path('', false), key, value))
         break
     }
   }
@@ -178,12 +179,10 @@ function* compileOperator(
 
     if (value.value.length === 0) {
       // When passed an empty array, $all matches no documents.
-      // This is a dummy node because the $all operator is NOT present inside OPERATORS global.
       yield {
         kind: NodeKind.MATCH_PATH,
         path,
-        operator: key,
-        args: [],
+        operator: () => nBoolean(false),
         negate: false,
       }
     } else {
@@ -240,8 +239,7 @@ function* compileOperator(
   yield {
     kind: NodeKind.MATCH_PATH,
     path,
-    operator: key,
-    args: parseOperatorArgs(fn, value),
+    operator: fn(value),
     negate,
   }
 }
@@ -280,7 +278,7 @@ function resolveMatchNode(
   node: MatchArrayNode | MatchPathNode,
   doc: BSONNode,
 ): BooleanNode {
-  const values = getPathValues(node.path, doc)
+  const values = getPathValues(node.path.segments, doc)
   if (!values.length) {
     values.push(nNullish())
   }
@@ -303,11 +301,7 @@ function resolveMatchNode(
       }
 
       case NodeKind.MATCH_PATH: {
-        // Handle dummy $all operator node
-        if (node.operator !== '$all') {
-          const fn = expected(OPERATORS[node.operator])
-          result = !!fn(left, ...node.args).value
-        }
+        result = node.operator(left).value
         break
       }
     }
@@ -318,7 +312,7 @@ function resolveMatchNode(
 }
 
 export function getPathValues(
-  path: Path,
+  path: PathSegment[],
   node: BSONNode,
   results: BSONNode[] = [],
 ): BSONNode[] {
@@ -329,9 +323,11 @@ export function getPathValues(
       getPathValues(path, node.value[i], results)
     }
   } else if (node.kind === NodeKind.OBJECT) {
-    const child = node.value[path[0]]
+    const child = node.value[path[0].raw]
     if (child) {
       getPathValues(path.slice(1), child, results)
+    } else {
+      results.push(nMissing(path[0].raw))
     }
   }
 

@@ -1,6 +1,8 @@
 import { wrapBSON } from './lib/bson.js'
-import type { BSONNode } from './lib/node.js'
-import { type PipelineOperator, parseOperatorArgs } from './lib/pipeline.js'
+import type {
+  PipelineOperator,
+  PipelineOperatorConstructor,
+} from './lib/pipeline.js'
 import { isPlainObject } from './lib/util.js'
 import { $count } from './pipeline/count.js'
 import { $limit } from './pipeline/limit.js'
@@ -11,7 +13,7 @@ import { $skip } from './pipeline/skip.js'
 import { $unset } from './pipeline/unset.js'
 import { $unwind } from './pipeline/unwind.js'
 
-const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
+const OPERATORS: Record<string, PipelineOperatorConstructor | undefined> = {
   $addFields: $set,
   $count,
   $limit,
@@ -23,9 +25,7 @@ const OPERATORS: Record<string, PipelineOperator<any[]> | undefined> = {
   $unwind,
 }
 
-export type PipelineStage = (docs: Iterable<BSONNode>) => Iterable<BSONNode>
-
-export function parsePipeline(stages: unknown[]): PipelineStage {
+export function parsePipeline(stages: unknown[]): PipelineOperator {
   if (!stages.length) {
     throw new TypeError('Pipeline aggregation needs at lest one stage')
   }
@@ -34,7 +34,7 @@ export function parsePipeline(stages: unknown[]): PipelineStage {
     .reduce((left, right) => docs => right(left(docs)))
 }
 
-function parseStage(obj: unknown): PipelineStage {
+function parseStage(obj: unknown): PipelineOperator {
   if (!isPlainObject(obj)) {
     throw new TypeError('Pipeline aggregation stage must be an object')
   }
@@ -46,12 +46,10 @@ function parseStage(obj: unknown): PipelineStage {
     )
   }
 
-  const operator = OPERATORS[keys[0]]
-  if (!operator) {
+  const $operator = OPERATORS[keys[0]]
+  if (!$operator) {
     throw new TypeError(`Unsupported pipeline operator: ${keys[0]}`)
   }
 
-  const args = parseOperatorArgs(operator, wrapBSON(obj[keys[0]]))
-
-  return docs => operator(docs, ...args)
+  return $operator(wrapBSON(obj[keys[0]]))
 }
