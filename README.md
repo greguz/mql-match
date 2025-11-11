@@ -158,7 +158,7 @@ console.log(aggregate(documents))
 - [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
 - [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
 - [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
-- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
+- [x] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/) Single sort key/value.
 
 #### Bitwise
 

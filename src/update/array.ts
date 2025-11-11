@@ -1,6 +1,12 @@
-import { $eq } from '../expression/comparison.js'
+import { $cmp, $eq } from '../expression/comparison.js'
 import { assertBSON, unwrapBSON, unwrapNumber, wrapNodes } from '../lib/bson.js'
-import { type BSONNode, NodeKind, nNullish } from '../lib/node.js'
+import {
+  type ArrayNode,
+  type BSONNode,
+  NodeKind,
+  nNullish,
+} from '../lib/node.js'
+import { Path } from '../lib/path.js'
 import type { UpdateMapper } from '../lib/update.js'
 import { expected } from '../lib/util.js'
 import { compileMatch } from '../match.js'
@@ -104,17 +110,18 @@ export function $pullAll(arg: BSONNode): UpdateMapper {
 export function $push(arg: BSONNode): UpdateMapper {
   let $each: BSONNode[]
   let $position: number
+  let $sort: SortModifier | null
   let $slice: number
 
   if (arg.kind === NodeKind.OBJECT && arg.keys.some(k => k[0] === '$')) {
     $each = parseEach(arg.value.$each)
     $position = parsePosition(arg.value.$position)
-    parseSort(arg.value.$sort)
+    $sort = parseSort(arg.value.$sort)
     $slice = parseSlice(arg.value.$slice)
   } else {
     $each = [arg]
     $position = parsePosition()
-    parseSort()
+    $sort = parseSort()
     $slice = parseSlice()
   }
 
@@ -143,6 +150,10 @@ export function $push(arg: BSONNode): UpdateMapper {
     } else {
       expected(value.raw).splice(i, 0, ...$each.map(unwrapBSON))
       value.value.splice(i, 0, ...$each)
+    }
+
+    if ($sort) {
+      $sort(value)
     }
 
     if (Number.isFinite($slice)) {
@@ -212,15 +223,95 @@ function parseSlice(arg: BSONNode = nNullish()): number {
 }
 
 /**
- * TODO: $sort modifier
- *
+ * Compiled operator.
+ */
+type SortModifier = (node: ArrayNode) => void
+
+/**
+ * Comparing callback used by sort function.
+ */
+type SortCompare = (a: BSONNode, b: BSONNode) => number
+
+/**
  * https://www.mongodb.com/docs/manual/reference/operator/update/sort/
  */
-function parseSort(arg: BSONNode = nNullish()): null {
-  if (arg.kind !== NodeKind.NULLISH) {
-    throw new Error('$sort modifier is not supported')
+function parseSort(arg: BSONNode = nNullish()): SortModifier | null {
+  if (arg.kind === NodeKind.NULLISH) {
+    return null
   }
-  return null
+  if (arg.value === 1 || arg.value === -1) {
+    return sortWith(arg.value === -1 ? reverse(compareBSON) : compareBSON)
+  }
+  if (arg.kind !== NodeKind.OBJECT) {
+    throw new TypeError(
+      'The $sort is invalid: use 1/-1 to sort the whole element, or {field:1/-1} to sort embedded fields',
+    )
+  }
+  if (!arg.keys.length) {
+    return null
+  }
+  if (arg.keys.length !== 1) {
+    throw new Error('Multiple $sort keys are not supported') // TODO: is it supported by MongoDB?
+  }
+
+  const path = Path.parse(arg.keys[0])
+  const value = expected(arg.value[arg.keys[0]])
+  if (value.value !== 1 && value.value !== -1) {
+    throw new TypeError('The sort element value must be either 1 or -1')
+  }
+
+  const byPath = (a: BSONNode, b: BSONNode) =>
+    compareBSON(path.read(a), path.read(b))
+
+  return sortWith(value.value === -1 ? reverse(byPath) : byPath)
+}
+
+/**
+ * Default BSON sort (mathes `SortCompare` type).
+ */
+function compareBSON(a: BSONNode, b: BSONNode): number {
+  return $cmp(a, b).value
+}
+
+/**
+ * Reverse the compare result (from asc to desc).
+ */
+function reverse(compare: SortCompare): SortCompare {
+  return (a, b) => -compare(a, b)
+}
+
+/**
+ * Binding.
+ */
+function sortWith(compare: SortCompare): SortModifier {
+  return node => bubbleSort(node, compare)
+}
+
+/**
+ * Because it's the algorithm this package deserves, but not the one it needs right now.
+ */
+function bubbleSort(node: ArrayNode, compare: SortCompare) {
+  const length = node.value.length
+
+  for (let j = 0; j < length - 1; j++) {
+    // Last i elements are already in place
+    for (let k = 0; k < length - j - 1; k++) {
+      const result = compare(node.value[k], node.value[k + 1])
+
+      // Swap if the element found is greater than the next element
+      if (result > 0) {
+        const tempBSON = node.value[k]
+        node.value[k] = node.value[k + 1]
+        node.value[k + 1] = tempBSON
+
+        if (node.raw) {
+          const temp = node.raw[k]
+          node.raw[k] = node.raw[k + 1]
+          node.raw[k + 1] = temp
+        }
+      }
+    }
+  }
 }
 
 /**

@@ -36,7 +36,7 @@ export function $unwind(arg: BSONNode): PipelineOperator {
 
   return function* unwindStage(docs) {
     for (const doc of docs) {
-      const node = getPathValue(doc, path)
+      const node = path.read(doc)
 
       if (node.kind === NodeKind.ARRAY && node.value.length) {
         for (let i = 0; i < node.value.length; i++) {
@@ -101,22 +101,6 @@ function parseUnwindBoolean(node: BSONNode = nNullish()): boolean {
   throw new TypeError(
     `preserveNullAndEmptyArrays option to $unwind stage (got ${node.kind})`,
   )
-}
-
-function getPathValue(node: BSONNode, path: Path): BSONNode {
-  for (
-    let i = 0;
-    i < path.segments.length && node.kind !== NodeKind.NULLISH;
-    i++
-  ) {
-    if (node.kind === NodeKind.OBJECT) {
-      const key = path.segments[i].raw
-      node = node.value[key] || nNullish()
-    } else {
-      node = nNullish()
-    }
-  }
-  return node
 }
 
 /**

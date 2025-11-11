@@ -1,3 +1,5 @@
+import { type BSONNode, NodeKind, nMissing, nNullish } from './node.js'
+
 const REG_IDENTIFIER = /^[A-Za-z0-9_ ]*$/
 
 const REG_INDEX = /^\d+$/
@@ -49,7 +51,7 @@ export interface PathSegment {
 
 export class Path {
   /**
-   *
+   * Do _not_ support update operators.
    */
   static parse(raw: string): Path {
     if (raw === '') {
@@ -59,7 +61,7 @@ export class Path {
   }
 
   /**
-   *
+   * Adds support for update operators (like `$`, `$[]`, and `$[<identifier>]`).
    */
   static parseUpdate(raw: string): Path {
     if (raw === '') {
@@ -69,12 +71,12 @@ export class Path {
   }
 
   /**
-   *
+   * Original unparsed path string.
    */
   readonly raw: string
 
   /**
-   *
+   * TODO: private (also `.unwrap()` method)
    */
   readonly segments: PathSegment[]
 
@@ -141,5 +143,29 @@ export class Path {
 
     this.raw = raw
     this.segments = segments
+  }
+
+  /**
+   * Exact read.
+   * Do _not_ support any update modifier.
+   * Supports "empty" paths.
+   */
+  read(node: BSONNode) {
+    for (const segment of this.segments) {
+      if (
+        node.kind === NodeKind.ARRAY &&
+        segment.kind === PathSegmentKind.INDEX
+      ) {
+        node = node.value[segment.index] || nNullish()
+      } else if (node.kind === NodeKind.OBJECT) {
+        node = node.value[segment.raw] || nMissing(segment.raw)
+      } else if (segment.kind !== PathSegmentKind.IDENTIFIER) {
+        throw new Error(`Unexpected path segment: ${segment.kind}`)
+      } else if (node.kind !== NodeKind.NULLISH) {
+        node = nNullish() // TODO: missing?
+      }
+    }
+
+    return node
   }
 }

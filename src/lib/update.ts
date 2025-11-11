@@ -57,36 +57,6 @@ export function wrapOperator(
   }
 }
 
-/**
- * Single value, exact match, index included.
- */
-export function getPathValue(node: BSONNode, path: Path): BSONNode {
-  for (
-    let i = 0;
-    i < path.segments.length && node.kind !== NodeKind.NULLISH;
-    i++
-  ) {
-    const segment = path.segments[i]
-
-    switch (node.kind) {
-      case NodeKind.ARRAY:
-        node =
-          segment.kind === PathSegmentKind.INDEX
-            ? node.value[segment.index] || nNullish()
-            : nNullish()
-        break
-      case NodeKind.OBJECT:
-        node = node.value[segment.raw] || nMissing(segment.raw)
-        break
-      default:
-        node = nNullish()
-        break
-    }
-  }
-
-  return node
-}
-
 export function mapPathValues(
   node: BSONNode,
   path: PathSegment[],
