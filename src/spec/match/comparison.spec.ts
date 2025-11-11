@@ -207,12 +207,130 @@ test.todo('$gte')
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/in/
  */
-test.todo('$in')
+test('$in', t => {
+  const inventory = [
+    { item: 'Pens', quantity: 350, tags: ['school', 'office'] },
+    { item: 'Erasers', quantity: 15, tags: ['school', 'home'] },
+    { item: 'Maps', tags: ['office', 'storage'] },
+    { item: 'Books', quantity: 5, tags: ['school', 'storage', 'home'] },
+  ]
+
+  // Use the $in Operator to Match Values
+  {
+    const match = compileFilterQuery({ quantity: { $in: [5, 15] } })
+
+    t.deepEqual(inventory.filter(match), [
+      { item: 'Erasers', quantity: 15, tags: ['school', 'home'] },
+      { item: 'Books', quantity: 5, tags: ['school', 'storage', 'home'] },
+    ])
+  }
+
+  // Use the $in Operator to Match Values in an Array
+  {
+    const match = compileFilterQuery({ tags: { $in: ['home', 'school'] } })
+    const update = compileUpdateQuery({ $set: { exclude: false } })
+
+    t.deepEqual(inventory.filter(match).map(update), [
+      {
+        item: 'Pens',
+        quantity: 350,
+        tags: ['school', 'office'],
+        exclude: false,
+      },
+      {
+        item: 'Erasers',
+        quantity: 15,
+        tags: ['school', 'home'],
+        exclude: false,
+      },
+      {
+        item: 'Books',
+        quantity: 5,
+        tags: ['school', 'storage', 'home'],
+        exclude: false,
+      },
+    ])
+  }
+
+  // Use the $in Operator with a Regular Expression
+  {
+    const match = compileFilterQuery({ tags: { $in: [/^be/, /^st/] } })
+
+    t.deepEqual(inventory.filter(match), [
+      { item: 'Maps', tags: ['office', 'storage'] },
+      {
+        item: 'Books',
+        exclude: false,
+        quantity: 5,
+        tags: ['school', 'storage', 'home'],
+      },
+    ])
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/lt/
  */
-test.todo('$lt')
+test('$lt', t => {
+  const inventory = [
+    {
+      item: 'nuts',
+      quantity: 30,
+      carrier: { name: 'Shipit', fee: 3 },
+    },
+    {
+      item: 'bolts',
+      quantity: 50,
+      carrier: { name: 'Shipit', fee: 4 },
+    },
+    {
+      item: 'washers',
+      quantity: 10,
+      carrier: { name: 'Shipit', fee: 1 },
+    },
+  ]
+
+  // Match Document Fields
+  {
+    const match = compileFilterQuery({ quantity: { $lt: 20 } })
+
+    t.deepEqual(inventory.filter(match), [
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+      },
+    ])
+  }
+
+  // Perform an Update Based on Embedded Document Fields
+  {
+    const match = compileFilterQuery({ 'carrier.fee': { $lt: 20 } })
+    const update = compileUpdateQuery({ $set: { price: 9.99 } })
+    inventory.filter(match).forEach(update)
+
+    t.deepEqual(inventory, [
+      {
+        item: 'nuts',
+        quantity: 30,
+        carrier: { name: 'Shipit', fee: 3 },
+        price: 9.99,
+      },
+      {
+        item: 'bolts',
+        quantity: 50,
+        carrier: { name: 'Shipit', fee: 4 },
+        price: 9.99,
+      },
+      {
+        item: 'washers',
+        quantity: 10,
+        carrier: { name: 'Shipit', fee: 1 },
+        price: 9.99,
+      },
+    ])
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/lte/

@@ -61,7 +61,10 @@ export function compileUpdateQuery(query: unknown) {
   const update = compileUpdate(wrapBSON(query))
 
   return <T = any>(doc: unknown, isInsert?: unknown): T => {
-    // TODO: isInsert === true
+    // Old property to handle...
+    if (isInsert === true) {
+      throw new Error('$setOnInsert is not supported')
+    }
     update(wrapBSON(doc))
     return doc as T
   }

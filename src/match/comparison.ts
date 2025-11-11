@@ -37,7 +37,7 @@ export const $lte = withArrayUnwrap(right => left => $lteStrict(left, right))
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/in/
  */
-export function $in(arg: BSONNode): MatchOperator {
+function $inStrict(arg: BSONNode): MatchOperator {
   const fns: MatchOperator[] = assertBSON(
     arg,
     NodeKind.ARRAY,
@@ -54,6 +54,11 @@ export function $in(arg: BSONNode): MatchOperator {
 }
 
 function matchRegex(regex: RegExp): MatchOperator {
-  return value =>
-    nBoolean(value.kind === NodeKind.STRING ? regex.test(value.value) : false)
+  return value => {
+    return nBoolean(
+      value.kind === NodeKind.STRING ? regex.test(value.value) : false,
+    )
+  }
 }
+
+export const $in = withArrayUnwrap($inStrict)
