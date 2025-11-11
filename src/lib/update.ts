@@ -5,7 +5,7 @@ import {
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
-import { type Path, PathSegmentKind } from '../lib/path.js'
+import { type Path, type PathSegment, PathSegmentKind } from '../lib/path.js'
 import { setIndex, setKey, wrapObjectRaw } from './bson.js'
 import { expected } from './util.js'
 
@@ -52,7 +52,7 @@ export function wrapOperator(
   return (arg: BSONNode, path: Path): UpdateOperator => {
     const map = $operator(arg)
     return (obj: ObjectNode): void => {
-      setPathValue(obj, path, map(getPathValue(obj, path)))
+      mapPathValues(obj, path.segments, map)
     }
   }
 }
@@ -87,35 +87,98 @@ export function getPathValue(node: BSONNode, path: Path): BSONNode {
   return node
 }
 
-/**
- * Always creates objects.
- */
-export function setPathValue(
+export function mapPathValues(
   node: BSONNode,
-  path: Path,
-  value: BSONNode,
+  path: PathSegment[],
+  map: UpdateMapper,
 ): void {
-  for (let i = 0; i < path.segments.length; i++) {
-    const segment = path.segments[i]
-    const next = i === path.segments.length - 1 ? value : wrapObjectRaw()
+  if (!path.length) {
+    throw new Error('Expected path segment') // shouldn't be possible
+  }
 
-    if (
-      segment.kind === PathSegmentKind.INDEX &&
-      node.kind === NodeKind.ARRAY
-    ) {
-      if (next === value || node.value.length <= segment.index) {
-        node = setIndex(node, segment.index, next)
-      } else {
-        node = node.value[segment.index]
+  const segment = path[0]
+
+  switch (segment.kind) {
+    case PathSegmentKind.ARRAY_WIDE_UPDATE: {
+      if (node.kind !== NodeKind.ARRAY) {
+        throw new Error(`Cannot write path segment "${segment.raw}"`)
       }
-    } else if (node.kind === NodeKind.OBJECT) {
-      if (next === value || !node.value[segment.raw]) {
-        node = setKey(node, segment.raw, next)
-      } else {
-        node = expected(node.value[segment.raw])
+
+      for (let i = 0; i < node.value.length; i++) {
+        if (path.length === 1) {
+          setIndex(node, i, map(node.value[i]))
+        } else {
+          mapPathValues(node.value[i], path.slice(1), map)
+        }
       }
-    } else {
-      throw new TypeError(`Unable to write value at ${path.raw}`)
+
+      break
     }
+
+    case PathSegmentKind.IDENTIFIER: {
+      if (node.kind !== NodeKind.OBJECT) {
+        throw new Error(`Cannot write path segment "${segment.raw}"`)
+      }
+
+      if (path.length === 1) {
+        setKey(
+          node,
+          segment.raw,
+          map(node.value[segment.raw] || nMissing(segment.raw)),
+        )
+      } else {
+        mapPathValues(
+          node.keys.includes(segment.raw)
+            ? expected(node.value[segment.raw])
+            : setKey(node, segment.raw, wrapObjectRaw()),
+          path.slice(1),
+          map,
+        )
+      }
+
+      break
+    }
+
+    case PathSegmentKind.INDEX: {
+      if (node.kind === NodeKind.ARRAY) {
+        if (path.length === 1) {
+          setIndex(
+            node,
+            segment.index,
+            map(node.value[segment.index] || nNullish()),
+          )
+        } else {
+          mapPathValues(
+            segment.index >= node.value.length
+              ? setIndex(node, segment.index, wrapObjectRaw())
+              : node.value[segment.index],
+            path.slice(1),
+            map,
+          )
+        }
+      } else if (node.kind === NodeKind.OBJECT) {
+        if (path.length === 1) {
+          setKey(
+            node,
+            segment.raw,
+            map(node.value[segment.raw] || nMissing(segment.raw)),
+          )
+        } else {
+          mapPathValues(
+            node.keys.includes(segment.raw)
+              ? expected(node.value[segment.raw])
+              : setKey(node, segment.raw, wrapObjectRaw()),
+            path.slice(1),
+            map,
+          )
+        }
+      } else {
+        throw new Error(`Cannot write path segment "${segment.raw}"`)
+      }
+      break
+    }
+
+    default:
+      throw new Error(`Unsupported path segment kind: ${segment.kind}`)
   }
 }

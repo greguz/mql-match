@@ -89,45 +89,6 @@ console.log(aggregate(documents))
 
 ### [Query Operators](https://docs.mongodb.com/manual/reference/operator/query/)
 
-#### Comparison
-
-- [x] [`$eq`](https://www.mongodb.com/docs/manual/reference/operator/query/eq/)
-- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/)
-- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/)
-- [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/query/in/)
-- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/)
-- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/)
-- [x] [`$ne`](https://www.mongodb.com/docs/manual/reference/operator/query/ne/)
-- [x] [`$nin`](https://www.mongodb.com/docs/manual/reference/operator/query/nin/)
-
-#### Logical
-
-- [x] [`$and`](https://www.mongodb.com/docs/manual/reference/operator/query/and/)
-- [x] [`$not`](https://www.mongodb.com/docs/manual/reference/operator/query/not/)
-- [x] [`$nor`](https://www.mongodb.com/docs/manual/reference/operator/query/nor/)
-- [x] [`$or`](https://www.mongodb.com/docs/manual/reference/operator/query/or/)
-
-#### Element
-
-- [x] [`$exists`](https://www.mongodb.com/docs/manual/reference/operator/query/exists/)
-- [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/query/type/)
-
-#### Evaluation
-
-- [x] [`$expr`](https://www.mongodb.com/docs/manual/reference/operator/query/expr/)
-- [ ] [`$jsonSchema`](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/)
-- [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/query/mod/)
-- [x] [`$regex`](https://www.mongodb.com/docs/manual/reference/operator/query/regex/)
-- [ ] [`$text`](https://www.mongodb.com/docs/manual/reference/operator/query/text/)
-- [ ] [`$where`](https://www.mongodb.com/docs/manual/reference/operator/query/where/)
-
-#### Geospatial
-
-- [ ] [`$geoIntersects`](https://www.mongodb.com/docs/manual/reference/operator/query/geoIntersects/)
-- [ ] [`$geoWithin`](https://www.mongodb.com/docs/manual/reference/operator/query/geoWithin/)
-- [ ] [`$near`](https://www.mongodb.com/docs/manual/reference/operator/query/near/)
-- [ ] [`$nearSphere`](https://www.mongodb.com/docs/manual/reference/operator/query/nearSphere/)
-
 #### Array
 
 - [x] [`$all`](https://www.mongodb.com/docs/manual/reference/operator/query/all/)
@@ -141,19 +102,68 @@ console.log(aggregate(documents))
 - [ ] [`$bitsAnyClear`](https://www.mongodb.com/docs/manual/reference/operator/query/bitsAnyClear/)
 - [ ] [`$bitsAnySet`](https://www.mongodb.com/docs/manual/reference/operator/query/bitsAnySet/)
 
-#### Projection
+#### Comparison
 
-- [ ] [`$`](https://www.mongodb.com/docs/manual/reference/operator/projection/positional/)
-- [ ] [`$elemMatch`](https://www.mongodb.com/docs/manual/reference/operator/projection/elemMatch/)
-- [ ] [`$meta`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/meta/)
-- [ ] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/projection/slice/)
+- [x] [`$eq`](https://www.mongodb.com/docs/manual/reference/operator/query/eq/)
+- [x] [`$gt`](https://www.mongodb.com/docs/manual/reference/operator/query/gt/)
+- [x] [`$gte`](https://www.mongodb.com/docs/manual/reference/operator/query/gte/)
+- [x] [`$in`](https://www.mongodb.com/docs/manual/reference/operator/query/in/)
+- [x] [`$lt`](https://www.mongodb.com/docs/manual/reference/operator/query/lt/)
+- [x] [`$lte`](https://www.mongodb.com/docs/manual/reference/operator/query/lte/)
+- [x] [`$ne`](https://www.mongodb.com/docs/manual/reference/operator/query/ne/)
+- [x] [`$nin`](https://www.mongodb.com/docs/manual/reference/operator/query/nin/)
+
+#### Data Type
+
+- [x] [`$exists`](https://www.mongodb.com/docs/manual/reference/operator/query/exists/)
+- [x] [`$type`](https://www.mongodb.com/docs/manual/reference/operator/query/type/)
+
+#### Geospatial
+
+- [ ] [`$geoIntersects`](https://www.mongodb.com/docs/manual/reference/operator/query/geoIntersects/)
+- [ ] [`$geoWithin`](https://www.mongodb.com/docs/manual/reference/operator/query/geoWithin/)
+- [ ] [`$near`](https://www.mongodb.com/docs/manual/reference/operator/query/near/)
+- [ ] [`$nearSphere`](https://www.mongodb.com/docs/manual/reference/operator/query/nearSphere/)
+
+#### Logical
+
+- [x] [`$and`](https://www.mongodb.com/docs/manual/reference/operator/query/and/)
+- [x] [`$not`](https://www.mongodb.com/docs/manual/reference/operator/query/not/)
+- [x] [`$nor`](https://www.mongodb.com/docs/manual/reference/operator/query/nor/)
+- [x] [`$or`](https://www.mongodb.com/docs/manual/reference/operator/query/or/)
 
 #### Miscellaneous
 
 - [x] [`$comment`](https://www.mongodb.com/docs/manual/reference/operator/query/comment/) Stub.
-- [ ] [`$rand`](https://www.mongodb.com/docs/manual/reference/operator/query/rand/)
+- [x] [`$expr`](https://www.mongodb.com/docs/manual/reference/operator/query/expr/)
+- [ ] [`$jsonSchema`](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/)
+- [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/query/mod/)
+- [x] [`$regex`](https://www.mongodb.com/docs/manual/reference/operator/query/regex/)
+- [ ] [`$where`](https://www.mongodb.com/docs/manual/reference/operator/query/where/)
 
 ### [Update Operators](https://www.mongodb.com/docs/manual/reference/operator/update/)
+
+#### Array
+
+- [ ] [`$`](https://www.mongodb.com/docs/manual/reference/operator/update/positional/)
+- [x] [`$[]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/)
+- [ ] [`$[<identifier>]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/)
+- [x] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
+- [x] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
+- [x] [`$pull`](https://www.mongodb.com/docs/manual/reference/operator/update/pull/)
+- [x] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
+- [x] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
+
+##### Modifiers
+
+- [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
+- [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
+- [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
+- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
+
+#### Bitwise
+
+- [ ] [`$bit`](https://www.mongodb.com/docs/manual/reference/operator/update/bit/)
 
 #### Fields
 
@@ -166,28 +176,6 @@ console.log(aggregate(documents))
 - [x] [`$set`](https://www.mongodb.com/docs/manual/reference/operator/update/set/)
 - [ ] [`$setOnInsert`](https://www.mongodb.com/docs/manual/reference/operator/update/setOnInsert/)
 - [x] [`$unset`](https://www.mongodb.com/docs/manual/reference/operator/update/unset/)
-
-#### Array
-
-- [ ] [`$`](https://www.mongodb.com/docs/manual/reference/operator/update/positional/)
-- [ ] [`$[]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/)
-- [ ] [`$[<identifier>]`](https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/)
-- [x] [`$addToSet`](https://www.mongodb.com/docs/manual/reference/operator/update/addToSet/)
-- [x] [`$pop`](https://www.mongodb.com/docs/manual/reference/operator/update/pop/)
-- [x] [`$pull`](https://www.mongodb.com/docs/manual/reference/operator/update/pull/)
-- [x] [`$push`](https://www.mongodb.com/docs/manual/reference/operator/update/push/)
-- [x] [`$pullAll`](https://www.mongodb.com/docs/manual/reference/operator/update/pullAll/)
-
-#### Modifiers
-
-- [x] [`$each`](https://www.mongodb.com/docs/manual/reference/operator/update/each/)
-- [x] [`$position`](https://www.mongodb.com/docs/manual/reference/operator/update/position/)
-- [x] [`$slice`](https://www.mongodb.com/docs/manual/reference/operator/update/slice/)
-- [ ] [`$sort`](https://www.mongodb.com/docs/manual/reference/operator/update/sort/)
-
-#### Bitwise
-
-- [ ] [`$bit`](https://www.mongodb.com/docs/manual/reference/operator/update/bit/)
 
 ### [Aggregation Pipeline Stages](https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#alphabetical-listing-of-stages)
 

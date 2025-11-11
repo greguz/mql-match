@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compileUpdate } from '../../exports.js'
+import { compileMatch, compileUpdate } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pop/
@@ -204,7 +204,134 @@ test.todo('$')
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/
  */
-test.todo('$[]')
+test('$[]', t => {
+  // Behavior
+  {
+    const doc = { myArray: [5, 8] }
+
+    const update = compileUpdate({ $set: { 'myArray.$[]': 10 } })
+    update(doc)
+
+    t.deepEqual(doc, { myArray: [10, 10] })
+  }
+
+  // Nested Arrays
+  {
+    const students = [
+      { _id: 1, grades: [85, 82, 80] },
+      { _id: 2, grades: [88, 90, 92] },
+      { _id: 3, grades: [85, 100, 90] },
+    ]
+
+    const update = compileUpdate({ $inc: { 'grades.$[]': 10 } })
+    students.forEach(update)
+
+    t.deepEqual(students, [
+      { _id: 1, grades: [95, 92, 90] },
+      { _id: 2, grades: [98, 100, 102] },
+      { _id: 3, grades: [95, 110, 100] },
+    ])
+  }
+
+  // Update All Documents in an Array
+  {
+    const students = [
+      {
+        _id: 1,
+        grades: [
+          { grade: 80, mean: 75, std: 8 },
+          { grade: 85, mean: 90, std: 6 },
+          { grade: 85, mean: 85, std: 8 },
+        ],
+      },
+      {
+        _id: 2,
+        grades: [
+          { grade: 90, mean: 75, std: 8 },
+          { grade: 87, mean: 90, std: 5 },
+          { grade: 85, mean: 85, std: 6 },
+        ],
+      },
+    ]
+
+    const update = compileUpdate({ $inc: { 'grades.$[].std': -2 } })
+    students.forEach(update)
+
+    t.deepEqual(students, [
+      {
+        _id: 1,
+        grades: [
+          { grade: 80, mean: 75, std: 6 },
+          { grade: 85, mean: 90, std: 4 },
+          { grade: 85, mean: 85, std: 6 },
+        ],
+      },
+      {
+        _id: 2,
+        grades: [
+          { grade: 90, mean: 75, std: 6 },
+          { grade: 87, mean: 90, std: 3 },
+          { grade: 85, mean: 85, std: 4 },
+        ],
+      },
+    ])
+  }
+
+  // Update Arrays Specified Using a Negation Query Operator
+  {
+    const results = [
+      { _id: 1, grades: [85, 82, 80] },
+      { _id: 2, grades: [88, 90, 92] },
+      { _id: 3, grades: [85, 100, 90] },
+    ]
+
+    const match = compileMatch({ grades: { $ne: 100 } })
+
+    const update = compileUpdate({ $inc: { 'grades.$[]': 10 } })
+
+    for (const doc of results) {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+
+    t.deepEqual(results, [
+      { _id: 1, grades: [95, 92, 90] },
+      { _id: 2, grades: [98, 100, 102] },
+      { _id: 3, grades: [85, 100, 90] },
+    ])
+  }
+
+  // Update Nested Arrays in Conjunction with $[<identifier>]
+  {
+    const doc = {
+      _id: 1,
+      grades: [
+        { type: 'quiz', questions: [10, 8, 5] },
+        { type: 'quiz', questions: [8, 9, 6] },
+        { type: 'hw', questions: [5, 4, 3] },
+        { type: 'exam', questions: [25, 10, 23, 0] },
+      ],
+    }
+
+    const update = compileUpdate({
+      $inc: { 'grades.$[].questions.$[score]': 2 },
+    })
+    update(doc)
+
+    // TODO: const x = { arrayFilters: [{ score: { $gte: 8 } }] }
+
+    t.deepEqual(doc, {
+      _id: 1,
+      grades: [
+        { type: 'quiz', questions: [12, 10, 5] },
+        { type: 'quiz', questions: [10, 11, 6] },
+        { type: 'hw', questions: [5, 4, 3] },
+        { type: 'exam', questions: [27, 12, 25, 0] },
+      ],
+    })
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/

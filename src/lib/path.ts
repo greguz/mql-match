@@ -2,7 +2,8 @@ const REG_IDENTIFIER = /^[A-Za-z0-9_ ]*$/
 
 const REG_INDEX = /^\d+$/
 
-const REG_FILTERED_UPDATE = /^\$\[([a-zA-Z]+)\]$/
+// TODO: allowed chars?
+const REG_FILTERED_UPDATE = /^\$\[([a-zA-Z_]+)\]$/
 
 export const PathSegmentKind = Object.freeze({
   /**
