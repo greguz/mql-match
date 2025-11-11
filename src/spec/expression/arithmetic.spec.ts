@@ -1,9 +1,12 @@
 import test from 'ava'
 
-import { compileExpression, compilePipeline } from '../../exports.js'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from '../../exports.js'
 
 function evalExpression(expr: unknown, doc?: unknown): unknown {
-  return compileExpression(expr)(doc)
+  return compileAggregationExpression(expr)(doc)
 }
 
 /**
@@ -24,7 +27,7 @@ test('$abs', t => {
       { _id: 4, startTemp: 60, endTemp: 70 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           delta: {
@@ -75,7 +78,7 @@ test('$add', t => {
 
   // Add Numbers
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { item: 1, total: { $add: ['$price', '$fee'] } } },
     ])
 
@@ -88,7 +91,7 @@ test('$add', t => {
 
   // Perform Addition on a Date
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -123,7 +126,7 @@ test('$ceil', t => {
       { _id: 4, value: -5.34 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { value: 1, ceilingValue: { $ceil: '$value' } } },
     ])
 
@@ -145,7 +148,7 @@ test('$divide', t => {
     { _id: 2, city: 'Singapore', hours: 40, tasks: 4 },
   ]
 
-  const aggregate = compilePipeline([
+  const aggregate = compileAggregationPipeline([
     { $project: { city: 1, workdays: { $divide: ['$hours', 8] } } },
   ])
 
@@ -172,7 +175,7 @@ test('$exp', t => {
       { _id: 3, interestRate: 0.0425, presentValue: 1000 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           effectiveRate: { $subtract: [{ $exp: '$interestRate' }, 1] },
@@ -206,7 +209,7 @@ test('$floor', t => {
       { _id: 4, value: -5.34 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { value: 1, floorValue: { $floor: '$value' } } },
     ])
 
@@ -236,7 +239,7 @@ test('$ln', t => {
       { _id: 3, year: '2010', sales: 6250000 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { x: '$year', y: { $ln: '$sales' } } },
     ])
 
@@ -265,7 +268,7 @@ test('$log', t => {
       { _id: 4, int: 10 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           bitsNeeded: {
@@ -302,7 +305,7 @@ test('$log10', t => {
       { _id: 3, H3O: 0.02 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { pH: { $multiply: [-1, { $log10: '$H3O' }] } } },
     ])
 
@@ -325,7 +328,7 @@ test('$mod', t => {
       { _id: 2, city: 'Singapore', hours: 40, tasks: 4 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { remainder: { $mod: ['$hours', '$tasks'] } } },
     ])
 
@@ -339,7 +342,7 @@ test('$mod', t => {
   {
     const docs = [{ _id: 1, dividend: -13, divisor: 9 }]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { remainder: { $mod: ['$dividend', '$divisor'] } } },
     ])
 
@@ -375,7 +378,7 @@ test('$multiply', t => {
     },
   ]
 
-  const aggregate = compilePipeline([
+  const aggregate = compileAggregationPipeline([
     {
       $project: {
         date: 1,
@@ -422,7 +425,7 @@ test('$pow', t => {
       },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: { variance: { $pow: [{ $stdDevPop: '$scores.score' }, 2] } },
       },
@@ -453,7 +456,7 @@ test('$round', t => {
       { _id: 4, value: 13.5 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           value: { $round: ['$value', 0] },
@@ -491,7 +494,7 @@ test('$round', t => {
     ]
 
     {
-      const aggregate = compilePipeline([
+      const aggregate = compileAggregationPipeline([
         { $project: { roundedValue: { $round: ['$value', 1] } } },
       ])
 
@@ -504,7 +507,7 @@ test('$round', t => {
     }
 
     {
-      const aggregate = compilePipeline([
+      const aggregate = compileAggregationPipeline([
         { $project: { roundedValue: { $round: ['$value', -1] } } },
       ])
 
@@ -517,7 +520,7 @@ test('$round', t => {
     }
 
     {
-      const aggregate = compilePipeline([
+      const aggregate = compileAggregationPipeline([
         { $project: { roundedValue: { $round: ['$value', 0] } } },
       ])
 
@@ -553,7 +556,7 @@ test('$sqrt', t => {
       { _id: 3, p1: { x: 4, y: 4 }, p2: { x: 4, y: 0 } },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           distance: {
@@ -601,7 +604,7 @@ test('$subtract', t => {
 
   // Subtract Numbers
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -618,7 +621,7 @@ test('$subtract', t => {
 
   // Subtract Two Dates
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -637,7 +640,7 @@ test('$subtract', t => {
 
   // Subtract Milliseconds from a Date
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -685,7 +688,7 @@ test('$trunc', t => {
 
   // The following aggregation returns value truncated to the first decimal place:
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { truncatedValue: { $trunc: ['$value', 1] } } },
     ])
 
@@ -699,7 +702,7 @@ test('$trunc', t => {
 
   // The following aggregation returns value truncated to the first place:
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { truncatedValue: { $trunc: ['$value', -1] } } },
     ])
 
@@ -713,7 +716,7 @@ test('$trunc', t => {
 
   // The following aggregation returns value truncated to the whole integer:
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { truncatedValue: { $trunc: ['$value', 0] } } },
     ])
 

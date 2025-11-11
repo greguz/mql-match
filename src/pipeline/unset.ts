@@ -1,6 +1,6 @@
-import { evalExpression, parseExpression } from '../expression.js'
+import { compileExpression, type Expression } from '../expression.js'
 import { wrapObjectRaw } from '../lib/bson.js'
-import { type BSONNode, type ExpressionNode, NodeKind } from '../lib/node.js'
+import { type BSONNode, NodeKind } from '../lib/node.js'
 import type { PipelineOperator } from '../lib/pipeline.js'
 
 /**
@@ -11,14 +11,14 @@ export function $unset(arg: BSONNode): PipelineOperator {
 
   return function* unsetStage(docs) {
     for (const doc of docs) {
-      yield evalExpression(expr, doc)
+      yield expr(doc)
     }
   }
 }
 
-function parseArgument(arg: BSONNode): ExpressionNode {
+function parseArgument(arg: BSONNode): Expression {
   if (arg.kind === NodeKind.STRING) {
-    return parseExpression(wrapObjectRaw({ [arg.value]: 0 }))
+    return compileExpression(wrapObjectRaw({ [arg.value]: 0 }))
   }
   if (arg.kind !== NodeKind.ARRAY) {
     throw new TypeError('$unset specification must be a string or an array')
@@ -35,5 +35,5 @@ function parseArgument(arg: BSONNode): ExpressionNode {
     obj[item.value] = 0
   }
 
-  return parseExpression(wrapObjectRaw(obj))
+  return compileExpression(wrapObjectRaw(obj))
 }

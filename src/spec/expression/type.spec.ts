@@ -1,10 +1,13 @@
 import test from 'ava'
 import { Binary, Decimal128, Int32, Long, ObjectId } from 'bson'
 
-import { compileExpression, compilePipeline } from '../../exports.js'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from '../../exports.js'
 
 function evalExpression(expr: unknown, doc?: unknown): unknown {
-  return compileExpression(expr)(doc)
+  return compileAggregationExpression(expr)(doc)
 }
 
 /**
@@ -27,7 +30,7 @@ test('$isNumber', t => {
       { _id: 6, reading: [26] },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           isNumber: { $isNumber: '$reading' },
@@ -84,7 +87,7 @@ test('$isNumber', t => {
       },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           points: {
@@ -149,7 +152,7 @@ test('$toBool', t => {
       { _id: 6, item: 'nougat', shipped: '' }, // Note: All strings convert to true
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           convertedShippedFlag: {
@@ -205,7 +208,7 @@ test('$toDouble', t => {
       { _id: 3, date: new Date('2018-06-03'), temp: '25.4C' },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           degrees: { $toDouble: { $substrBytes: ['$temp', 0, 4] } },
@@ -268,7 +271,7 @@ test('$toInt', t => {
       { _id: 4, item: 'almonds', qty: '5', price: 5 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           convertedPrice: { $toDouble: '$price' },
@@ -333,7 +336,7 @@ test('$toString', t => {
       { _id: 3, item: 'peaches', qty: 5, zipcode: 12345 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $addFields: {
           convertedZipCode: { $toString: '$zipcode' },
@@ -393,7 +396,7 @@ test('$type', t => {
       { _id: 5 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           a: { $type: '$a' },

@@ -1,4 +1,3 @@
-import { wrapBSON } from './lib/bson.js'
 import { type BSONNode, NodeKind } from './lib/node.js'
 import { Path } from './lib/path.js'
 import {
@@ -7,7 +6,7 @@ import {
   type UpdateOperatorConstructor,
   wrapOperator,
 } from './lib/update.js'
-import { isPlainObject } from './lib/util.js'
+import { expected } from './lib/util.js'
 import { $addToSet, $pop, $pull, $pullAll, $push } from './update/array.js'
 import {
   $currentDate,
@@ -36,41 +35,53 @@ const OPERATORS: Record<string, UpdateOperatorConstructor | undefined> = {
   $unset,
 }
 
-export function* parseUpdate(obj: unknown): Generator<UpdateOperator> {
-  if (!isPlainObject(obj)) {
+/**
+ * Updates the argument with the requested changes.
+ */
+export type UpdateQuery = (doc: BSONNode) => void
+
+/**
+ * Compiles an update query into a update function.
+ */
+export function compileUpdate(node: BSONNode): UpdateQuery {
+  if (node.kind !== NodeKind.OBJECT) {
     throw new TypeError('Update query must be an object')
   }
 
-  for (const key of Object.keys(obj)) {
+  const ctx: UpdateContext = {
+    positions: new Map(),
+  }
+
+  const fns: UpdateOperator[] = []
+
+  for (const key of node.keys) {
     const $operator = OPERATORS[key]
     if (!$operator) {
       throw new TypeError(`Unsupported update operator: ${key}`)
     }
 
-    yield* parseOperator($operator, obj[key])
+    for (const fn of compileOperator($operator, expected(node.value[key]))) {
+      fns.push(fn)
+    }
+  }
+
+  return doc => {
+    if (doc.kind === NodeKind.OBJECT) {
+      for (const fn of fns) {
+        fn(doc, ctx)
+      }
+    }
   }
 }
 
-function* parseOperator(
+function* compileOperator(
   $operator: UpdateOperatorConstructor,
-  obj: unknown,
+  node: BSONNode,
 ): Generator<UpdateOperator> {
-  if (!isPlainObject(obj)) {
+  if (node.kind !== NodeKind.OBJECT) {
     throw new TypeError('Expected object')
   }
-  for (const key of Object.keys(obj)) {
-    yield $operator(wrapBSON(obj[key]), Path.parseUpdate(key))
-  }
-}
-
-export function evalUpdate(
-  ctx: UpdateContext,
-  operators: UpdateOperator[],
-  doc: BSONNode,
-): void {
-  if (doc.kind === NodeKind.OBJECT) {
-    for (const fn of operators) {
-      fn(doc, ctx)
-    }
+  for (const key of node.keys) {
+    yield $operator(expected(node.value[key]), Path.parseUpdate(key))
   }
 }

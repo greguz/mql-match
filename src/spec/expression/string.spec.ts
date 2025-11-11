@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compilePipeline } from '../../exports.js'
+import { compileAggregationPipeline } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/toLower/
@@ -12,7 +12,7 @@ test('$toLower', t => {
     { _id: 3, item: 'xyz1', quarter: '14Q2', description: null },
   ]
 
-  const aggregate = compilePipeline([
+  const aggregate = compileAggregationPipeline([
     {
       $project: {
         item: { $toLower: '$item' },

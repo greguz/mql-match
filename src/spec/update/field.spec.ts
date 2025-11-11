@@ -1,7 +1,7 @@
 import test from 'ava'
 import { Int32, Timestamp } from 'bson'
 
-import { compileMatch, compileUpdate } from '../../exports.js'
+import { compileFilterQuery, compileUpdateQuery } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/currentDate/
@@ -15,7 +15,7 @@ test('$currentDate', t => {
       lastModified: new Date('2013-10-02T01:11:18.965Z'),
     }
 
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $currentDate: {
         lastModified: true,
         'cancellation.date': { $type: 'timestamp' },
@@ -54,7 +54,9 @@ test('$inc', t => {
     metrics: { orders: 2, ratings: 3.5 },
   }
 
-  const update = compileUpdate({ $inc: { quantity: -2, 'metrics.orders': 1 } })
+  const update = compileUpdateQuery({
+    $inc: { quantity: -2, 'metrics.orders': 1 },
+  })
   update(doc)
 
   t.deepEqual(doc, {
@@ -73,12 +75,12 @@ test('$min', t => {
   {
     const doc = { _id: 1, highScore: 800, lowScore: 200 }
 
-    const doUpdate = compileUpdate({ $min: { lowScore: 150 } })
+    const doUpdate = compileUpdateQuery({ $min: { lowScore: 150 } })
     doUpdate(doc)
 
     t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
 
-    const noUpdate = compileUpdate({ $min: { lowScore: 250 } })
+    const noUpdate = compileUpdateQuery({ $min: { lowScore: 250 } })
     noUpdate(doc)
 
     t.deepEqual(doc, { _id: 1, highScore: 800, lowScore: 150 })
@@ -93,7 +95,7 @@ test('$min', t => {
       dateExpired: new Date('2013-10-01T16:38:16Z'),
     }
 
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $min: { dateEntered: new Date('2013-09-25') },
     })
     update(doc)
@@ -115,12 +117,12 @@ test('$max', t => {
   {
     const doc = { _id: 1, highScore: 800, lowScore: 200 }
 
-    const doUpdate = compileUpdate({ $max: { highScore: 950 } })
+    const doUpdate = compileUpdateQuery({ $max: { highScore: 950 } })
     doUpdate(doc)
 
     t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
 
-    const noUpdate = compileUpdate({ $max: { highScore: 870 } })
+    const noUpdate = compileUpdateQuery({ $max: { highScore: 870 } })
     noUpdate(doc)
 
     t.deepEqual(doc, { _id: 1, highScore: 950, lowScore: 200 })
@@ -135,7 +137,7 @@ test('$max', t => {
       dateExpired: new Date('2013-10-01T16:38:16.163Z'),
     }
 
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $max: { dateExpired: new Date('2013-09-30') },
     })
     update(doc)
@@ -157,7 +159,7 @@ test('$mul', t => {
   {
     const doc = { _id: 1, item: 'Hats', price: 10.99, quantity: 25 }
 
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $mul: {
         price: 1.25,
         quantity: 2,
@@ -177,7 +179,7 @@ test('$mul', t => {
   {
     const doc = { _id: 2, item: 'Unknown' }
 
-    const update = compileUpdate({ $mul: { price: 100 } })
+    const update = compileUpdateQuery({ $mul: { price: 100 } })
     update(doc)
 
     t.deepEqual(doc, { _id: 2, item: 'Unknown', price: 0 })
@@ -187,7 +189,7 @@ test('$mul', t => {
   {
     const doc = { _id: 3, item: 'Scarf', price: 10 }
 
-    const update = compileUpdate({ $mul: { price: new Int32(5) } })
+    const update = compileUpdateQuery({ $mul: { price: new Int32(5) } })
     update(doc)
 
     t.deepEqual(doc, { _id: 3, item: 'Scarf', price: 50 })
@@ -221,7 +223,7 @@ test('$rename', t => {
 
   // Rename a Field
   {
-    const update = compileUpdate({ $rename: { nmae: 'name' } })
+    const update = compileUpdateQuery({ $rename: { nmae: 'name' } })
     students.forEach(update)
 
     t.deepEqual(students, [
@@ -248,7 +250,9 @@ test('$rename', t => {
 
   // Rename a Field in an Embedded Document
   {
-    const update = compileUpdate({ $rename: { 'name.first': 'name.fname' } })
+    const update = compileUpdateQuery({
+      $rename: { 'name.first': 'name.fname' },
+    })
     update(students[0])
 
     t.deepEqual(students[0], {
@@ -261,7 +265,7 @@ test('$rename', t => {
 
   // Rename a Field That Does Not Exist
   {
-    const update = compileUpdate({ $rename: { wife: 'spouse' } })
+    const update = compileUpdateQuery({ $rename: { wife: 'spouse' } })
     update(students[0])
 
     t.deepEqual(students[0], {
@@ -289,7 +293,7 @@ test('$set', t => {
 
   // Set Top-Level Fields
   {
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $set: {
         quantity: 500,
         details: { model: '2600', make: 'Fashionaires' },
@@ -311,7 +315,9 @@ test('$set', t => {
 
   // Set Fields in Embedded Documents
   {
-    const update = compileUpdate({ $set: { 'details.make': 'Kustom Kidz' } })
+    const update = compileUpdateQuery({
+      $set: { 'details.make': 'Kustom Kidz' },
+    })
     update(doc)
 
     t.deepEqual(doc, {
@@ -327,7 +333,7 @@ test('$set', t => {
 
   // Set Elements in Arrays
   {
-    const update = compileUpdate({
+    const update = compileUpdateQuery({
       $set: {
         'tags.1': 'rain gear',
         'ratings.0.rating': 2,
@@ -362,9 +368,9 @@ test('$unset', t => {
     { item: 'nails', sku: 'unknown', quantity: 100, instock: true },
   ]
 
-  const update = compileUpdate({ $unset: { quantity: '', instock: '' } })
+  const update = compileUpdateQuery({ $unset: { quantity: '', instock: '' } })
 
-  const match = compileMatch({ sku: 'unknown' })
+  const match = compileFilterQuery({ sku: 'unknown' })
 
   products.filter(match).forEach(update)
 

@@ -3,7 +3,7 @@ import { assertBSON, unwrapBSON, unwrapNumber, wrapNodes } from '../lib/bson.js'
 import { type BSONNode, NodeKind, nNullish } from '../lib/node.js'
 import type { UpdateMapper } from '../lib/update.js'
 import { expected } from '../lib/util.js'
-import { evalMatch, parseMatch } from '../match.js'
+import { compileMatch } from '../match.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/pop/
@@ -37,7 +37,7 @@ export function $pop(arg: BSONNode): UpdateMapper {
  * https://www.mongodb.com/docs/manual/reference/operator/update/pull/
  */
 export function $pull(arg: BSONNode): UpdateMapper {
-  const query = parseMatch(arg)
+  const match = compileMatch(arg)
 
   return value => {
     if (value.kind !== NodeKind.ARRAY) {
@@ -48,7 +48,7 @@ export function $pull(arg: BSONNode): UpdateMapper {
 
     let i = 0
     while (i < value.value.length) {
-      if (evalMatch(query, value.value[i]).value) {
+      if (match(value.value[i]).value) {
         expected(value.raw).splice(i, 1)
         value.value.splice(i, 1)
       } else {

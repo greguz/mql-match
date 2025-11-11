@@ -346,10 +346,6 @@ test('$all', t => {
   t.true(matchOne({ tags: ['ssl', 'security'] }, literal))
 })
 
-test('$comment', t => {
-  t.true(matchOne({ $comment: 'oh no' }, { hello: 'world' }))
-})
-
 test('$and', t => {
   t.throws(() => matchOne({ $and: [] }))
   t.true(

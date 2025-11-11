@@ -1,4 +1,4 @@
-import { type BooleanNode, type BSONNode, NodeKind } from './node.js'
+import { type BooleanNode, type BSONNode, NodeKind, nBoolean } from './node.js'
 
 /**
  * Returns the match result against a single value.
@@ -20,6 +20,17 @@ export function withArrayUnwrap(
     const fn = $operator(arg)
 
     return (value: BSONNode): BooleanNode => {
+      if (value.kind === NodeKind.NULLISH && value.key !== undefined) {
+        // Here we are trying to perform some match against a missing value.
+        // Example: `{ quantity: { $lt: 20 } }`
+        // This match must fail when "quantity" doesn't exist.
+        // It's ok when `{ quantity: null }` tho.
+        // This is different from the expression behaviour.
+        //
+        // TODO: also, this is not the correct place to do this check, probably :P
+        return nBoolean(false)
+      }
+
       let result = fn(value)
 
       if (!result.value && value.kind === NodeKind.ARRAY) {

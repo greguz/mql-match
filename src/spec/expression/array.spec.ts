@@ -1,9 +1,12 @@
 import test from 'ava'
 
-import { compileExpression, compilePipeline } from '../../exports.js'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from '../../exports.js'
 
 function evalExpression(expr: unknown, doc?: unknown): unknown {
-  return compileExpression(expr)(doc)
+  return compileAggregationExpression(expr)(doc)
 }
 
 /**
@@ -35,7 +38,7 @@ test('$concatArrays', t => {
       { _id: 4, instock: ['ice cream'], ordered: [] },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       { $project: { items: { $concatArrays: ['$instock', '$ordered'] } } },
     ])
 
@@ -81,7 +84,7 @@ test('$in', t => {
       },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           'store location': '$location',
@@ -118,7 +121,7 @@ test('$isArray', t => {
       { _id: 4, instock: ['ice cream'], ordered: [] },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           items: {
@@ -167,7 +170,7 @@ test('$size', t => {
       },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,

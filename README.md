@@ -134,7 +134,6 @@ console.log(aggregate(documents))
 
 #### Miscellaneous
 
-- [x] [`$comment`](https://www.mongodb.com/docs/manual/reference/operator/query/comment/) Stub.
 - [x] [`$expr`](https://www.mongodb.com/docs/manual/reference/operator/query/expr/)
 - [ ] [`$jsonSchema`](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/)
 - [x] [`$mod`](https://www.mongodb.com/docs/manual/reference/operator/query/mod/)

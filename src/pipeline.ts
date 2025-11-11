@@ -1,9 +1,9 @@
-import { wrapBSON } from './lib/bson.js'
+import { type BSONNode, NodeKind } from './lib/node.js'
 import type {
   PipelineOperator,
   PipelineOperatorConstructor,
 } from './lib/pipeline.js'
-import { isPlainObject } from './lib/util.js'
+import { expected } from './lib/util.js'
 import { $count } from './pipeline/count.js'
 import { $limit } from './pipeline/limit.js'
 import { $match } from './pipeline/match.js'
@@ -25,31 +25,42 @@ const OPERATORS: Record<string, PipelineOperatorConstructor | undefined> = {
   $unwind,
 }
 
-export function parsePipeline(stages: unknown[]): PipelineOperator {
-  if (!stages.length) {
+/**
+ * Applies pipeline's stages to `docs` iterable.
+ * Returns a new iterable with new documents.
+ */
+export type Pipeline = (docs: Iterable<BSONNode>) => Iterable<BSONNode>
+
+export function compilePipeline(node: BSONNode): Pipeline {
+  if (node.kind !== NodeKind.ARRAY) {
+    throw new TypeError('Pipeline aggregation needs an array of stages')
+  }
+  if (!node.value.length) {
     throw new TypeError('Pipeline aggregation needs at lest one stage')
   }
-  return stages
-    .map(parseStage)
+  return node.value
+    .map(compileStage)
     .reduce((left, right) => docs => right(left(docs)))
 }
 
-function parseStage(obj: unknown): PipelineOperator {
-  if (!isPlainObject(obj)) {
+function compileStage(node: BSONNode): PipelineOperator {
+  if (node.kind !== NodeKind.OBJECT) {
     throw new TypeError('Pipeline aggregation stage must be an object')
   }
 
-  const keys = Object.keys(obj)
-  if (keys.length !== 1) {
+  if (node.keys.length !== 1) {
     throw new TypeError(
       'Pipeline aggregation stage must be an object with one key',
     )
   }
 
-  const $operator = OPERATORS[keys[0]]
+  const key = node.keys[0]
+  const value = expected(node.value[key])
+
+  const $operator = OPERATORS[key]
   if (!$operator) {
-    throw new TypeError(`Unsupported pipeline operator: ${keys[0]}`)
+    throw new TypeError(`Unsupported pipeline operator: ${key}`)
   }
 
-  return $operator(wrapBSON(obj[keys[0]]))
+  return $operator(value)
 }

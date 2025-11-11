@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compileMatch } from '../../exports.js'
+import { compileFilterQuery } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/regex/
@@ -16,7 +16,7 @@ test('$regex', t => {
 
   // Perform a LIKE Match
   {
-    const match = compileMatch({ sku: { $regex: /789$/ } })
+    const match = compileFilterQuery({ sku: { $regex: /789$/ } })
 
     t.deepEqual(products.filter(match), [
       { _id: 101, sku: 'abc789', description: 'First line\nSecond line' },
@@ -27,7 +27,7 @@ test('$regex', t => {
 
   // Perform Case-Insensitive Regular Expression Match
   {
-    const match = compileMatch({ sku: { $regex: /^ABC/i } })
+    const match = compileFilterQuery({ sku: { $regex: /^ABC/i } })
 
     t.deepEqual(products.filter(match), [
       { _id: 100, sku: 'abc123', description: 'Single line description.' },
@@ -38,7 +38,9 @@ test('$regex', t => {
 
   // Multiline Match for Lines Starting with Specified Pattern #1
   {
-    const match = compileMatch({ description: { $regex: /^S/, $options: 'm' } })
+    const match = compileFilterQuery({
+      description: { $regex: /^S/, $options: 'm' },
+    })
 
     t.deepEqual(products.filter(match), [
       { _id: 100, sku: 'abc123', description: 'Single line description.' },
@@ -49,7 +51,7 @@ test('$regex', t => {
 
   // Multiline Match for Lines Starting with Specified Pattern #2
   {
-    const match = compileMatch({ description: { $regex: /^S/ } })
+    const match = compileFilterQuery({ description: { $regex: /^S/ } })
 
     t.deepEqual(products.filter(match), [
       { _id: 100, sku: 'abc123', description: 'Single line description.' },
@@ -59,7 +61,7 @@ test('$regex', t => {
 
   // Multiline Match for Lines Starting with Specified Pattern #3
   {
-    const match = compileMatch({ description: { $regex: /S/ } })
+    const match = compileFilterQuery({ description: { $regex: /S/ } })
 
     t.deepEqual(products.filter(match), [
       { _id: 100, sku: 'abc123', description: 'Single line description.' },
@@ -70,7 +72,7 @@ test('$regex', t => {
 
   // Use the . Dot Character to Match New Line #1
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       description: { $regex: /m.*line/, $options: 'si' },
     })
 
@@ -82,7 +84,7 @@ test('$regex', t => {
 
   // Use the . Dot Character to Match New Line #2
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       description: { $regex: /m.*line/, $options: 'i' },
     })
 

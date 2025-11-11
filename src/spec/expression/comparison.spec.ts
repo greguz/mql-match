@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compilePipeline } from '../../exports.js'
+import { compileAggregationPipeline } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/cmp/
@@ -16,7 +16,7 @@ test('$cmp', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -51,7 +51,7 @@ test('$eq', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -86,7 +86,7 @@ test('$gt', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -121,7 +121,7 @@ test('$gte', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -156,7 +156,7 @@ test('$lt', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -191,7 +191,7 @@ test('$lte', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -225,7 +225,7 @@ test('$ne', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,

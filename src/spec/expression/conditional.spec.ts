@@ -1,9 +1,12 @@
 import test from 'ava'
 
-import { compileExpression, compilePipeline } from '../../exports.js'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from '../../exports.js'
 
 function evalExpression(expr: unknown, doc?: unknown): unknown {
-  return compileExpression(expr)(doc)
+  return compileAggregationExpression(expr)(doc)
 }
 
 /**
@@ -17,7 +20,7 @@ test('$cond', t => {
   ]
 
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -40,7 +43,7 @@ test('$cond', t => {
   }
 
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -70,7 +73,7 @@ test('$ifNull', t => {
   ]
 
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -87,7 +90,7 @@ test('$ifNull', t => {
   }
 
   {
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -152,7 +155,7 @@ test('$switch', t => {
       { _id: 3, name: 'James Torrelio', scores: [91, 84, 97] },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           name: 1,

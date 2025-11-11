@@ -1,31 +1,31 @@
-import { evalExpression, parseExpression } from './expression.js'
+import { compileExpression } from './expression.js'
 import { unwrapBSON, wrapBSON } from './lib/bson.js'
 import type { BSONNode } from './lib/node.js'
-import type { UpdateContext } from './lib/update.js'
-import { evalMatch, parseMatch } from './match.js'
-import { parsePipeline } from './pipeline.js'
-import { evalUpdate, parseUpdate } from './update.js'
+import { compileMatch } from './match.js'
+import { compilePipeline } from './pipeline.js'
+import { compileUpdate } from './update.js'
 
-export function compileExpression(expr: unknown) {
-  const node = parseExpression(wrapBSON(expr))
+/**
+ * @deprecated
+ */
+export function compileAggregationExpression(value: unknown) {
+  const expression = compileExpression(wrapBSON(value))
+
   return <T = any>(doc?: unknown): T => {
-    return unwrapBSON(evalExpression(node, wrapBSON(doc))) as T
+    return unwrapBSON(expression(wrapBSON(doc))) as T
   }
 }
 
-export function compileMatch(query: Record<string, unknown> = {}) {
-  const node = parseMatch(wrapBSON(query))
+/**
+ * @deprecated
+ */
+export function compileAggregationPipeline(
+  stages: Array<Record<string, unknown>>,
+) {
+  const aggregate = compilePipeline(wrapBSON(stages))
 
-  return (value?: unknown): boolean => {
-    return evalMatch(node, wrapBSON(value)).value
-  }
-}
-
-export function compilePipeline(stages: Array<Record<string, unknown>>) {
-  const aggregate = parsePipeline(stages)
-
-  return <T = any>(values: Iterable<unknown>): T[] => {
-    return unwrapIterable(aggregate(wrapIterable(values))) as T[]
+  return <T = any>(docs: Iterable<unknown>): Iterable<T> => {
+    return unwrapIterable(aggregate(wrapIterable(docs))) as T[]
   }
 }
 
@@ -43,35 +43,26 @@ function unwrapIterable(docs: Iterable<BSONNode>): unknown[] {
   return results
 }
 
-export function compileUpdate(query: Record<string, unknown>) {
-  const nodes = Array.from(parseUpdate(query))
+/**
+ * @deprecated
+ */
+export function compileFilterQuery(query: unknown) {
+  const match = compileMatch(wrapBSON(query))
 
-  // TODO: argument
-  const ctx: UpdateContext = {
-    positions: new Map(),
-  }
-
-  return <T = any>(doc: unknown): T => {
-    evalUpdate(ctx, nodes, wrapBSON(doc))
-    return doc as T
+  return (doc: unknown): boolean => {
+    return match(wrapBSON(doc)).value
   }
 }
 
-export {
-  /**
-   * @deprecated use `compileUpdate` instead
-   */
-  compileUpdate as compileUpdateQuery,
-  /**
-   * @deprecated use `compilePipeline` instead
-   */
-  compilePipeline as compileAggregationPipeline,
-  /**
-   * @deprecated use `compileMatch` instead
-   */
-  compileMatch as compileFilterQuery,
-  /**
-   * @deprecated use `compileExpression` instead
-   */
-  compileExpression as compileAggregationExpression,
+/**
+ * @deprecated
+ */
+export function compileUpdateQuery(query: unknown) {
+  const update = compileUpdate(wrapBSON(query))
+
+  return <T = any>(doc: unknown, isInsert?: unknown): T => {
+    // TODO: isInsert === true
+    update(wrapBSON(doc))
+    return doc as T
+  }
 }

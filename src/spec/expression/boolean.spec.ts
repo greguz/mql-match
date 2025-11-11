@@ -1,9 +1,12 @@
 import test from 'ava'
 
-import { compileExpression, compilePipeline } from '../../exports.js'
+import {
+  compileAggregationExpression,
+  compileAggregationPipeline,
+} from '../../exports.js'
 
 function evalExpression(expression: unknown, document?: unknown): unknown {
-  return compileExpression(expression)(document)
+  return compileAggregationExpression(expression)(document)
 }
 
 /**
@@ -27,7 +30,7 @@ test('$and', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -68,7 +71,7 @@ test('$not', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,
@@ -107,7 +110,7 @@ test('$or', t => {
       { _id: 5, item: 'VWZ2', description: 'product 5', qty: 180 },
     ]
 
-    const aggregate = compilePipeline([
+    const aggregate = compileAggregationPipeline([
       {
         $project: {
           item: 1,

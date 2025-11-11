@@ -1,4 +1,4 @@
-import { evalExpression, parseExpression } from '../expression.js'
+import { compileExpression } from '../expression.js'
 import { setKey, wrapNodes, wrapObjectRaw } from '../lib/bson.js'
 import { type BSONNode, NodeKind } from '../lib/node.js'
 import type { PipelineOperator } from '../lib/pipeline.js'
@@ -8,11 +8,11 @@ import { expected } from '../lib/util.js'
  * https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/
  */
 export function $set(arg: BSONNode): PipelineOperator {
-  const expr = parseExpression(arg)
+  const expr = compileExpression(arg)
 
   return function* setStage(docs) {
     for (const doc of docs) {
-      yield mergeNodes(doc, evalExpression(expr, doc))
+      yield mergeNodes(doc, expr(doc))
     }
   }
 }

@@ -110,10 +110,17 @@ ExpressionContext.operators.$toString = wrapOperator($toString)
 ExpressionContext.operators.$trunc = wrapOperator($trunc)
 ExpressionContext.operators.$type = wrapOperator($type)
 
+export type Expression = (node: BSONNode) => BSONNode
+
+export function compileExpression(node: BSONNode): Expression {
+  const expr = parseExpression(node)
+  return doc => evalExpression(expr, doc)
+}
+
 /**
  * Parse both values and operators.
  */
-export function parseExpression(arg: BSONNode): ExpressionNode {
+function parseExpression(arg: BSONNode): ExpressionNode {
   let withoutId = false
   if (
     arg.kind === NodeKind.OBJECT &&
@@ -342,7 +349,10 @@ function isOperator(node: ObjectNode): boolean {
   return node.keys.length === 1 && node.keys[0][0] === '$'
 }
 
-export function evalExpression(node: ExpressionNode, document: BSONNode) {
+/**
+ * TODO: compileNode
+ */
+function evalExpression(node: ExpressionNode, document: BSONNode) {
   const ctx = new ExpressionContext(document)
 
   switch (node.kind) {

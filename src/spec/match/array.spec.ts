@@ -1,7 +1,7 @@
 import test from 'ava'
 import { ObjectId } from 'bson'
 
-import { compileMatch } from '../../exports.js'
+import { compileFilterQuery } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/all/
@@ -57,7 +57,7 @@ test('$all', t => {
 
   // Equivalent to $and Operation #1
   {
-    const match = compileMatch({ tags: { $all: ['ssl', 'security'] } })
+    const match = compileFilterQuery({ tags: { $all: ['ssl', 'security'] } })
 
     t.deepEqual(articles.filter(match), [
       { _id: 1, tags: ['ssl', 'security'] },
@@ -67,7 +67,7 @@ test('$all', t => {
 
   // Equivalent to $and Operation #2
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       $and: [{ tags: 'ssl' }, { tags: 'security' }],
     })
 
@@ -79,7 +79,7 @@ test('$all', t => {
 
   // Nested Array #1
   {
-    const match = compileMatch({ tags: { $all: [['ssl', 'security']] } })
+    const match = compileFilterQuery({ tags: { $all: [['ssl', 'security']] } })
 
     t.deepEqual(articles.filter(match), [
       { _id: 1, tags: ['ssl', 'security'] },
@@ -89,7 +89,7 @@ test('$all', t => {
 
   // Nested Array #2
   {
-    const match = compileMatch({ $and: [{ tags: ['ssl', 'security'] }] })
+    const match = compileFilterQuery({ $and: [{ tags: ['ssl', 'security'] }] })
 
     t.deepEqual(articles.filter(match), [
       { _id: 1, tags: ['ssl', 'security'] },
@@ -99,7 +99,7 @@ test('$all', t => {
 
   // Nested Array #3
   {
-    const match = compileMatch({ tags: ['ssl', 'security'] })
+    const match = compileFilterQuery({ tags: ['ssl', 'security'] })
 
     t.deepEqual(articles.filter(match), [
       { _id: 1, tags: ['ssl', 'security'] },
@@ -109,7 +109,7 @@ test('$all', t => {
 
   // Empty Array #1
   {
-    const match = compileMatch({ tags: { $all: [] } })
+    const match = compileFilterQuery({ tags: { $all: [] } })
 
     // When passed an empty array, $all matches no documents.
     t.deepEqual(articles.filter(match), [])
@@ -117,14 +117,14 @@ test('$all', t => {
 
   // Empty Array #2
   {
-    const match = compileMatch({ tags: { $eq: [] } })
+    const match = compileFilterQuery({ tags: { $eq: [] } })
 
     t.deepEqual(articles.filter(match), [{ _id: 0, tags: [] }])
   }
 
   // Use $all to Match Values
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       tags: { $all: ['appliance', 'school', 'book'] },
     })
 
@@ -154,7 +154,7 @@ test('$all', t => {
 
   // Use $all with $elemMatch #1
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       qty: {
         $all: [
           { $elemMatch: { size: 'M', num: { $gt: 50 } } },
@@ -185,7 +185,7 @@ test('$all', t => {
 
   // Use $all with $elemMatch #2
   {
-    const match = compileMatch({ 'qty.num': { $all: [50] } })
+    const match = compileFilterQuery({ 'qty.num': { $all: [50] } })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -203,7 +203,7 @@ test('$all', t => {
 
   // Use $all with $elemMatch #3
   {
-    const match = compileMatch({ 'qty.num': 50 })
+    const match = compileFilterQuery({ 'qty.num': 50 })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -263,7 +263,7 @@ test('$elemMatch', t => {
 
   // Element Match
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       results: { $elemMatch: { $gte: 80, $lt: 85 } },
     })
 
@@ -272,7 +272,7 @@ test('$elemMatch', t => {
 
   // Array of Embedded Documents
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       results: { $elemMatch: { product: 'xyz', score: { $gte: 8 } } },
     })
 
@@ -289,7 +289,9 @@ test('$elemMatch', t => {
 
   // Single Query Condition
   {
-    const match = compileMatch({ results: { $elemMatch: { product: 'xyz' } } })
+    const match = compileFilterQuery({
+      results: { $elemMatch: { product: 'xyz' } },
+    })
 
     t.deepEqual(survey.filter(match), [
       {
@@ -318,7 +320,7 @@ test('$elemMatch', t => {
 
   // Single Query Condition
   {
-    const match = compileMatch({ 'results.product': 'xyz' })
+    const match = compileFilterQuery({ 'results.product': 'xyz' })
 
     t.deepEqual(survey.filter(match), [
       {
@@ -348,7 +350,7 @@ test('$elemMatch', t => {
 
   // Single Query Condition
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       results: { $elemMatch: { product: { $ne: 'xyz' } } },
     })
 
@@ -386,7 +388,7 @@ test('$elemMatch', t => {
 
   // Single Query Condition
   {
-    const match = compileMatch({ 'results.product': { $ne: 'xyz' } })
+    const match = compileFilterQuery({ 'results.product': { $ne: 'xyz' } })
 
     t.deepEqual(survey.filter(match), [
       {
@@ -404,7 +406,7 @@ test('$elemMatch', t => {
  * https://www.mongodb.com/docs/manual/reference/operator/query/size/
  */
 test('$size', t => {
-  const match = compileMatch({ field: { $size: 2 } })
+  const match = compileFilterQuery({ field: { $size: 2 } })
 
   t.false(match({ field: [] }))
   t.false(match({ field: ['a'] }))

@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { compileMatch, compileUpdate } from '../../exports.js'
+import { compileFilterQuery, compileUpdateQuery } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/eq/
@@ -31,7 +31,7 @@ test('$eq', t => {
 
   // Equals a Specified Value
   {
-    const match = compileMatch({ qty: { $eq: 20 } })
+    const match = compileFilterQuery({ qty: { $eq: 20 } })
 
     t.deepEqual(inventory.filter(match), [
       { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
@@ -46,7 +46,7 @@ test('$eq', t => {
 
   // Equals a Specified Value
   {
-    const match = compileMatch({ qty: 20 })
+    const match = compileFilterQuery({ qty: 20 })
 
     t.deepEqual(inventory.filter(match), [
       { _id: 2, item: { name: 'cd', code: '123' }, qty: 20, tags: ['B'] },
@@ -61,7 +61,7 @@ test('$eq', t => {
 
   // Field in Embedded Document Equals a Value
   {
-    const match = compileMatch({ 'item.name': { $eq: 'ab' } })
+    const match = compileFilterQuery({ 'item.name': { $eq: 'ab' } })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -75,7 +75,7 @@ test('$eq', t => {
 
   // Field in Embedded Document Equals a Value
   {
-    const match = compileMatch({ 'item.name': 'ab' })
+    const match = compileFilterQuery({ 'item.name': 'ab' })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -89,7 +89,7 @@ test('$eq', t => {
 
   // Array Element Equals a Value
   {
-    const match = compileMatch({ tags: { $eq: 'B' } })
+    const match = compileFilterQuery({ tags: { $eq: 'B' } })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -106,7 +106,7 @@ test('$eq', t => {
 
   // Array Element Equals a Value
   {
-    const match = compileMatch({ tags: 'B' })
+    const match = compileFilterQuery({ tags: 'B' })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -123,7 +123,7 @@ test('$eq', t => {
 
   // Equals an Array Value
   {
-    const match = compileMatch({ tags: { $eq: ['A', 'B'] } })
+    const match = compileFilterQuery({ tags: { $eq: ['A', 'B'] } })
 
     t.deepEqual(inventory.filter(match), [
       { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
@@ -138,7 +138,7 @@ test('$eq', t => {
 
   // Equals an Array Value
   {
-    const match = compileMatch({ tags: ['A', 'B'] })
+    const match = compileFilterQuery({ tags: ['A', 'B'] })
 
     t.deepEqual(inventory.filter(match), [
       { _id: 3, item: { name: 'ij', code: '456' }, qty: 25, tags: ['A', 'B'] },
@@ -153,21 +153,21 @@ test('$eq', t => {
 
   // Regex Match Behaviour: $eq match on a string
   {
-    const match = compileMatch({ company: 'MongoDB' })
+    const match = compileFilterQuery({ company: 'MongoDB' })
 
     t.deepEqual(companies.filter(match), [{ _id: 1, company: 'MongoDB' }])
   }
 
   // Regex Match Behaviour: $eq match on a string
   {
-    const match = compileMatch({ company: { $eq: 'MongoDB' } })
+    const match = compileFilterQuery({ company: { $eq: 'MongoDB' } })
 
     t.deepEqual(companies.filter(match), [{ _id: 1, company: 'MongoDB' }])
   }
 
   // Regex Match Behaviour: $eq match on a regular expression
   {
-    const match = compileMatch({ company: { $eq: /MongoDB/ } })
+    const match = compileFilterQuery({ company: { $eq: /MongoDB/ } })
 
     // An explicit query using $eq and a regular expression will only match an object which is also a regular expression.
     t.deepEqual(companies.filter(match), [])
@@ -175,7 +175,7 @@ test('$eq', t => {
 
   // Regex Match Behaviour: Regular expression matches
   {
-    const match = compileMatch({ company: /MongoDB/ })
+    const match = compileFilterQuery({ company: /MongoDB/ })
 
     t.deepEqual(companies.filter(match), [
       { _id: 1, company: 'MongoDB' },
@@ -185,7 +185,7 @@ test('$eq', t => {
 
   // Regex Match Behaviour: Regular expression matches
   {
-    const match = compileMatch({ company: { $regex: /MongoDB/ } })
+    const match = compileFilterQuery({ company: { $regex: /MongoDB/ } })
 
     t.deepEqual(companies.filter(match), [
       { _id: 1, company: 'MongoDB' },
@@ -243,7 +243,7 @@ test('$ne', t => {
 
   // Match Document Fields That Are Not Equal
   {
-    const match = compileMatch({ quantity: { $ne: 20 } })
+    const match = compileFilterQuery({ quantity: { $ne: 20 } })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -266,9 +266,9 @@ test('$ne', t => {
 
   // Update Based on Not Equal Embedded Document Fields
   {
-    const match = compileMatch({ 'carrier.fee': { $ne: 1 } })
+    const match = compileFilterQuery({ 'carrier.fee': { $ne: 1 } })
 
-    const update = compileUpdate({ $set: { price: 9.99 } })
+    const update = compileUpdateQuery({ $set: { price: 9.99 } })
 
     for (const doc of inventory) {
       if (match(doc)) {
@@ -299,8 +299,8 @@ test('$ne', t => {
 
   // Arrays
   {
-    const match = compileMatch({ item: 'nuts' })
-    const update = compileUpdate({ $set: { type: ['hardware'] } })
+    const match = compileFilterQuery({ item: 'nuts' })
+    const update = compileUpdateQuery({ $set: { type: ['hardware'] } })
     for (const doc of inventory) {
       if (match(doc)) {
         update(doc)
@@ -310,8 +310,10 @@ test('$ne', t => {
 
   // Arrays
   {
-    const match = compileMatch({ item: 'bolts' })
-    const update = compileUpdate({ $set: { type: ['hardware', 'fasteners'] } })
+    const match = compileFilterQuery({ item: 'bolts' })
+    const update = compileUpdateQuery({
+      $set: { type: ['hardware', 'fasteners'] },
+    })
     for (const doc of inventory) {
       if (match(doc)) {
         update(doc)
@@ -321,7 +323,9 @@ test('$ne', t => {
 
   // Arrays
   {
-    const match = compileMatch({ type: { $ne: ['hardware', 'fasteners'] } })
+    const match = compileFilterQuery({
+      type: { $ne: ['hardware', 'fasteners'] },
+    })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -341,7 +345,9 @@ test('$ne', t => {
 
   // Arrays
   {
-    const match = compileMatch({ type: { $ne: ['fasteners', 'hardware'] } })
+    const match = compileFilterQuery({
+      type: { $ne: ['fasteners', 'hardware'] },
+    })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -368,7 +374,7 @@ test('$ne', t => {
 
   // Arrays
   {
-    const match = compileMatch({ type: { $ne: 'fasteners' } })
+    const match = compileFilterQuery({ type: { $ne: 'fasteners' } })
 
     t.deepEqual(inventory.filter(match), [
       {
@@ -400,7 +406,7 @@ test('$nin', t => {
 
   // Select on Unmatching Documents
   {
-    const match = compileMatch({ quantity: { $nin: [5, 15] } })
+    const match = compileFilterQuery({ quantity: { $nin: [5, 15] } })
 
     t.deepEqual(inventory.filter(match), [
       { item: 'Pens', quantity: 350, tags: ['school', 'office'] },
@@ -410,9 +416,9 @@ test('$nin', t => {
 
   // Select on Elements Not in an Array
   {
-    const match = compileMatch({ tags: { $nin: ['school'] } })
+    const match = compileFilterQuery({ tags: { $nin: ['school'] } })
 
-    const update = compileUpdate({ $set: { exclude: true } })
+    const update = compileUpdateQuery({ $set: { exclude: true } })
 
     for (const doc of inventory) {
       if (match(doc)) {

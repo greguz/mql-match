@@ -1,7 +1,7 @@
 import test from 'ava'
 import { Int32, Long } from 'bson'
 
-import { compileMatch } from '../../exports.js'
+import { compileFilterQuery } from '../../exports.js'
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/query/exists/
@@ -22,7 +22,7 @@ test('$exists', t => {
 
   // $exists: true
   {
-    const match = compileMatch({ saffron: { $exists: true } })
+    const match = compileFilterQuery({ saffron: { $exists: true } })
 
     t.deepEqual(spices.filter(match), [
       { saffron: 5, cinnamon: 5, mustard: null },
@@ -37,7 +37,7 @@ test('$exists', t => {
 
   // $exists: false
   {
-    const match = compileMatch({ cinnamon: { $exists: false } })
+    const match = compileFilterQuery({ cinnamon: { $exists: false } })
 
     t.deepEqual(spices.filter(match), [
       { saffron: 2, mustard: 5 },
@@ -88,7 +88,7 @@ test('$type', t => {
 
   // Querying by Data Type
   {
-    const match = compileMatch({ zipCode: { $type: 2 } })
+    const match = compileFilterQuery({ zipCode: { $type: 2 } })
     t.deepEqual(addressBook.filter(match), [
       { _id: 1, address: '2030 Martian Way', zipCode: '90698345' },
       {
@@ -101,7 +101,7 @@ test('$type', t => {
 
   // Querying by Data Type
   {
-    const match = compileMatch({ zipCode: { $type: 'string' } })
+    const match = compileFilterQuery({ zipCode: { $type: 'string' } })
     t.deepEqual(addressBook.filter(match), [
       { _id: 1, address: '2030 Martian Way', zipCode: '90698345' },
       {
@@ -114,14 +114,14 @@ test('$type', t => {
 
   // Querying by Data Type
   {
-    const match = compileMatch({ zipCode: { $type: 1 } })
+    const match = compileFilterQuery({ zipCode: { $type: 1 } })
     t.deepEqual(addressBook.filter(match), [
       { _id: 2, address: '156 Lunar Place', zipCode: 43339374 },
     ])
   }
 
   {
-    const match = compileMatch({ zipCode: { $type: 'double' } })
+    const match = compileFilterQuery({ zipCode: { $type: 'double' } })
     t.deepEqual(addressBook.filter(match), [
       { _id: 2, address: '156 Lunar Place', zipCode: 43339374 },
     ])
@@ -129,7 +129,7 @@ test('$type', t => {
 
   // Querying by Data Type
   {
-    const match = compileMatch({ zipCode: { $type: 'number' } })
+    const match = compileFilterQuery({ zipCode: { $type: 'number' } })
     t.deepEqual(addressBook.filter(match), [
       { _id: 2, address: '156 Lunar Place', zipCode: 43339374 },
       {
@@ -143,7 +143,7 @@ test('$type', t => {
 
   // Querying by Multiple Data Types
   {
-    const match = compileMatch({ classAverage: { $type: [2, 1] } })
+    const match = compileFilterQuery({ classAverage: { $type: [2, 1] } })
     t.deepEqual(grades.filter(match), [
       { _id: 1, name: 'Alice King', classAverage: 87.33333333333333 },
       { _id: 2, name: 'Bob Jenkins', classAverage: '83.52' },
@@ -153,7 +153,7 @@ test('$type', t => {
 
   // Querying by Multiple Data Types
   {
-    const match = compileMatch({
+    const match = compileFilterQuery({
       classAverage: { $type: ['string', 'double'] },
     })
     t.deepEqual(grades.filter(match), [
@@ -165,7 +165,7 @@ test('$type', t => {
 
   // Querying by Array Type
   {
-    const match = compileMatch({ readings: { $type: 'array' } })
+    const match = compileFilterQuery({ readings: { $type: 'array' } })
     t.deepEqual(sensorReading.filter(match), [
       {
         _id: 1,
