@@ -7,7 +7,7 @@ const REG_INDEX = /^\d+$/
 // TODO: allowed chars?
 const REG_FILTERED_UPDATE = /^\$\[([a-zA-Z_]+)\]$/
 
-export const PathSegmentKind = Object.freeze({
+export const SegmentKind = Object.freeze({
   /**
    * @example "myProperty"
    */
@@ -30,7 +30,7 @@ export const PathSegmentKind = Object.freeze({
   FILTERED_UPDATE: 'FILTERED_UPDATE',
 })
 
-export interface PathSegment {
+export interface Segment {
   /**
    * See `PathSegmentKind` enum.
    */
@@ -78,34 +78,34 @@ export class Path {
   /**
    * TODO: private (also `.unwrap()` method)
    */
-  readonly segments: PathSegment[]
+  readonly segments: Segment[]
 
   /**
    * @constructor
    */
   constructor(raw: string, update: boolean) {
-    const segments: PathSegment[] = []
+    const segments: Segment[] = []
 
     if (raw !== '') {
       for (const chunk of raw.split('.')) {
         if (update && chunk === '$') {
           segments.push({
-            kind: PathSegmentKind.POSITIONAL_UPDATE,
+            kind: SegmentKind.POSITIONAL_UPDATE,
             raw: chunk,
             index: -1,
             identifier: '',
           })
         } else if (update && chunk === '$[]') {
           segments.push({
-            kind: PathSegmentKind.ARRAY_WIDE_UPDATE,
+            kind: SegmentKind.ARRAY_WIDE_UPDATE,
             raw: chunk,
             index: -1,
             identifier: '',
           })
         } else {
-          if (update && REG_INDEX.test(chunk)) {
+          if (REG_INDEX.test(chunk)) {
             segments.push({
-              kind: PathSegmentKind.INDEX,
+              kind: SegmentKind.INDEX,
               raw: chunk,
               index: Number.parseInt(chunk, 10),
               identifier: '',
@@ -117,7 +117,7 @@ export class Path {
             const match = chunk.match(REG_FILTERED_UPDATE)
             if (match) {
               segments.push({
-                kind: PathSegmentKind.FILTERED_UPDATE,
+                kind: SegmentKind.FILTERED_UPDATE,
                 raw: chunk,
                 index: -1,
                 identifier: match[1],
@@ -128,7 +128,7 @@ export class Path {
 
           if (REG_IDENTIFIER.test(chunk)) {
             segments.push({
-              kind: PathSegmentKind.IDENTIFIER,
+              kind: SegmentKind.IDENTIFIER,
               raw: chunk,
               index: -1,
               identifier: '',
@@ -152,14 +152,11 @@ export class Path {
    */
   read(node: BSONNode) {
     for (const segment of this.segments) {
-      if (
-        node.kind === NodeKind.ARRAY &&
-        segment.kind === PathSegmentKind.INDEX
-      ) {
+      if (node.kind === NodeKind.ARRAY && segment.kind === SegmentKind.INDEX) {
         node = node.value[segment.index] || nNullish()
       } else if (node.kind === NodeKind.OBJECT) {
         node = node.value[segment.raw] || nMissing(segment.raw)
-      } else if (segment.kind !== PathSegmentKind.IDENTIFIER) {
+      } else if (segment.kind !== SegmentKind.IDENTIFIER) {
         throw new Error(`Unexpected path segment: ${segment.kind}`)
       } else if (node.kind !== NodeKind.NULLISH) {
         node = nNullish() // TODO: missing?

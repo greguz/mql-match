@@ -460,7 +460,97 @@ test('$sort', t => {
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/positional/
  */
-test.todo('$')
+test('$', t => {
+  // TODO: new API?
+  const updateOne = (m: unknown, u: unknown) => {
+    const match = compileFilterQuery(m)
+    const update = compileUpdateQuery(u)
+
+    return (doc: unknown) => {
+      if (match(doc)) {
+        update(doc)
+      }
+    }
+  }
+
+  const students: unknown[] = [
+    { _id: 1, grades: [85, 80, 80] },
+    { _id: 2, grades: [88, 90, 92] },
+    { _id: 3, grades: [85, 100, 90] },
+  ]
+
+  // Update Values in an Array
+  {
+    const update = updateOne(
+      { _id: 1, grades: 80 },
+      { $set: { 'grades.$': 82 } },
+    )
+    students.forEach(update)
+
+    t.deepEqual(students, [
+      { _id: 1, grades: [85, 82, 80] },
+      { _id: 2, grades: [88, 90, 92] },
+      { _id: 3, grades: [85, 100, 90] },
+    ])
+  }
+
+  // Update Documents in an Array
+  {
+    students.push({
+      _id: 4,
+      grades: [
+        { grade: 80, mean: 75, std: 8 },
+        { grade: 85, mean: 90, std: 5 },
+        { grade: 85, mean: 85, std: 8 },
+      ],
+    })
+
+    const update = updateOne(
+      { _id: 4, 'grades.grade': 85 },
+      { $set: { 'grades.$.std': 6 } },
+    )
+    students.forEach(update)
+
+    t.deepEqual(students[3], {
+      _id: 4,
+      grades: [
+        { grade: 80, mean: 75, std: 8 },
+        { grade: 85, mean: 90, std: 6 },
+        { grade: 85, mean: 85, std: 8 },
+      ],
+    })
+  }
+
+  // Update Embedded Documents Using Multiple Field Matches
+  {
+    students.push({
+      _id: 5,
+      grades: [
+        { grade: 80, mean: 75, std: 8 },
+        { grade: 85, mean: 90, std: 5 },
+        { grade: 90, mean: 85, std: 3 },
+      ],
+    })
+
+    const update = updateOne(
+      {
+        _id: 5,
+        grades: { $elemMatch: { grade: { $lte: 90 }, mean: { $gt: 80 } } },
+      },
+      { $set: { 'grades.$.std': 6 } },
+    )
+    students.forEach(update)
+
+    t.deepEqual(students[4], {
+      _id: 5,
+      grades: [
+        { grade: 80, mean: 75, std: 8 },
+        { grade: 85, mean: 90, std: 6 },
+        { grade: 90, mean: 85, std: 3 },
+      ],
+    })
+  }
+})
 
 /**
  * https://www.mongodb.com/docs/manual/reference/operator/update/positional-all/

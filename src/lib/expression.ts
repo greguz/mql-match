@@ -8,7 +8,7 @@ import {
   nNullish,
   nTimestamp,
 } from './node.js'
-import type { PathSegment } from './path.js'
+import type { Segment } from './path.js'
 import { expected } from './util.js'
 
 /**
@@ -261,7 +261,7 @@ export class ExpressionContext {
  * Keeps only non-nullish array items.
  */
 export function evalExpressionGetter(
-  path: PathSegment[],
+  path: Segment[],
   node: BSONNode,
 ): BSONNode {
   if (!path.length || node.kind === NodeKind.NULLISH) {

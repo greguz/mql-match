@@ -14,7 +14,7 @@ import {
   nMissing,
   type ObjectNode,
 } from './lib/node.js'
-import { Path, type PathSegment } from './lib/path.js'
+import { Path, type Segment, SegmentKind } from './lib/path.js'
 import { expected } from './lib/util.js'
 import { $size } from './match/array.js'
 import { $eq, $gt, $gte, $in, $lt, $lte } from './match/comparison.js'
@@ -268,14 +268,11 @@ export function compileMatchNode(node: MatchNode): MatchQuery {
   }
 }
 
-function compileArrayMatch(node: MatchArrayNode): MatchQuery {
-  const match = compileMatchNode(node.node)
+function compileArrayMatch({ node, path, negate }: MatchArrayNode): MatchQuery {
+  const match = compileMatchNode(node)
 
   return doc => {
-    const values = getPathValues(node.path.segments, doc)
-    if (!values.length) {
-      values.push(nMissing(node.path.raw))
-    }
+    const values = getPathValues(doc, path)
 
     // node result
     let result = false
@@ -291,7 +288,7 @@ function compileArrayMatch(node: MatchArrayNode): MatchQuery {
     }
 
     // First match XOR negated node
-    return nBoolean(result !== node.negate)
+    return nBoolean(result !== negate)
   }
 }
 
@@ -300,23 +297,24 @@ function compileMatchExpression(node: MatchExpressionNode): MatchQuery {
   return doc => nBoolean(fn(doc).value === true)
 }
 
-function compileMatchPath(node: MatchPathNode): MatchQuery {
+function compileMatchPath({
+  negate,
+  operator,
+  path,
+}: MatchPathNode): MatchQuery {
   return doc => {
-    const values = getPathValues(node.path.segments, doc)
-    if (!values.length) {
-      values.push(nMissing(node.path.raw))
-    }
+    const values = getPathValues(doc, path)
 
     // node result
     let result = false
 
     // if NOT negated: first matching value skips to next rule
     for (let i = 0; i < values.length && !result; i++) {
-      result = node.operator(values[i]).value
+      result = operator(values[i]).value
     }
 
     // First match XOR negated node
-    return nBoolean(result !== node.negate)
+    return nBoolean(result !== negate)
   }
 }
 
@@ -371,25 +369,46 @@ function negate(fn: MatchQuery): MatchQuery {
   return doc => nBoolean(!fn(doc).value)
 }
 
-export function getPathValues(
-  path: PathSegment[],
+/**
+ * Get all values that match the path.
+ */
+function getPathValues(doc: BSONNode, path: Path): BSONNode[] {
+  const values: BSONNode[] = []
+  collectPathValues(values, doc, path.segments)
+  if (!values.length) {
+    values.push(nMissing(path.raw)) // TODO: always missing?
+  }
+  return values
+}
+
+/**
+ * Used by `getPathValues`.
+ * Internal.
+ */
+function collectPathValues(
+  results: BSONNode[],
   node: BSONNode,
-  results: BSONNode[] = [],
-): BSONNode[] {
+  path: Segment[],
+): void {
   if (!path.length) {
     results.push(node)
   } else if (node.kind === NodeKind.ARRAY) {
-    for (let i = 0; i < node.value.length; i++) {
-      getPathValues(path, node.value[i], results)
+    if (
+      path[0].kind === SegmentKind.INDEX &&
+      path[0].index < node.value.length
+    ) {
+      collectPathValues(results, node.value[path[0].index], path.slice(1))
+    } else {
+      for (let i = 0; i < node.value.length; i++) {
+        collectPathValues(results, node.value[i], path)
+      }
     }
   } else if (node.kind === NodeKind.OBJECT) {
     const child = node.value[path[0].raw]
     if (child) {
-      getPathValues(path.slice(1), child, results)
+      collectPathValues(results, child, path.slice(1))
     } else {
       results.push(nMissing(path[0].raw))
     }
   }
-
-  return results
 }

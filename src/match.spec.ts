@@ -415,3 +415,27 @@ test('$nor', t => {
     }),
   )
 })
+
+test('path equality', t => {
+  // Short version
+  {
+    const match = compileFilterQuery({ 'tags.value': 'test' })
+
+    t.false(match(3))
+    t.false(match({}))
+    t.true(match({ tags: [{ value: 'test' }] }))
+    t.false(match({ tags: { 0: { value: 'test' } } }))
+    t.true(match({ tags: { value: 'test' } }))
+  }
+
+  // Array with index
+  {
+    const match = compileFilterQuery({ 'tags.0.value': 'test' })
+
+    t.false(match(3))
+    t.false(match({}))
+    t.true(match({ tags: [{ value: 'test' }] }))
+    t.true(match({ tags: { 0: { value: 'test' } } }))
+    t.false(match({ tags: { value: 'test' } }))
+  }
+})

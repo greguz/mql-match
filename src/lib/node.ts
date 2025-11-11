@@ -334,10 +334,7 @@ export type MatchNode =
 export interface MatchArrayNode {
   kind: typeof NodeKind.MATCH_ARRAY
   path: Path
-  /**
-   * Not having the `MatchExpressionNode` because it must be top-level.
-   */
-  node: MatchNode | MatchSequenceNode
+  node: MatchNode
   /**
    * Can be negated inside a `$not`.
    */

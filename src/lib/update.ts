@@ -5,7 +5,7 @@ import {
   nNullish,
   type ObjectNode,
 } from '../lib/node.js'
-import { type Path, type PathSegment, PathSegmentKind } from '../lib/path.js'
+import { type Path, type Segment, SegmentKind } from '../lib/path.js'
 import { setIndex, setKey, wrapObjectRaw } from './bson.js'
 import { expected } from './util.js'
 
@@ -59,7 +59,7 @@ export function wrapOperator(
 
 export function mapPathValues(
   node: BSONNode,
-  path: PathSegment[],
+  path: Segment[],
   map: UpdateMapper,
 ): void {
   if (!path.length) {
@@ -69,7 +69,7 @@ export function mapPathValues(
   const segment = path[0]
 
   switch (segment.kind) {
-    case PathSegmentKind.ARRAY_WIDE_UPDATE: {
+    case SegmentKind.ARRAY_WIDE_UPDATE: {
       if (node.kind !== NodeKind.ARRAY) {
         throw new Error(`Cannot write path segment "${segment.raw}"`)
       }
@@ -85,7 +85,7 @@ export function mapPathValues(
       break
     }
 
-    case PathSegmentKind.IDENTIFIER: {
+    case SegmentKind.IDENTIFIER: {
       if (node.kind !== NodeKind.OBJECT) {
         throw new Error(`Cannot write path segment "${segment.raw}"`)
       }
@@ -109,7 +109,7 @@ export function mapPathValues(
       break
     }
 
-    case PathSegmentKind.INDEX: {
+    case SegmentKind.INDEX: {
       if (node.kind === NodeKind.ARRAY) {
         if (path.length === 1) {
           setIndex(
