@@ -2,6 +2,10 @@ import test from 'ava'
 import { ObjectId } from 'bson'
 
 import { compileAggregationExpression } from './exports.js'
+import { compileExclusion, compileInclusion } from './expression.js'
+import { unwrapBSON, wrapBSON } from './lib/bson.js'
+import { ExpressionContext } from './lib/expression.js'
+import { NodeKind } from './lib/node.js'
 
 function exec(expr: unknown, ...docs: unknown[]): unknown {
   const fn = compileAggregationExpression(expr)
@@ -318,4 +322,37 @@ test('$sum', t => {
       result: 6,
     },
   )
+})
+
+test('compileExclusion', t => {
+  const fn = compileExclusion({
+    kind: NodeKind.EXPRESSION_PROJECT,
+    keys: ['b', 'z'],
+    values: {},
+    exclusion: true,
+  })
+
+  const doc = wrapBSON({ a: 4, b: 2 })
+
+  const ctx = new ExpressionContext(doc)
+
+  t.deepEqual(unwrapBSON(fn(doc, ctx)), { a: 4 })
+})
+
+test('compileInclusion', t => {
+  const fn = compileInclusion({
+    kind: NodeKind.EXPRESSION_PROJECT,
+    keys: ['a', 'b'],
+    values: {},
+    exclusion: false,
+  })
+
+  const doc = wrapBSON({ b: 42 })
+
+  const ctx = new ExpressionContext(doc)
+
+  t.deepEqual(unwrapBSON(fn(doc, ctx)), {
+    a: null,
+    b: 42,
+  })
 })

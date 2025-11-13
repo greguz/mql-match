@@ -110,17 +110,31 @@ ExpressionContext.operators.$toString = wrapOperator($toString)
 ExpressionContext.operators.$trunc = wrapOperator($trunc)
 ExpressionContext.operators.$type = wrapOperator($type)
 
+/**
+ * Compiled expression function.
+ */
 export type Expression = (node: BSONNode) => BSONNode
 
+/**
+ * Compiled expression function (internal).
+ */
+export type ExpressionResolver = (
+  doc: BSONNode,
+  ctx: ExpressionContext,
+) => BSONNode
+
+/**
+ * Parse and compile a BSON expression.
+ */
 export function compileExpression(node: BSONNode): Expression {
-  const expr = parseExpression(node)
-  return doc => evalExpression(expr, doc)
+  const fn = compileExpressionNode(parseExpressionNode(node))
+  return doc => fn(doc, new ExpressionContext(doc))
 }
 
 /**
- * Parse both values and operators.
+ *
  */
-function parseExpression(arg: BSONNode): ExpressionNode {
+export function parseExpressionNode(arg: BSONNode): ExpressionNode {
   let withoutId = false
   if (
     arg.kind === NodeKind.OBJECT &&
@@ -349,106 +363,154 @@ function isOperator(node: ObjectNode): boolean {
   return node.keys.length === 1 && node.keys[0][0] === '$'
 }
 
-/**
- * TODO: compileNode
- */
-function evalExpression(node: ExpressionNode, document: BSONNode) {
-  const ctx = new ExpressionContext(document)
-
-  switch (node.kind) {
-    case NodeKind.EXPRESSION_PROJECT:
-      return node.exclusion
-        ? applyExclusion(node, ctx.root, ctx.root)
-        : applyInclusion(node, ctx, ctx.root)
-    default:
-      return ctx.eval(node)
+export function compileExpressionNode(
+  node: ExpressionNode,
+): ExpressionResolver {
+  if (node.kind !== NodeKind.EXPRESSION_PROJECT) {
+    return (_doc, ctx) => ctx.eval(node)
   }
-}
-
-/**
- * Returns the projected value.
- */
-export function applyExclusion(
-  project: ExpressionProjectNode,
-  document: BSONNode,
-  projection: BSONNode,
-): BSONNode {
-  if (projection.kind === NodeKind.ARRAY) {
-    const nodes: BSONNode[] = []
-    for (let i = 0; i < projection.value.length; i++) {
-      if (projection.value[i].kind !== NodeKind.NULLISH) {
-        nodes.push(applyExclusion(project, document, projection.value[i]))
-      }
-    }
-    return wrapNodes(nodes)
+  if (node.exclusion) {
+    return compileExclusion(node)
   }
-  if (projection.kind !== NodeKind.OBJECT) {
-    // Nothing to do
-    return projection
-  }
-
-  const obj = wrapObjectRaw()
-
-  for (const key of projection.keys) {
-    // Key's value
-    const value = expected(projection.value[key])
-
-    // Child exclusion project (optional)
-    const childProject = project.values[key]
-
-    if (childProject) {
-      if (childProject.kind !== NodeKind.EXPRESSION_PROJECT) {
-        throw new Error('Expected exclusion projection')
-      }
-      setKey(obj, key, applyExclusion(childProject, document, value))
-    } else if (!project.keys.includes(key)) {
-      setKey(obj, key, value)
-    }
-  }
-
-  return obj
-}
-
-/**
- * Returns the projected value.
- */
-export function applyInclusion(
-  project: ExpressionProjectNode,
-  ctx: ExpressionContext,
-  projection: BSONNode,
-): BSONNode {
-  if (projection.kind === NodeKind.ARRAY) {
-    const nodes: BSONNode[] = []
-    for (let i = 0; i < projection.value.length; i++) {
-      if (projection.value[i].kind !== NodeKind.NULLISH) {
-        nodes.push(applyInclusion(project, ctx, projection.value[i]))
-      }
-    }
-    return wrapNodes(nodes)
-  }
-
-  // Project result
-  const obj = wrapObjectRaw()
-
-  for (const key of project.keys) {
-    const value = getKeyValue(projection, key)
-
-    const expression = project.values[key]
-
-    if (!expression) {
-      setKey(obj, key, value)
-    } else if (expression.kind === NodeKind.EXPRESSION_PROJECT) {
-      setKey(obj, key, applyInclusion(expression, ctx, value))
-    } else {
-      setKey(obj, key, ctx.eval(expression))
-    }
-  }
-
-  return obj
+  return compileInclusion(node)
 }
 
 function getKeyValue(node: BSONNode, key: string): BSONNode {
   return node.kind === NodeKind.OBJECT
     ? node.value[key] || nNullish()
     : nNullish()
+}
+
+/**
+ * Set a projected key value into `obj`.
+ * Extends the `ExpressionResolver` function.
+ */
+type KeyProjection = (
+  doc: BSONNode,
+  ctx: ExpressionContext,
+  obj: ObjectNode,
+) => void
+
+/**
+ *
+ */
+function merge(a: KeyProjection, b: KeyProjection): KeyProjection {
+  return (doc, ctx, obj) => {
+    a(doc, ctx, obj)
+    b(doc, ctx, obj)
+  }
+}
+
+export function compileExclusion(
+  node: ExpressionProjectNode,
+): ExpressionResolver {
+  if (!node.exclusion) {
+    throw new Error('Unexpected inclusion projection')
+  }
+  if (!node.keys.length) {
+    throw new Error('Expected at least one projected field')
+  }
+
+  // Sub-projections
+  let projectKeys: KeyProjection = () => {}
+
+  for (const key of node.keys) {
+    const value = node.values[key]
+    if (value) {
+      const project = compileExclusion(value as ExpressionProjectNode) // TODO: do not use "as"
+
+      projectKeys = merge(projectKeys, (doc, ctx, obj) => {
+        setKey(obj, key, project(getKeyValue(doc, key), ctx))
+      })
+    }
+  }
+
+  // Keys to exclude from the resulting object
+  const excludedKeys = node.keys
+
+  // Adds the recursive array projection to key projections
+  const projectDocument: ExpressionResolver = (doc, ctx) => {
+    if (doc.kind === NodeKind.ARRAY) {
+      const items: BSONNode[] = []
+      for (let i = 0; i < doc.value.length; i++) {
+        if (doc.value[i].kind !== NodeKind.NULLISH) {
+          items.push(projectDocument(doc.value[i], ctx))
+        }
+      }
+      return wrapNodes(items)
+    }
+
+    // Exclusion works only with objects
+    if (doc.kind !== NodeKind.OBJECT) {
+      return doc
+    }
+
+    const obj = wrapObjectRaw()
+
+    for (let i = 0; i < doc.keys.length; i++) {
+      if (!excludedKeys.includes(doc.keys[i])) {
+        setKey(obj, doc.keys[i], getKeyValue(doc, doc.keys[i]))
+      }
+    }
+
+    projectKeys(doc, ctx, obj)
+    return obj
+  }
+
+  return projectDocument
+}
+
+export function compileInclusion(
+  node: ExpressionProjectNode,
+): ExpressionResolver {
+  if (node.exclusion) {
+    throw new Error('Unexpected exclusion projection')
+  }
+  if (!node.keys.length) {
+    throw new Error('Expected at least one projected field')
+  }
+
+  const fns: KeyProjection[] = []
+
+  for (const key of node.keys) {
+    const expression = node.values[key]
+
+    if (!expression) {
+      fns.push((doc, _ctx, obj) => {
+        setKey(obj, key, getKeyValue(doc, key))
+      })
+    } else if (expression.kind === NodeKind.EXPRESSION_PROJECT) {
+      const project = compileInclusion(expression)
+
+      fns.push((doc, ctx, obj) => {
+        setKey(obj, key, project(getKeyValue(doc, key), ctx))
+      })
+    } else {
+      fns.push((_doc, ctx, obj) => {
+        setKey(obj, key, ctx.eval(expression))
+      })
+    }
+  }
+
+  // Merge all key projections into one
+  const projectKeys = fns.reduce(merge)
+
+  // Adds the recursive array projection to key projections
+  const projectDocument: ExpressionResolver = (doc, ctx) => {
+    if (doc.kind === NodeKind.ARRAY) {
+      const items: BSONNode[] = []
+      for (let i = 0; i < doc.value.length; i++) {
+        if (doc.value[i].kind !== NodeKind.NULLISH) {
+          items.push(projectDocument(doc.value[i], ctx))
+        }
+      }
+      return wrapNodes(items)
+    }
+
+    const obj = wrapObjectRaw()
+    projectKeys(doc, ctx, obj)
+    return obj
+  }
+
+  return projectDocument
 }

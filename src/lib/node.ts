@@ -348,7 +348,7 @@ export interface MatchArrayNode {
  */
 export interface MatchExpressionNode {
   kind: typeof NodeKind.MATCH_EXPRESSION
-  expression: BSONNode
+  expression: ExpressionNode
 }
 
 /**

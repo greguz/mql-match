@@ -1,5 +1,6 @@
-import { compileExpression } from './expression.js'
+import { compileExpressionNode, parseExpressionNode } from './expression.js'
 import { setKey, wrapObjectRaw } from './lib/bson.js'
+import { ExpressionContext } from './lib/expression.js'
 import type { MatchOperatorConstructor } from './lib/match.js'
 import {
   type BooleanNode,
@@ -90,7 +91,7 @@ export function parseMatchNode(query: BSONNode): MatchNode {
         setKey(obj, '$toBool', value)
         $and.nodes.push({
           kind: NodeKind.MATCH_EXPRESSION,
-          expression: obj,
+          expression: parseExpressionNode(obj),
         })
         break
       }
@@ -293,8 +294,8 @@ function compileArrayMatch({ node, path, negate }: MatchArrayNode): MatchQuery {
 }
 
 function compileMatchExpression(node: MatchExpressionNode): MatchQuery {
-  const fn = compileExpression(node.expression)
-  return doc => nBoolean(fn(doc).value === true)
+  const fn = compileExpressionNode(node.expression)
+  return doc => nBoolean(fn(doc, new ExpressionContext(doc)).value === true)
 }
 
 function compileMatchPath({
