@@ -5,9 +5,6 @@ import { compileMatch } from './match.js'
 import { compilePipeline } from './pipeline.js'
 import { compileUpdate } from './update.js'
 
-/**
- * @deprecated
- */
 export function compileAggregationExpression(value: unknown) {
   const expression = compileExpression(wrapBSON(value))
 
@@ -16,9 +13,6 @@ export function compileAggregationExpression(value: unknown) {
   }
 }
 
-/**
- * @deprecated
- */
 export function compileAggregationPipeline(
   stages: Array<Record<string, unknown>>,
 ) {
@@ -43,9 +37,6 @@ function unwrapIterable(docs: Iterable<BSONNode>): unknown[] {
   return results
 }
 
-/**
- * @deprecated
- */
 export function compileFilterQuery(query: unknown) {
   const match = compileMatch(wrapBSON(query))
 
@@ -54,9 +45,6 @@ export function compileFilterQuery(query: unknown) {
   }
 }
 
-/**
- * @deprecated
- */
 export function compileUpdateQuery(query: unknown) {
   const update = compileUpdate(wrapBSON(query))
 

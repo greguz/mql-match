@@ -22,10 +22,10 @@ This is a pure ESM package.
 ```javascript
 import { ObjectId } from 'bson' // or 'mongodb'
 import {
-  compileExpression,
-  compileMatch,
-  compilePipeline,
-  compileUpdate,
+  compileAggregationExpression,
+  compileAggregationPipeline,
+  compileFilterQuery,
+  compileUpdateQuery,
 } from 'mql-match'
 
 const documents = [
@@ -39,14 +39,14 @@ const documents = [
   },
 ]
 
-const match = compileMatch({
+const match = compileFilterQuery({
   _id: new ObjectId('507f1f77bcf86cd799439011'),
 })
 
 // logs { _id: new ObjectId("507f1f77bcf86cd799439011"), value: 130 }
 console.log(documents.find(match))
 
-const update = compileUpdate({
+const update = compileUpdateQuery({
   $set: {
     my: 'Pleasure',
   },
@@ -57,7 +57,7 @@ update(oldObject)
 // logs { _id: 'my_doc', my: 'Pleasure' }
 console.log(oldObject)
 
-const map = compileExpression({
+const map = compileAggregationExpression({
   _id: 0,
   item: 1,
   discount: {
@@ -73,7 +73,7 @@ const map = compileExpression({
 console.log(map({ _id: 3, item: 'xyz1', qty: 250 }))
 
 // Returns a function that accepts an iterable (both sync or async) and returns an async iterable
-const aggregate = compilePipeline([
+const aggregate = compileAggregationPipeline([
   {
     $match: {
       value: 42,
