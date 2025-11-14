@@ -1,6 +1,6 @@
 {
   "name": "mql-match",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "A MongoDB Query Language compiler.",
   "type": "module",
   "exports": {
